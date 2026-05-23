@@ -14,7 +14,7 @@ The game should feel readable, tactile, strategic, and pleasant to interact with
 
 ## Visual Style and Perspective
 
-The game should be viewed from a slightly elevated angled perspective, roughly 45 degrees above the ground, so the player and road tiles are seen from a soft top-down angle rather than directly overhead.
+The game should be viewed from a slightly elevated angled perspective, roughly 45 degrees above the ground.
 
 However, the gameplay grid itself should remain a normal square grid. Tiles should not use isometric diamonds or rotated coordinate systems. Movement and placement logic should still operate on a clean orthogonal grid with north/south/east/west adjacency.
 
@@ -26,7 +26,7 @@ Visually, this means:
 
 The overall feel should resemble a simple stylized tabletop adventure map viewed from slightly above and at an angle.
 
-The game is fully 2D. All rendering uses perfectly square 2D sprites and assets drawn to suggest this angled perspective. There is no 3D rendering, no 3D camera, and no isometric coordinate system.
+The game is fully 2D. All rendering uses perfectly square 2D sprites and assets drawn to suggest this angled perspective.
 
 ---
 
@@ -34,7 +34,7 @@ The game is fully 2D. All rendering uses perfectly square 2D sprites and assets 
 
 The playable map is a square grid, initially 9x9.
 
-The playable area is surrounded by a visual padding area that is always 3 tiles thick on every side. This padding exists only for camera framing and visual presentation.
+The playable area is surrounded by a visual padding area that is always 3 tiles thick on every side.
 
 The player cannot:
 - walk on padding tiles
@@ -42,7 +42,7 @@ The player cannot:
 
 The camera must never show outside this padded area.
 
-The grid itself should not be rendered visually as debug lines. The player should feel like they are navigating a world rather than interacting with a spreadsheet.
+The grid itself should not be rendered visually as debug lines.
 
 The map starts with only the start and goal tiles placed. All other tiles are empty.
 
@@ -61,6 +61,8 @@ Coordinates use:
 - Y increasing top to bottom
 
 Road openings may never point outside the playable map.
+
+The start and goal tiles are permanent occupied tiles and may never be overwritten.
 
 ---
 
@@ -90,6 +92,8 @@ When placement mode is active:
 
 The player is represented by a simple marker or pawn.
 
+The player pawn visually indicates the current tile position.
+
 When the player taps an adjacent tile that has a valid road connection, the player marker moves there.
 
 Movement rules:
@@ -99,17 +103,25 @@ Movement rules:
 - movement is only allowed if both tiles connect correctly toward each other
 - movement is processed one step at a time
 
-The player starts each run with food equal to the playable map width multiplied by 3. On a 9x9 map this is 27 food. In version 1 there is no way to gain additional food.
+Connections are fully bidirectional.
+
+The player may freely backtrack if valid roads and food exist.
+
+The player starts each run with food equal to the playable map width multiplied by 3. On a 9x9 map this is 27 food.
 
 The movement itself should be tweened/interpolated over a short duration so the marker appears to travel along the road rather than teleport instantly.
 
 Movement should feel smooth and tactile, but still quick.
 
+Gameplay interaction should be temporarily disabled during movement tweening.
+
 ---
 
 # Cards and Decks
 
-Version 1 uses a single shared deck per run. There is no persistent personal deck and no progression between runs.
+Version 1 uses a single shared deck per run.
+
+There is no persistent personal deck and no progression between runs.
 
 The deck contains one card per playable tile — on a 9x9 map that is 81 cards total.
 
@@ -129,9 +141,16 @@ When a card is used:
 
 Cards are not reshuffled during a run.
 
-When the deck is empty, no new cards are drawn. The player continues with whatever cards remain in hand. Having fewer than 5 cards is not a losing state.
+When the deck is empty, no new cards are drawn.
+
+The player may continue moving and playing remaining cards freely.
 
 There is no discard action.
+
+The player may:
+- move multiple times before placing
+- place multiple tiles before moving
+- freely mix actions in any order
 
 ---
 
@@ -139,7 +158,7 @@ There is no discard action.
 
 The player’s hand is displayed at the bottom of the screen.
 
-Cards are shown overlapping slightly in a curved arc so the hand feels physical and readable on mobile screens.
+Cards are shown overlapping slightly in a curved arc.
 
 The hand should always fit within the screen width by dynamically compressing the spacing between cards when necessary.
 
@@ -149,11 +168,15 @@ When the player taps a card:
 - the selected card becomes larger and easier to read
 - a "Use" button appears on the lower part of the focused card
 
-The Use button is only visible when a card is focused. Tapping a card that is not focused only focuses it — it does not trigger any action.
+The Use button is only visible when a card is focused.
 
-Tapping the Use button on a road card enters placement mode. Tapping the Use button on an event card triggers the event immediately or enters targeting mode.
+Tapping the Use button on a road card enters placement mode.
 
-Tapping a different card focuses that card instead. Tapping outside the hand deselects the current card.
+Tapping the Use button on an event card triggers the event immediately or enters targeting mode.
+
+Tapping a different card focuses that card instead.
+
+Tapping outside the hand deselects the current card.
 
 Cards cannot be manually reordered in version 1.
 
@@ -192,18 +215,24 @@ Road cards can be rotated before placement.
 When the player selects a road card from their hand, the game enters placement mode.
 
 In placement mode:
-- a preview of the tile follows the player's finger across the map
-- the preview tile is highlighted green when placement is valid
-- the preview tile is highlighted red when placement is invalid
+- the player may tap any tile on the map
+- a preview tile snaps to the tapped tile
+- the preview tile is tinted green when placement is valid
+- the preview tile is tinted red when placement is invalid
+- the preview tile itself acts as the visual placement hint
 - three buttons appear below the preview: rotate, confirm, and cancel
 - the rotate button turns the tile 90 degrees clockwise
 - double tapping the preview tile also rotates it
+- invalid preview tiles may still be rotated
 - the confirm button is only active while the preview is valid
+- tapping another tile moves the preview there
 - the cancel button exits placement mode and returns the card to the hand
 
-A road card may only be placed:
+There is no dragging, follow-finger behavior, or continuous placement movement.
+
+A road card may only be legally placed:
 - on an empty playable tile
-- directly adjacent to the player’s current position
+- orthogonally adjacent to the player’s current tile
 
 A placement is only valid if all of the following are true:
 - the new tile is adjacent to the player's current tile
@@ -214,7 +243,7 @@ A placement is only valid if all of the following are true:
 
 Neighboring tiles without openings toward the new tile are valid.
 
-It is not sufficient for the new tile to connect somewhere else in the road network. The connection must always pass through the player's current position.
+A connection is only valid if both tiles connect toward each other.
 
 ---
 
@@ -239,6 +268,14 @@ The UI mirrors placement mode:
 
 Destroying a tile is allowed to create strange or awkward road layouts.
 
+If an event card has no valid targets, the player may simply cancel it.
+
+Future event cards may use different targeting rules such as:
+- orthogonal targeting
+- diagonal targeting
+- random tile targeting
+- unrestricted map targeting
+
 The second event draws two extra cards immediately. If fewer than two cards remain in the deck, it draws whatever is left.
 
 ---
@@ -247,7 +284,7 @@ The second event draws two extra cards immediately. If fewer than two cards rema
 
 The run is won immediately when the player moves onto the goal tile at the top of the map.
 
-In version 1, no further logic is needed. A simple placeholder message such as "You won" is sufficient.
+A simple placeholder message such as "You won" is sufficient.
 
 ---
 
@@ -257,9 +294,7 @@ Movement consumes food.
 
 Every movement action costs 1 food.
 
-The run ends when the player runs out of food or becomes stuck with no valid moves remaining.
-
-In version 1 there is no hard lock prevention.
+The run ends when the player has no valid movement available.
 
 Food should feel like a constant pressure that discourages unnecessary movement and backtracking.
 
