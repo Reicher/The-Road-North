@@ -15,6 +15,10 @@ Suggested root structure:
 - ui/
 - levels/
 
+Version 1 should remain lightweight and avoid unnecessary abstractions.
+
+The project should feel like a small focused game rather than a reusable engine.
+
 ---
 
 # Main Scene Structure
@@ -27,10 +31,9 @@ Main scene:
 Responsibilities:
 - loading levels
 - global game startup
-- scene transitions
-- persistent systems if needed later
+- scene transitions if needed later
 
-Version 1 should remain lightweight.
+Version 1 should stay minimal.
 
 ---
 
@@ -47,7 +50,8 @@ The Level scene is responsible for:
 - player placement
 - card interactions
 - camera
-- win/loss state
+- game state
+- win/loss handling
 
 Suggested Level scene structure:
 
@@ -55,15 +59,37 @@ Suggested Level scene structure:
   - Map
   - Roads
   - Player
+  - PlacementController
   - Camera
   - UI
     - Hand
     - HUD
-    - PlacementUI
 
 The Level scene should contain very little direct gameplay logic itself.
 
 Most logic should live in dedicated child nodes and scripts.
+
+There should only be one PlacementController in the scene.
+
+---
+
+# Game States
+
+The game should use explicit high-level states.
+
+Suggested states:
+- idle
+- card_focused
+- placement_mode
+- event_targeting
+- player_moving
+- win_screen
+
+This is primarily to simplify touch interactions and prevent conflicting input behavior.
+
+Version 1 does not need a large generic state machine framework.
+
+A simple enum and straightforward logic is sufficient.
 
 ---
 
@@ -74,17 +100,24 @@ The Map node owns:
 - padding dimensions
 - tile lookup
 - placement validation
+- movement validation
+- coordinate conversion
 - helper coordinate functions
 
 The Map node should expose helper methods such as:
 - get_tile(position)
 - can_place_tile(position, connections)
+- can_move_between(a, b)
 - get_neighbors(position)
 - is_inside_playable_area(position)
+- world_to_grid(position)
+- grid_to_world(position)
 
 The Map should not know anything about cards or UI.
 
 It only understands tiles and rules.
+
+The Map should be the single owner of world/grid coordinate conversion.
 
 ---
 
@@ -111,6 +144,10 @@ Example:
 
 Rotation should transform openings dynamically rather than requiring separate scenes for every orientation.
 
+TileDefinition resources should be the single source of truth for connection data.
+
+Avoid duplicating connection logic across scenes or scripts.
+
 ---
 
 # Tile Scene
@@ -125,11 +162,14 @@ Suggested structure:
 
 The Tile scene should:
 - display visuals
-- expose connection data
 - support rotation
 - support placement highlighting
 
 The Tile scene should not own gameplay rules.
+
+The Tile scene should read connection information from TileDefinition resources.
+
+Road visuals should remain perfectly square and aligned to the grid.
 
 ---
 
@@ -154,6 +194,8 @@ The Player scene should not directly validate movement.
 
 The Map handles validation.
 
+Movement should always resolve one step at a time.
+
 ---
 
 # Hand System
@@ -169,16 +211,16 @@ Cards:
 - ui/hand/card.tscn
 
 The Hand system owns:
-- card ordering
 - card selection
-- drag reordering
 - focus state
 - animations
+- dynamic spacing/compression
+
+Cards are not manually reorderable in version 1.
 
 The Level scene should only receive high-level signals such as:
 - card_selected
 - card_used
-- card_reordered
 
 The hand should not directly manipulate map state.
 
@@ -209,10 +251,7 @@ It only knows:
 
 # Placement Mode
 
-Placement mode should be its own isolated controller.
-
-Suggested node:
-- PlacementController
+Placement mode should be handled by a dedicated PlacementController node.
 
 Responsibilities:
 - showing preview tile
@@ -225,6 +264,10 @@ The controller should query the Map for validation.
 
 The controller should not permanently modify map state until confirmation.
 
+Double tapping the preview tile should rotate it.
+
+Version 1 does not need a generic placement framework.
+
 ---
 
 # Event Cards
@@ -233,7 +276,14 @@ Event cards should use the same card pipeline as road cards.
 
 The difference should primarily exist in:
 - card data
-- execution behavior
+- explicit card behavior
+
+Avoid generic effect systems in version 1.
+
+Examples:
+- road cards enter placement mode
+- destroy cards enter target selection mode
+- draw cards immediately draw cards
 
 Avoid separate UI systems for event cards.
 
@@ -254,30 +304,32 @@ Suggested structure:
 
 Prefer implementing touch handling in a dedicated camera controller script.
 
+When placement mode is active:
+- single finger controls placement
+- two finger gestures may still pan/zoom
+
 ---
 
 # Data Definitions
 
-Road cards and event cards should preferably be data-defined.
+Road cards and event cards should use Godot Resources.
 
-Possible approaches:
-- Resources
-- JSON
-- dictionaries
-
-Version 1 can use lightweight Godot Resources.
+Version 1 should avoid:
+- JSON config systems
+- generic scripting systems
+- external data pipelines
 
 Example concepts:
 - CardDefinition
 - TileDefinition
 
-This keeps gameplay rules separate from scenes.
+This keeps gameplay rules separate from scenes while staying simple.
 
 ---
 
 # Signals
 
-Use Godot signals heavily.
+Use signals primarily upward through the scene hierarchy.
 
 Examples:
 - card_used
@@ -286,7 +338,9 @@ Examples:
 - tile_destroyed
 - run_won
 
-Avoid tight coupling between UI and gameplay systems.
+Prefer direct references downward.
+
+Avoid unnecessary signal chains or event-bus-style architecture.
 
 ---
 
@@ -297,6 +351,7 @@ Version 1 should optimize for:
 - simple responsibilities
 - readable code
 - iteration speed
+- minimal architecture
 
 Avoid:
 - singleton-heavy architecture
@@ -304,5 +359,9 @@ Avoid:
 - premature save systems
 - multiplayer assumptions
 - generic frameworks
+- factories
+- registries
+- generic effect pipelines
+- reusable engine-style abstractions
 
-The project should feel like a small, focused Godot game rather than an engine.
+The project should feel like a small focused Godot game rather than an engine.
