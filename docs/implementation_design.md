@@ -59,6 +59,7 @@ Suggested Level scene structure:
   - Map
   - Roads
   - Player
+  - DeckController
   - PlacementController
   - Camera
   - UI
@@ -119,6 +120,23 @@ It only understands tiles and rules.
 
 The Map should be the single owner of world/grid coordinate conversion.
 
+The Map should own all logical tile data.
+
+---
+
+# Roads Node
+
+The Roads node owns all spawned visual road tile scenes.
+
+Responsibilities:
+- spawning tile scenes
+- removing tile scenes
+- updating tile visuals
+
+The Roads node should not contain gameplay rules.
+
+Logical validation should remain inside the Map node.
+
 ---
 
 # Road Tile Representation
@@ -171,6 +189,8 @@ The Tile scene should read connection information from TileDefinition resources.
 
 Road visuals should remain perfectly square and aligned to the grid.
 
+Preview tiles should use light tinting to indicate valid or invalid placement.
+
 ---
 
 # Player
@@ -195,6 +215,23 @@ The Player scene should not directly validate movement.
 The Map handles validation.
 
 Movement should always resolve one step at a time.
+
+The player pawn itself visually indicates the current tile.
+
+---
+
+# DeckController
+
+DeckController owns:
+- deck generation
+- deck shuffling
+- draw pile
+- draw logic
+- hand refill
+
+The DeckController should not contain hand UI logic.
+
+The Hand node only displays cards.
 
 ---
 
@@ -244,8 +281,13 @@ Responsibilities:
 The Card should not know gameplay rules.
 
 It only knows:
-- card type
+- card category
 - visual state
+
+CardDefinition resources should minimally contain:
+- card_category
+- tile_definition for road cards
+- event_type for event cards
 
 ---
 
@@ -255,6 +297,7 @@ Placement mode should be handled by a dedicated PlacementController node.
 
 Responsibilities:
 - showing preview tile
+- moving preview tile
 - rotating preview
 - validating placement
 - confirming placement
@@ -263,6 +306,21 @@ Responsibilities:
 The controller should query the Map for validation.
 
 The controller should not permanently modify map state until confirmation.
+
+Placement flow:
+- player presses Use on a road card
+- player taps anywhere on the map
+- preview tile snaps to the tapped tile
+- preview becomes green or red depending on validity
+- player may rotate the preview
+- player confirms or cancels
+
+The player may tap another tile to move the preview.
+
+There should be:
+- no dragging
+- no follow-finger placement
+- no continuous movement placement
 
 Double tapping the preview tile should rotate it.
 
@@ -284,6 +342,8 @@ Examples:
 - road cards enter placement mode
 - destroy cards enter target selection mode
 - draw cards immediately draw cards
+
+Future event cards may use different targeting patterns.
 
 Avoid separate UI systems for event cards.
 
