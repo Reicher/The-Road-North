@@ -1,0 +1,15 @@
+# Godot 4+
+.godot/
+.import/
+export.cfg
+export_presets.cfg
+
+# Mono
+.mono/
+
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
