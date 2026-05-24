@@ -83,6 +83,14 @@ func clear_tile(grid_position: Vector2i) -> void:
 	tiles.erase(grid_position)
 
 
+func get_start_position() -> Vector2i:
+	return Vector2i(playable_width / 2, playable_height - 1)
+
+
+func get_goal_position() -> Vector2i:
+	return Vector2i(playable_width / 2, 0)
+
+
 func can_place_tile(grid_position: Vector2i, connections: Dictionary = {}) -> bool:
 	if not is_inside_playable_area(grid_position):
 		return false

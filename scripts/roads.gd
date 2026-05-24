@@ -22,12 +22,8 @@ func _ready() -> void:
 
 
 func seed_run_endpoints() -> void:
-	var center_x := _map.playable_width / 2
-	var start_position := Vector2i(center_x, _map.playable_height - 1)
-	var goal_position := Vector2i(center_x, 0)
-
-	force_place_tile(start_position, start_definition, 0)
-	force_place_tile(goal_position, goal_definition, 2)
+	force_place_tile(_map.get_start_position(), start_definition, 0)
+	force_place_tile(_map.get_goal_position(), goal_definition, 2)
 
 
 func place_tile(grid_position: Vector2i, definition: Resource, rotation_steps: int = 0) -> bool:

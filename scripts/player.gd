@@ -2,23 +2,28 @@ class_name GamePlayer
 extends Node2D
 
 signal food_changed(food: int)
+signal health_changed(health: int)
 signal moved(grid_position: Vector2i)
 signal move_blocked(target_position: Vector2i, reason: String)
 
 @export var map_path: NodePath
 @export var food_label_path: NodePath
+@export var health_label_path: NodePath
 @export var start_position := Vector2i(-1, -1)
 @export var starting_food := -1
+@export var starting_health := 5
 @export_range(0.0, 1.0, 0.01) var move_duration := 0.16
 @export var pawn_color := Color(0.93, 0.56, 0.25)
 @export var pawn_shadow_color := Color(0.18, 0.16, 0.14, 0.32)
 
 var grid_position := Vector2i.ZERO
 var food := 0
+var health := 0
 var input_enabled := true
 
 var _map: GameMap
 var _food_label: Label
+var _health_label: Label
 var _moving := false
 var _move_target := Vector2i.ZERO
 
@@ -26,6 +31,7 @@ var _move_target := Vector2i.ZERO
 func _ready() -> void:
 	_map = get_node_or_null(map_path) as GameMap
 	_food_label = get_node_or_null(food_label_path) as Label
+	_health_label = get_node_or_null(health_label_path) as Label
 
 	if _map == null:
 		push_warning("Player needs a GameMap at map_path.")
@@ -37,7 +43,9 @@ func _ready() -> void:
 	grid_position = start_position
 	position = _map.grid_to_world(grid_position)
 	food = starting_food if starting_food >= 0 else _map.playable_width * 3
+	health = starting_health
 	_update_food_label()
+	_update_health_label()
 
 	if not _map.tile_pressed.is_connected(_on_tile_pressed):
 		_map.tile_pressed.connect(_on_tile_pressed)
@@ -100,6 +108,14 @@ func is_moving() -> bool:
 	return _moving
 
 
+func set_health(value: int) -> void:
+	if health == value:
+		return
+	health = value
+	_update_health_label()
+	health_changed.emit(health)
+
+
 func _on_tile_pressed(target_position: Vector2i) -> void:
 	if not input_enabled:
 		return
@@ -119,3 +135,8 @@ func _on_move_tween_finished() -> void:
 func _update_food_label() -> void:
 	if _food_label != null:
 		_food_label.text = "Food: %d" % food
+
+
+func _update_health_label() -> void:
+	if _health_label != null:
+		_health_label.text = "Health: %d" % health

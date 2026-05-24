@@ -38,6 +38,8 @@ signal use_requested(card: CardView)
 		card_color = value
 		queue_redraw()
 
+@export var event_type := ""
+
 @export var card_border_color := Color(0.24, 0.19, 0.15):
 	set(value):
 		card_border_color = value
@@ -93,6 +95,7 @@ func configure(card_data: Dictionary) -> void:
 	title = str(card_data.get("title", _title_from_definition()))
 	category = str(card_data.get("category", "Road"))
 	detail = str(card_data.get("detail", _detail_from_definition()))
+	event_type = str(card_data.get("event_type", ""))
 	card_color = card_data.get("card_color", card_color)
 
 

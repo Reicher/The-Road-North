@@ -3,6 +3,8 @@ extends Node
 
 const ROAD_CATEGORY := "Road"
 const EVENT_CATEGORY := "Event"
+const EVENT_DESTROY_NEIGHBOR := "destroy_neighbor"
+const EVENT_DRAW_TWO := "draw_two"
 
 const ROAD_CARD_RATIO := 0.75
 const HAND_SIZE := 5
@@ -111,6 +113,20 @@ func refill_hand() -> void:
 		_hand.add_card(card)
 
 
+func draw_extra_cards(count: int) -> int:
+	if _hand == null:
+		return 0
+
+	var drawn := 0
+	for _index in count:
+		var card: Dictionary = draw_card()
+		if card.is_empty():
+			break
+		_hand.add_card(card)
+		drawn += 1
+	return drawn
+
+
 func cards_remaining() -> int:
 	return deck.size()
 
@@ -127,7 +143,9 @@ func consume_card(card: CardView) -> bool:
 func _on_card_use_requested(card: CardView) -> void:
 	if card.category == ROAD_CATEGORY:
 		return
-	consume_card(card)
+	if card.event_type == EVENT_DRAW_TWO:
+		if consume_card(card):
+			draw_extra_cards(2)
 
 
 func _get_deck_size() -> int:

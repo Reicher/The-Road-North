@@ -4,9 +4,14 @@ extends Node2D
 signal placement_started(card: CardView)
 signal placement_cancelled(card: CardView)
 signal placement_confirmed(grid_position: Vector2i, card: CardView)
+signal tile_destroyed(grid_position: Vector2i, card: CardView)
 
 const VALID_COLOR := Color(0.20, 0.90, 0.32, 0.46)
 const INVALID_COLOR := Color(0.95, 0.18, 0.14, 0.50)
+const TARGET_COLOR := Color(0.98, 0.83, 0.24, 0.62)
+const MODE_NONE := ""
+const MODE_ROAD_PLACEMENT := "road_placement"
+const MODE_DESTROY_TARGETING := "destroy_targeting"
 
 @export var map_path: NodePath
 @export var roads_path: NodePath
@@ -21,6 +26,7 @@ var active_card: CardView
 var active_definition: Resource
 var preview_position := Vector2i(-1, -1)
 var rotation_steps := 0
+var active_mode := MODE_NONE
 
 var _map: GameMap
 var _roads: Roads
@@ -28,6 +34,7 @@ var _player: GamePlayer
 var _hand: HandUI
 var _deck_controller: DeckController
 var _preview_tile: RoadTile
+var _targeted_tiles: Array[Vector2i] = []
 var _controls_layer: CanvasLayer
 var _prompt_label: Label
 var _controls: HBoxContainer
@@ -77,7 +84,7 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if active_card == null or preview_position.x < 0:
+	if active_card == null or active_mode != MODE_ROAD_PLACEMENT or preview_position.x < 0:
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and event.double_click:
@@ -99,6 +106,7 @@ func begin_placement(card: CardView) -> bool:
 
 	active_card = card
 	active_definition = card.tile_definition
+	active_mode = MODE_ROAD_PLACEMENT
 	preview_position = Vector2i(-1, -1)
 	rotation_steps = 0
 	_placement_valid = false
@@ -111,8 +119,29 @@ func begin_placement(card: CardView) -> bool:
 	return true
 
 
+func begin_destroy_targeting(card: CardView) -> bool:
+	if card == null or card.category != DeckController.EVENT_CATEGORY or card.event_type != DeckController.EVENT_DESTROY_NEIGHBOR:
+		return false
+
+	active_card = card
+	active_definition = null
+	active_mode = MODE_DESTROY_TARGETING
+	preview_position = Vector2i(-1, -1)
+	rotation_steps = 0
+	_placement_valid = false
+	_player.input_enabled = false
+	_hand.clear_focus()
+	_shift_hand_for_placement()
+	_hide_preview()
+	_highlight_destroy_targets()
+	_show_destroy_controls()
+	_show_prompt()
+	placement_started.emit(card)
+	return true
+
+
 func rotate_preview() -> void:
-	if active_card == null:
+	if active_card == null or active_mode != MODE_ROAD_PLACEMENT:
 		return
 	rotation_steps = posmod(rotation_steps + 1, 4)
 	_refresh_preview()
@@ -120,6 +149,10 @@ func rotate_preview() -> void:
 
 func confirm_placement() -> bool:
 	if active_card == null or not _placement_valid:
+		return false
+	if active_mode == MODE_DESTROY_TARGETING:
+		return _confirm_destroy_target()
+	if active_mode != MODE_ROAD_PLACEMENT:
 		return false
 
 	var placed := _roads.place_tile(preview_position, active_definition, rotation_steps)
@@ -151,7 +184,10 @@ func has_valid_preview() -> bool:
 
 
 func _on_card_use_requested(card: CardView) -> void:
-	begin_placement(card)
+	if card.category == DeckController.ROAD_CATEGORY:
+		begin_placement(card)
+	elif card.event_type == DeckController.EVENT_DESTROY_NEIGHBOR:
+		begin_destroy_targeting(card)
 
 
 func _on_tile_pressed(grid_position: Vector2i) -> void:
@@ -164,6 +200,9 @@ func _on_tile_pressed(grid_position: Vector2i) -> void:
 func _refresh_preview() -> void:
 	if active_card == null or preview_position.x < 0:
 		_hide_preview()
+		return
+	if active_mode == MODE_DESTROY_TARGETING:
+		_refresh_destroy_target()
 		return
 
 	_ensure_preview_tile()
@@ -191,10 +230,45 @@ func _is_valid_placement(grid_position: Vector2i, connections: Dictionary) -> bo
 	return _map.can_place_tile(grid_position, connections)
 
 
+func _is_valid_destroy_target(grid_position: Vector2i) -> bool:
+	if _map.get_tile(grid_position) == null:
+		return false
+	if grid_position == _map.get_start_position() or grid_position == _map.get_goal_position():
+		return false
+	if grid_position == _player.grid_position:
+		return false
+	return true
+
+
+func _confirm_destroy_target() -> bool:
+	var destroyed_card := active_card
+	var destroyed_position := preview_position
+	_roads.remove_tile(destroyed_position)
+	if _deck_controller != null:
+		_deck_controller.consume_card(destroyed_card)
+	else:
+		_hand.remove_card(destroyed_card)
+	_end_placement(false)
+	tile_destroyed.emit(destroyed_position, destroyed_card)
+	return true
+
+
+func _refresh_destroy_target() -> void:
+	_placement_valid = _is_valid_destroy_target(preview_position)
+	_prompt_label.visible = false
+	_rotate_button.visible = false
+	_confirm_button.disabled = not _placement_valid
+	_controls.visible = true
+	_position_controls()
+	_refresh_target_highlights()
+	set_process(true)
+
+
 func _end_placement(keep_card_focused: bool) -> void:
 	var ending_card := active_card
 	active_card = null
 	active_definition = null
+	active_mode = MODE_NONE
 	preview_position = Vector2i(-1, -1)
 	rotation_steps = 0
 	_placement_valid = false
@@ -204,6 +278,7 @@ func _end_placement(keep_card_focused: bool) -> void:
 	elif not keep_card_focused:
 		_hand.clear_focus()
 	_restore_hand_after_placement()
+	_clear_target_highlights()
 	_hide_preview()
 
 
@@ -219,6 +294,8 @@ func _hide_preview() -> void:
 		_preview_tile.visible = false
 	if _controls != null:
 		_controls.visible = false
+	if _rotate_button != null:
+		_rotate_button.visible = true
 	if _prompt_label != null:
 		_prompt_label.visible = false
 	if _confirm_button != null:
@@ -277,9 +354,50 @@ func _make_button(text: String) -> Button:
 
 
 func _show_prompt() -> void:
+	if active_mode == MODE_DESTROY_TARGETING:
+		_prompt_label.text = "Choose tile"
+	else:
+		_prompt_label.text = "Place tile"
 	_prompt_label.visible = true
 	_position_prompt()
 	set_process(true)
+
+
+func _show_destroy_controls() -> void:
+	_rotate_button.visible = false
+	_confirm_button.disabled = true
+	_controls.visible = true
+	_position_controls()
+	set_process(true)
+
+
+func _highlight_destroy_targets() -> void:
+	_targeted_tiles.clear()
+	for grid_position in _map.tiles:
+		_targeted_tiles.append(grid_position)
+	_refresh_target_highlights()
+
+
+func _refresh_target_highlights() -> void:
+	for grid_position in _targeted_tiles:
+		var visual_tile := _roads.get_visual_tile(grid_position)
+		if visual_tile == null:
+			continue
+		var valid := _is_valid_destroy_target(grid_position)
+		var color := VALID_COLOR if valid else INVALID_COLOR
+		if grid_position == preview_position:
+			color = VALID_COLOR if valid else INVALID_COLOR
+		elif valid:
+			color = TARGET_COLOR
+		visual_tile.set_highlight(true, color)
+
+
+func _clear_target_highlights() -> void:
+	for grid_position in _targeted_tiles:
+		var visual_tile := _roads.get_visual_tile(grid_position)
+		if visual_tile != null:
+			visual_tile.set_highlight(false)
+	_targeted_tiles.clear()
 
 
 func _position_prompt() -> void:
@@ -325,7 +443,7 @@ func _tween_hand_to(target_position: Vector2) -> void:
 
 func _position_controls() -> void:
 	_position_prompt()
-	if _controls == null or not _controls.visible or _map == null or preview_position.x < 0:
+	if _controls == null or not _controls.visible or _map == null:
 		return
 	if not is_inside_tree():
 		return
@@ -336,10 +454,16 @@ func _position_controls() -> void:
 		_controls.size = minimum_size
 		controls_size = minimum_size
 
-	var preview_world := _map.grid_to_world(preview_position)
-	var canvas_position: Vector2 = _map.get_global_transform_with_canvas() * preview_world
-	var preferred_position := canvas_position + Vector2(-controls_size.x * 0.5, _map.tile_size * 0.56)
 	var viewport_size := get_viewport_rect().size
+	var preferred_position := Vector2.ZERO
+	if preview_position.x >= 0:
+		var preview_world := _map.grid_to_world(preview_position)
+		var canvas_position: Vector2 = _map.get_global_transform_with_canvas() * preview_world
+		preferred_position = canvas_position + Vector2(-controls_size.x * 0.5, _map.tile_size * 0.56)
+	else:
+		var hand_offset := _hand.card_size.y * hand_placement_offset_ratio
+		preferred_position = Vector2((viewport_size.x - controls_size.x) * 0.5, viewport_size.y - hand_offset - controls_size.y - 8.0)
+
 	preferred_position.x = clampf(preferred_position.x, 8.0, maxf(8.0, viewport_size.x - controls_size.x - 8.0))
 	preferred_position.y = clampf(preferred_position.y, 8.0, maxf(8.0, viewport_size.y - controls_size.y - 8.0))
 	_controls.position = preferred_position

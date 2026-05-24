@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/map.gd" id="1_ab4jp"]
 [ext_resource type="Script" path="res://scripts/map_camera.gd" id="2_u2vaw"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/hand_ui.gd" id="4_0v6l3"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="4_3xm24"]
 [ext_resource type="Script" path="res://scripts/placement_controller.gd" id="6_pf4am"]
+[ext_resource type="Script" path="res://scripts/inventory_ui.gd" id="8_ddx2e"]
 
 [node name="Level" type="Node2D"]
 
@@ -20,6 +21,7 @@ map_path = NodePath("../Map")
 [node name="Player" parent="." instance=ExtResource("4_3xm24")]
 map_path = NodePath("../Map")
 food_label_path = NodePath("../FoodLabel")
+health_label_path = NodePath("../HealthLabel")
 
 [node name="PlacementController" type="Node2D" parent="."]
 script = ExtResource("6_pf4am")
@@ -48,6 +50,13 @@ offset_right = 296.0
 offset_bottom = 82.0
 text = "Food: 27"
 
+[node name="HealthLabel" type="Label" parent="."]
+offset_left = 24.0
+offset_top = 88.0
+offset_right = 296.0
+offset_bottom = 114.0
+text = "Health: 5"
+
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="Hand" type="Control" parent="UI"]
@@ -58,6 +67,14 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("4_0v6l3")
 demo_cards_enabled = false
+
+[node name="Inventory" type="Control" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("8_ddx2e")
 
 [node name="DeckController" type="Node" parent="."]
 script = ExtResource("4_0bp0f")
