@@ -1,8 +1,9 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/map.gd" id="1_ab4jp"]
 [ext_resource type="Script" path="res://scripts/map_camera.gd" id="2_u2vaw"]
 [ext_resource type="Script" path="res://scripts/roads.gd" id="2_vxv7f"]
+[ext_resource type="Script" path="res://scripts/deck_controller.gd" id="4_0bp0f"]
 [ext_resource type="Script" path="res://scripts/hand_ui.gd" id="4_0v6l3"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="4_3xm24"]
 
@@ -47,3 +48,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("4_0v6l3")
+demo_cards_enabled = false
+
+[node name="DeckController" type="Node" parent="."]
+script = ExtResource("4_0bp0f")
+map_path = NodePath("../Map")
+hand_path = NodePath("../UI/Hand")

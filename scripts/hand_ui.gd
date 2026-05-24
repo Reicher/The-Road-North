@@ -71,6 +71,24 @@ func add_card(card_data: Dictionary, animate := true) -> CardView:
 	return card
 
 
+func remove_card(card: CardView, animate := true) -> bool:
+	var index := cards.find(card)
+	if index == -1:
+		return false
+
+	var removed_focused_card := focused_index == index
+	cards.remove_at(index)
+	if removed_focused_card:
+		focused_index = -1
+	elif focused_index > index:
+		focused_index -= 1
+	card.queue_free()
+	if removed_focused_card:
+		card_unfocused.emit()
+	_layout_cards(animate)
+	return true
+
+
 func clear_focus() -> void:
 	if focused_index == -1:
 		return
