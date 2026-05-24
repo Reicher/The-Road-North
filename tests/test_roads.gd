@@ -14,6 +14,7 @@ func _initialize() -> void:
 	var map = MAP_SCRIPT.new()
 	map.name = "Map"
 	root.add_child(map)
+	_assert(map.get_padded_world_rect() == map.get_playable_world_rect(), "Expected map bounds to exclude visual padding")
 
 	var roads = ROADS_SCRIPT.new()
 	roads.name = "Roads"

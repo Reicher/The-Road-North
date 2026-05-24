@@ -27,11 +27,6 @@ const OPPOSITE_DIRECTIONS: Dictionary = {
 		playable_height = value
 		queue_redraw()
 
-@export_range(0, 16, 1) var padding := 3:
-	set(value):
-		padding = value
-		queue_redraw()
-
 @export_range(16.0, 256.0, 1.0) var tile_size := 96.0:
 	set(value):
 		tile_size = value
@@ -163,8 +158,7 @@ func get_playable_world_rect() -> Rect2:
 
 
 func get_padded_world_rect() -> Rect2:
-	var padding_size: Vector2 = Vector2.ONE * padding * tile_size
-	return Rect2(-padding_size, Vector2(playable_width, playable_height) * tile_size + padding_size * 2.0)
+	return get_playable_world_rect()
 
 
 func _direction_name_for_delta(delta: Vector2i) -> String:

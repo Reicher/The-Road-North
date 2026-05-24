@@ -98,7 +98,6 @@ A simple enum and straightforward logic is sufficient.
 
 The Map node owns:
 - playable dimensions
-- padding dimensions
 - tile lookup
 - placement validation
 - movement validation
@@ -354,7 +353,7 @@ Avoid separate UI systems for event cards.
 The Camera node should:
 - support pinch zoom
 - support two-finger pan
-- clamp to padded map bounds
+- clamp to playable map bounds
 
 The camera should not automatically follow the player.
 

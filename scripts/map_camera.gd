@@ -20,22 +20,37 @@ func _ready() -> void:
 		zoom = Vector2.ONE * _get_zoom_out_limit()
 		_clamp_position()
 
+
+func _input(event: InputEvent) -> void:
+	if _handle_scroll_zoom(event):
+		get_viewport().set_input_as_handled()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if _map == null:
 		return
 
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
-			_apply_zoom(zoom.x + zoom_step, get_global_mouse_position())
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
-			_apply_zoom(zoom.x - zoom_step, get_global_mouse_position())
-	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE) != 0:
+	if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE) != 0:
 		position -= event.relative / zoom
 		_clamp_position()
 	elif event is InputEventScreenTouch:
 		_handle_screen_touch(event)
 	elif event is InputEventScreenDrag:
 		_handle_screen_drag(event)
+
+
+func _handle_scroll_zoom(event: InputEvent) -> bool:
+	if _map == null or not (event is InputEventMouseButton) or not event.pressed:
+		return false
+
+	if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		_apply_zoom(zoom.x + zoom_step, get_global_mouse_position())
+		return true
+	if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		_apply_zoom(zoom.x - zoom_step, get_global_mouse_position())
+		return true
+
+	return false
 
 
 func _handle_screen_touch(event: InputEventScreenTouch) -> void:

@@ -34,13 +34,9 @@ The game is fully 2D. All rendering uses perfectly square 2D sprites and assets 
 
 The playable map is a square grid, initially 9x9.
 
-The playable area is surrounded by a visual padding area that is always 3 tiles thick on every side.
+The playable area has no surrounding visual padding border.
 
-The player cannot:
-- walk on padding tiles
-- place cards on padding tiles
-
-The camera must never show outside this padded area.
+The camera must never show outside the playable map area.
 
 The grid itself should not be rendered visually as debug lines.
 
@@ -74,11 +70,11 @@ The player can:
 - pinch to zoom
 - use two fingers to pan the camera
 
-Zoom is clamped between a minimum zoom level and a maximum that shows the full playable area including its padding border.
+Zoom is clamped between a minimum zoom level and a maximum that shows the full playable area.
 
 The camera does not automatically follow the player.
 
-The camera position must be clamped so the player can never pan outside the padded map boundaries.
+The camera position must be clamped so the player can never pan outside the playable map boundaries.
 
 All interaction should work entirely through touch.
 
