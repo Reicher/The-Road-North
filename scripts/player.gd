@@ -15,6 +15,7 @@ signal move_blocked(target_position: Vector2i, reason: String)
 
 var grid_position := Vector2i.ZERO
 var food := 0
+var input_enabled := true
 
 var _map: GameMap
 var _food_label: Label
@@ -100,6 +101,8 @@ func is_moving() -> bool:
 
 
 func _on_tile_pressed(target_position: Vector2i) -> void:
+	if not input_enabled:
+		return
 	move_to(target_position)
 
 

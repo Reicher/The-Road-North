@@ -115,12 +115,19 @@ func cards_remaining() -> int:
 	return deck.size()
 
 
-func _on_card_use_requested(card: CardView) -> void:
+func consume_card(card: CardView) -> bool:
 	if _hand == null:
-		return
-
-	_hand.remove_card(card)
+		return false
+	if not _hand.remove_card(card):
+		return false
 	refill_hand()
+	return true
+
+
+func _on_card_use_requested(card: CardView) -> void:
+	if card.category == ROAD_CATEGORY:
+		return
+	consume_card(card)
 
 
 func _get_deck_size() -> int:

@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/map.gd" id="1_ab4jp"]
 [ext_resource type="Script" path="res://scripts/map_camera.gd" id="2_u2vaw"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/deck_controller.gd" id="4_0bp0f"]
 [ext_resource type="Script" path="res://scripts/hand_ui.gd" id="4_0v6l3"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="4_3xm24"]
+[ext_resource type="Script" path="res://scripts/placement_controller.gd" id="6_pf4am"]
 
 [node name="Level" type="Node2D"]
 
@@ -19,6 +20,14 @@ map_path = NodePath("../Map")
 [node name="Player" parent="." instance=ExtResource("4_3xm24")]
 map_path = NodePath("../Map")
 food_label_path = NodePath("../FoodLabel")
+
+[node name="PlacementController" type="Node2D" parent="."]
+script = ExtResource("6_pf4am")
+map_path = NodePath("../Map")
+roads_path = NodePath("../Roads")
+player_path = NodePath("../Player")
+hand_path = NodePath("../UI/Hand")
+deck_controller_path = NodePath("../DeckController")
 
 [node name="Camera2D" type="Camera2D" parent="."]
 enabled = true
