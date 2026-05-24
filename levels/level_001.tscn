@@ -35,6 +35,7 @@ deck_controller_path = NodePath("../DeckController")
 enabled = true
 script = ExtResource("2_u2vaw")
 map_path = NodePath("../Map")
+reserved_bottom_path = NodePath("../UI/Hand")
 
 [node name="PlaceholderLabel" type="Label" parent="."]
 offset_left = 24.0
@@ -60,11 +61,13 @@ text = "Health: 5"
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="Hand" type="Control" parent="UI"]
-anchors_preset = 15
+anchors_preset = 12
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = -276.0
 grow_horizontal = 2
-grow_vertical = 2
+grow_vertical = 0
 script = ExtResource("4_0v6l3")
 demo_cards_enabled = false
 

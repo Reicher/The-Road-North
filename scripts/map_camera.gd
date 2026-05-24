@@ -1,10 +1,13 @@
 extends Camera2D
 
 @export var map_path: NodePath
-@export var zoom_in_limit := 2.0
+@export var reserved_bottom_path: NodePath
+@export var initial_visible_tile_width := 5.0
+@export var zoom_in_limit := 3.0
 @export var zoom_step := 0.1
 
 var _map: Node
+var _reserved_bottom_control: Control
 var _touch_points: Dictionary = {}
 var _last_pinch_distance := 0.0
 var _last_pinch_center := Vector2.ZERO
@@ -12,17 +15,23 @@ var _last_pinch_center := Vector2.ZERO
 
 func _ready() -> void:
 	_map = get_node_or_null(map_path)
+	_reserved_bottom_control = get_node_or_null(reserved_bottom_path) as Control
 	anchor_mode = Camera2D.ANCHOR_MODE_DRAG_CENTER
 	get_viewport().size_changed.connect(_refresh_limits)
-	_refresh_limits()
+	if _reserved_bottom_control != null:
+		_reserved_bottom_control.resized.connect(_refresh_limits)
 	if _map != null:
-		position = _map.get_padded_world_rect().get_center()
-		zoom = Vector2.ONE * _get_zoom_out_limit()
+		zoom = Vector2.ONE * _get_initial_zoom()
+		position = _get_initial_position()
 		_clamp_position()
 
 
 func _input(event: InputEvent) -> void:
 	if _handle_scroll_zoom(event):
+		get_viewport().set_input_as_handled()
+	elif _handle_trackpad_zoom(event):
+		get_viewport().set_input_as_handled()
+	elif _handle_trackpad_pan(event):
 		get_viewport().set_input_as_handled()
 
 
@@ -42,6 +51,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _handle_scroll_zoom(event: InputEvent) -> bool:
 	if _map == null or not (event is InputEventMouseButton) or not event.pressed:
 		return false
+	if not _is_in_map_screen_area(event.position):
+		return false
 
 	if event.button_index == MOUSE_BUTTON_WHEEL_UP:
 		_apply_zoom(zoom.x + zoom_step, get_global_mouse_position())
@@ -51,6 +62,23 @@ func _handle_scroll_zoom(event: InputEvent) -> bool:
 		return true
 
 	return false
+
+
+func _handle_trackpad_zoom(event: InputEvent) -> bool:
+	if _map == null or not (event is InputEventMagnifyGesture):
+		return false
+
+	_apply_zoom(zoom.x * event.factor, get_global_mouse_position())
+	return true
+
+
+func _handle_trackpad_pan(event: InputEvent) -> bool:
+	if _map == null or not (event is InputEventPanGesture):
+		return false
+
+	position -= event.delta / zoom
+	_clamp_position()
+	return true
 
 
 func _handle_screen_touch(event: InputEventScreenTouch) -> void:
@@ -93,13 +121,13 @@ func _refresh_limits() -> void:
 	limit_top = floori(padded_rect.position.y)
 	limit_right = ceili(padded_rect.end.x)
 	limit_bottom = ceili(padded_rect.end.y)
-	zoom = Vector2.ONE * clampf(zoom.x, _get_zoom_out_limit(), zoom_in_limit)
+	zoom = Vector2.ONE * clampf(zoom.x, _get_zoom_out_limit(), _get_zoom_in_limit())
 	_clamp_position()
 
 
 func _apply_zoom(target_zoom: float, world_anchor: Vector2) -> void:
 	var previous_zoom: float = zoom.x
-	var next_zoom: float = clampf(target_zoom, _get_zoom_out_limit(), zoom_in_limit)
+	var next_zoom: float = clampf(target_zoom, _get_zoom_out_limit(), _get_zoom_in_limit())
 	if is_equal_approx(previous_zoom, next_zoom):
 		return
 
@@ -113,29 +141,82 @@ func _clamp_position() -> void:
 		return
 
 	var padded_rect: Rect2 = _map.get_padded_world_rect()
-	var visible_size: Vector2 = get_viewport_rect().size / zoom
+	var visible_size: Vector2 = _get_map_viewport_size() / zoom
 	var half_visible_size: Vector2 = visible_size * 0.5
 	var min_position: Vector2 = padded_rect.position + half_visible_size
 	var max_position: Vector2 = padded_rect.end - half_visible_size
+	var map_area_center := position - _get_map_area_center_offset()
 
 	if min_position.x > max_position.x:
-		position.x = padded_rect.get_center().x
+		map_area_center.x = padded_rect.get_center().x
 	else:
-		position.x = clampf(position.x, min_position.x, max_position.x)
+		map_area_center.x = clampf(map_area_center.x, min_position.x, max_position.x)
 
 	if min_position.y > max_position.y:
-		position.y = padded_rect.get_center().y
+		map_area_center.y = padded_rect.get_center().y
 	else:
-		position.y = clampf(position.y, min_position.y, max_position.y)
+		map_area_center.y = clampf(map_area_center.y, min_position.y, max_position.y)
+
+	position = map_area_center + _get_map_area_center_offset()
 
 
 func _get_zoom_out_limit() -> float:
 	if _map == null:
 		return 1.0
 
-	var viewport_size: Vector2 = get_viewport_rect().size
+	var viewport_size: Vector2 = _get_map_viewport_size()
 	var padded_size: Vector2 = _map.get_padded_world_rect().size
-	return minf(viewport_size.x / padded_size.x, viewport_size.y / padded_size.y)
+	return maxf(viewport_size.x / padded_size.x, viewport_size.y / padded_size.y)
+
+
+func _get_initial_zoom() -> float:
+	if _map == null:
+		return 1.0
+
+	return clampf(_get_initial_zoom_target(), _get_zoom_out_limit(), _get_zoom_in_limit())
+
+
+func _get_initial_position() -> Vector2:
+	if _map == null:
+		return Vector2.ZERO
+
+	var padded_rect: Rect2 = _map.get_padded_world_rect()
+	var visible_size: Vector2 = _get_map_viewport_size() / zoom
+	var map_area_center := Vector2(padded_rect.get_center().x, padded_rect.end.y - visible_size.y * 0.5)
+	return map_area_center + _get_map_area_center_offset()
+
+
+func _get_zoom_in_limit() -> float:
+	return maxf(maxf(zoom_in_limit, _get_zoom_out_limit()), _get_initial_zoom_target())
+
+
+func _get_initial_zoom_target() -> float:
+	if _map == null:
+		return 1.0
+
+	var viewport_width: float = _get_map_viewport_size().x
+	var tile_width: float = maxf(_map.tile_size * initial_visible_tile_width, 1.0)
+	return viewport_width / tile_width
+
+
+func _get_map_viewport_size() -> Vector2:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	viewport_size.y = maxf(1.0, viewport_size.y - _get_reserved_bottom_height())
+	return viewport_size
+
+
+func _get_reserved_bottom_height() -> float:
+	if _reserved_bottom_control == null:
+		return 0.0
+	return maxf(0.0, _reserved_bottom_control.size.y)
+
+
+func _get_map_area_center_offset() -> Vector2:
+	return Vector2(0.0, _get_reserved_bottom_height() * 0.5 / maxf(zoom.x, 0.001))
+
+
+func _is_in_map_screen_area(screen_position: Vector2) -> bool:
+	return screen_position.y < _get_map_viewport_size().y
 
 
 func _get_touch_center() -> Vector2:

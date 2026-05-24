@@ -19,8 +19,6 @@ const MODE_DESTROY_TARGETING := "destroy_targeting"
 @export var hand_path: NodePath
 @export var deck_controller_path: NodePath
 @export var tile_scene: PackedScene = preload("res://scenes/tile.tscn")
-@export_range(0.0, 1.0, 0.05) var hand_placement_offset_ratio := 0.5
-@export_range(0.0, 0.5, 0.01) var hand_placement_tween_duration := 0.10
 
 var active_card: CardView
 var active_definition: Resource
@@ -42,9 +40,6 @@ var _rotate_button: Button
 var _confirm_button: Button
 var _cancel_button: Button
 var _placement_valid := false
-var _hand_rest_position := Vector2.ZERO
-var _hand_shifted := false
-var _hand_tween: Tween
 
 
 func _ready() -> void:
@@ -112,7 +107,6 @@ func begin_placement(card: CardView) -> bool:
 	_placement_valid = false
 	_player.input_enabled = false
 	_hand.clear_focus()
-	_shift_hand_for_placement()
 	_hide_preview()
 	_show_prompt()
 	placement_started.emit(card)
@@ -131,7 +125,6 @@ func begin_destroy_targeting(card: CardView) -> bool:
 	_placement_valid = false
 	_player.input_enabled = false
 	_hand.clear_focus()
-	_shift_hand_for_placement()
 	_hide_preview()
 	_highlight_destroy_targets()
 	_show_destroy_controls()
@@ -277,7 +270,6 @@ func _end_placement(keep_card_focused: bool) -> void:
 		_hand.focus_card(ending_card)
 	elif not keep_card_focused:
 		_hand.clear_focus()
-	_restore_hand_after_placement()
 	_clear_target_highlights()
 	_hide_preview()
 
@@ -405,40 +397,13 @@ func _position_prompt() -> void:
 		return
 
 	var prompt_size := _prompt_label.custom_minimum_size
-	var viewport_size := get_viewport_rect().size
-	var hand_offset := _hand.card_size.y * hand_placement_offset_ratio
+	var viewport_width := get_viewport_rect().size.x
+	var strip_top := _get_map_screen_height()
+	var strip_bottom := _get_hand_card_top_screen_y()
+	var strip_height := maxf(0.0, strip_bottom - strip_top)
+	var prompt_y := strip_top + maxf(8.0, (strip_height - prompt_size.y) * 0.5)
 	_prompt_label.size = prompt_size
-	_prompt_label.position = Vector2((viewport_size.x - prompt_size.x) * 0.5, viewport_size.y - hand_offset - prompt_size.y - 40.0)
-
-
-func _shift_hand_for_placement() -> void:
-	if _hand_shifted:
-		return
-	_hand_rest_position = _hand.position
-	_tween_hand_to(_hand_rest_position + Vector2.DOWN * _hand.card_size.y * hand_placement_offset_ratio)
-	_hand_shifted = true
-
-
-func _restore_hand_after_placement() -> void:
-	if not _hand_shifted:
-		return
-	_tween_hand_to(_hand_rest_position)
-	_hand_shifted = false
-
-
-func _tween_hand_to(target_position: Vector2) -> void:
-	if _hand_tween != null:
-		_hand_tween.kill()
-		_hand_tween = null
-
-	if hand_placement_tween_duration <= 0.0:
-		_hand.position = target_position
-		return
-
-	_hand_tween = create_tween()
-	_hand_tween.set_trans(Tween.TRANS_SINE)
-	_hand_tween.set_ease(Tween.EASE_OUT)
-	_hand_tween.tween_property(_hand, "position", target_position, hand_placement_tween_duration)
+	_prompt_label.position = Vector2((viewport_width - prompt_size.x) * 0.5, prompt_y)
 
 
 func _position_controls() -> void:
@@ -454,16 +419,32 @@ func _position_controls() -> void:
 		_controls.size = minimum_size
 		controls_size = minimum_size
 
-	var viewport_size := get_viewport_rect().size
+	var viewport_size := Vector2(get_viewport_rect().size.x, _get_map_screen_height())
 	var preferred_position := Vector2.ZERO
 	if preview_position.x >= 0:
 		var preview_world := _map.grid_to_world(preview_position)
 		var canvas_position: Vector2 = _map.get_global_transform_with_canvas() * preview_world
 		preferred_position = canvas_position + Vector2(-controls_size.x * 0.5, _map.tile_size * 0.56)
 	else:
-		var hand_offset := _hand.card_size.y * hand_placement_offset_ratio
-		preferred_position = Vector2((viewport_size.x - controls_size.x) * 0.5, viewport_size.y - hand_offset - controls_size.y - 8.0)
+		preferred_position = Vector2((viewport_size.x - controls_size.x) * 0.5, viewport_size.y - controls_size.y - 8.0)
 
 	preferred_position.x = clampf(preferred_position.x, 8.0, maxf(8.0, viewport_size.x - controls_size.x - 8.0))
 	preferred_position.y = clampf(preferred_position.y, 8.0, maxf(8.0, viewport_size.y - controls_size.y - 8.0))
 	_controls.position = preferred_position
+
+
+func _get_map_screen_height() -> float:
+	var viewport_height := get_viewport_rect().size.y
+	if _hand == null:
+		return viewport_height
+	return clampf(_hand.get_global_rect().position.y, 1.0, viewport_height)
+
+
+func _get_hand_card_top_screen_y() -> float:
+	var viewport_height := get_viewport_rect().size.y
+	if _hand == null:
+		return viewport_height
+
+	var hand_rect := _hand.get_global_rect()
+	var card_top := hand_rect.position.y + maxf(0.0, _hand.size.y - _hand.card_size.y - _hand.bottom_margin)
+	return clampf(card_top, hand_rect.position.y, viewport_height)

@@ -56,7 +56,6 @@ func _initialize() -> void:
 	placement.roads_path = NodePath("../Roads")
 	placement.player_path = NodePath("../Player")
 	placement.hand_path = NodePath("../UI/Hand")
-	placement.hand_placement_tween_duration = 0.0
 	root.add_child(placement)
 	placement._ready()
 
@@ -70,7 +69,7 @@ func _initialize() -> void:
 	_assert(hand.get_focused_card() == null, "Expected placement mode to clear the focused card")
 	_assert(not placement.has_valid_preview(), "Expected Use to wait for a map tap before showing a preview")
 	_assert(placement.get_node("PlacementControls/PromptLabel").visible, "Expected Use to show placement prompt text")
-	_assert(hand.position.y > hand_rest_position.y, "Expected hand to move downward during placement mode")
+	_assert(hand.position == hand_rest_position, "Expected placement mode to keep the hand in its separate panel")
 	_assert(placement.get_node("PlacementControls").layer > ui.layer, "Expected placement buttons to appear above the hand UI")
 	_assert(placement.get_node("PlacementControls/Buttons/ConfirmButton").disabled, "Expected confirm button to stay disabled before a preview exists")
 

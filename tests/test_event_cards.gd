@@ -59,7 +59,6 @@ func _test_destroy_neighbor_event() -> void:
 	placement.roads_path = NodePath("../Roads")
 	placement.player_path = NodePath("../Player")
 	placement.hand_path = NodePath("../UI/Hand")
-	placement.hand_placement_tween_duration = 0.0
 	root.add_child(placement)
 	placement._ready()
 

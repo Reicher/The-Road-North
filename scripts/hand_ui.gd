@@ -9,6 +9,7 @@ signal card_use_requested(card: CardView)
 @export var demo_cards_enabled := true
 @export var card_size := Vector2(132.0, 190.0)
 @export var bottom_margin := 24.0
+@export var panel_color := Color(0.15, 0.20, 0.18)
 @export_range(0.0, 1.0, 0.01) var focused_lift_ratio := 0.28
 @export var focused_scale := 1.16
 @export var arc_depth := 28.0
@@ -28,12 +29,16 @@ func _ready() -> void:
 	if _ready_completed:
 		return
 	_ready_completed = true
-	mouse_filter = Control.MOUSE_FILTER_PASS
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	resized.connect(_on_resized)
 	if demo_cards_enabled and cards.is_empty():
 		set_cards(_make_demo_cards())
 	else:
 		_layout_cards(false)
+
+
+func _draw() -> void:
+	draw_rect(Rect2(Vector2.ZERO, size), panel_color, true)
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -185,6 +190,7 @@ func _on_card_use_requested(card: CardView) -> void:
 
 
 func _on_resized() -> void:
+	queue_redraw()
 	_layout_cards(false)
 
 
