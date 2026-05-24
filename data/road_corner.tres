@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="TileDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/tile_definition.gd" id="1_x3l0h"]
+
+[resource]
+script = ExtResource("1_x3l0h")
+display_name = "Corner"
+opens_north = true
+opens_east = true

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="TileDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/tile_definition.gd" id="1_ylqr4"]
+
+[resource]
+script = ExtResource("1_ylqr4")
+display_name = "Four-Way Intersection"
+opens_north = true
+opens_east = true
+opens_south = true
+opens_west = true
