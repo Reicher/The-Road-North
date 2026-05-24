@@ -139,6 +139,22 @@ func can_move_between(from_position: Vector2i, to_position: Vector2i) -> bool:
 	return _tile_has_opening(to_tile, OPPOSITE_DIRECTIONS[direction_name])
 
 
+func update_enemy_data(grid_position: Vector2i, enemy_data: Dictionary) -> void:
+	var tile_data: Variant = get_tile(grid_position)
+	if tile_data is Dictionary:
+		tile_data["enemy"] = enemy_data.duplicate(true)
+		tiles[grid_position] = tile_data
+	queue_redraw()
+
+
+func clear_enemy(grid_position: Vector2i) -> void:
+	var tile_data: Variant = get_tile(grid_position)
+	if tile_data is Dictionary and tile_data.has("enemy"):
+		tile_data.erase("enemy")
+		tiles[grid_position] = tile_data
+	queue_redraw()
+
+
 func get_neighbors(grid_position: Vector2i) -> Array[Vector2i]:
 	var neighbors: Array[Vector2i] = []
 	for direction_name in DIRECTIONS:

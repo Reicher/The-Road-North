@@ -46,7 +46,17 @@ func _initialize() -> void:
 	ui.add_child(hand)
 	hand._ready()
 	hand.set_cards([
-		{"category": "Road", "tile_definition": STRAIGHT},
+		{
+			"category": "Road",
+			"tile_definition": STRAIGHT,
+			"enemy": {
+				"revealed": false,
+				"health": 2,
+				"max_health": 2,
+				"attack": 1,
+				"armor": 1,
+			},
+		},
 		{"category": "Road", "tile_definition": CORNER},
 	])
 
@@ -93,7 +103,10 @@ func _initialize() -> void:
 	_assert(placement.has_valid_preview(), "Expected rotating back to restore valid placement")
 	_assert(placement.confirm_placement(), "Expected valid preview to place the road")
 	_assert(map.get_tile(Vector2i(4, 7)) != null, "Expected confirmed placement to store map tile")
+	_assert(map.get_tile(Vector2i(4, 7)).has("enemy"), "Expected enemy road card to place an enemy tile")
+	_assert(map.get_tile(Vector2i(4, 7))["enemy"]["revealed"] == true, "Expected enemy to reveal when the road card is placed")
 	_assert(roads.get_visual_tile(Vector2i(4, 7)) != null, "Expected confirmed placement to spawn visual tile")
+	_assert(roads.get_visual_tile(Vector2i(4, 7)).enemy_data["health"] == 2, "Expected visual tile to show revealed enemy stats")
 	_assert(not hand.cards.has(straight_card), "Expected confirmed placement to consume the card")
 	_assert(not placement.is_placing(), "Expected confirm to exit placement mode")
 	_assert(player.input_enabled, "Expected movement input to resume after confirm")

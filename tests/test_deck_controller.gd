@@ -38,12 +38,18 @@ func _initialize() -> void:
 	_assert(deck_controller.drawn_count == 5, "Expected opening hand draw count to be tracked")
 
 	var category_counts := {"Road": 0, "Event": 0}
+	var enemy_road_count := 0
 	for card in hand.cards:
 		category_counts[card.category] += 1
+		if card.category == "Road" and not card.enemy_data.is_empty():
+			enemy_road_count += 1
 	for card_data in deck_controller.deck:
 		category_counts[card_data["category"]] += 1
+		if card_data["category"] == "Road" and card_data.has("enemy"):
+			enemy_road_count += 1
 	_assert(category_counts["Road"] == 61, "Expected 75 percent of an 81 card deck to round to 61 road cards")
 	_assert(category_counts["Event"] == 20, "Expected the remaining deck cards to be events")
+	_assert(enemy_road_count == 12, "Expected 20 percent of road cards to carry hidden enemies")
 
 	var first_card = hand.cards[0]
 	deck_controller.consume_card(first_card)

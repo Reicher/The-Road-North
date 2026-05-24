@@ -148,7 +148,7 @@ func confirm_placement() -> bool:
 	if active_mode != MODE_ROAD_PLACEMENT:
 		return false
 
-	var placed := _roads.place_tile(preview_position, active_definition, rotation_steps)
+	var placed := _roads.place_tile(preview_position, active_definition, rotation_steps, active_card.enemy_data)
 	if not placed:
 		_refresh_preview()
 		return false

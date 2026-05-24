@@ -7,6 +7,7 @@ const EVENT_DESTROY_NEIGHBOR := "destroy_neighbor"
 const EVENT_DRAW_TWO := "draw_two"
 
 const ROAD_CARD_RATIO := 0.75
+const ENEMY_ROAD_CARD_RATIO := 0.20
 const HAND_SIZE := 5
 
 const ROAD_DISTRIBUTION := {
@@ -52,6 +53,7 @@ func _ready() -> void:
 
 
 func start_run() -> void:
+	_prepare_rng()
 	generate_deck()
 	shuffle_deck()
 	drawn_count = 0
@@ -72,11 +74,6 @@ func generate_deck() -> void:
 
 
 func shuffle_deck() -> void:
-	if shuffle_seed == 0:
-		_rng.randomize()
-	else:
-		_rng.seed = shuffle_seed
-
 	for index in range(deck.size() - 1, 0, -1):
 		var swap_index := _rng.randi_range(0, index)
 		var card: Dictionary = deck[index]
@@ -154,6 +151,13 @@ func _get_deck_size() -> int:
 	return _map.playable_width * _map.playable_height
 
 
+func _prepare_rng() -> void:
+	if shuffle_seed == 0:
+		_rng.randomize()
+	else:
+		_rng.seed = shuffle_seed
+
+
 func _make_road_cards(count: int) -> Array[Dictionary]:
 	var definitions: Dictionary = {
 		"straight": straight_definition,
@@ -171,6 +175,7 @@ func _make_road_cards(count: int) -> Array[Dictionary]:
 				"category": ROAD_CATEGORY,
 				"tile_definition": definitions[subtype],
 			})
+	_add_enemies_to_road_cards(cards)
 	return cards
 
 
@@ -223,3 +228,28 @@ func _counts_from_distribution(total: int, distribution: Dictionary) -> Dictiona
 		counts[key] += 1
 
 	return counts
+
+
+func _add_enemies_to_road_cards(cards: Array[Dictionary]) -> void:
+	var enemy_count := roundi(float(cards.size()) * ENEMY_ROAD_CARD_RATIO)
+	for index in range(cards.size() - 1, 0, -1):
+		var swap_index := _rng.randi_range(0, index)
+		var card := cards[index]
+		cards[index] = cards[swap_index]
+		cards[swap_index] = card
+
+	for index in mini(enemy_count, cards.size()):
+		var card: Dictionary = cards[index]
+		card["enemy"] = _make_enemy_data()
+		cards[index] = card
+
+
+func _make_enemy_data() -> Dictionary:
+	var enemy_health := _rng.randi_range(1, 5)
+	return {
+		"revealed": false,
+		"health": enemy_health,
+		"max_health": enemy_health,
+		"attack": _rng.randi_range(1, 5),
+		"armor": _rng.randi_range(1, 5),
+	}

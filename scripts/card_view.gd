@@ -39,6 +39,10 @@ signal use_requested(card: CardView)
 		queue_redraw()
 
 @export var event_type := ""
+@export var enemy_data := {}:
+	set(value):
+		enemy_data = value
+		queue_redraw()
 
 @export var card_border_color := Color(0.24, 0.19, 0.15):
 	set(value):
@@ -96,6 +100,7 @@ func configure(card_data: Dictionary) -> void:
 	category = str(card_data.get("category", "Road"))
 	detail = str(card_data.get("detail", _detail_from_definition()))
 	event_type = str(card_data.get("event_type", ""))
+	enemy_data = card_data.get("enemy", {})
 	card_color = card_data.get("card_color", card_color)
 
 
@@ -214,3 +219,18 @@ func _draw_card_symbol(art_rect: Rect2) -> void:
 	if openings.get("west", false) == true:
 		draw_rect(Rect2(Vector2(art_rect.position.x, center.y - road_width * 0.5), Vector2(art_rect.size.x * 0.5, road_width)), road_color, true)
 	draw_circle(center, road_width * 0.62, road_color)
+	if not enemy_data.is_empty():
+		_draw_hidden_enemy_marker(art_rect)
+
+
+func _draw_hidden_enemy_marker(art_rect: Rect2) -> void:
+	var radius := minf(art_rect.size.x, art_rect.size.y) * 0.18
+	var center := art_rect.position + Vector2(art_rect.size.x - radius * 1.25, radius * 1.25)
+	var points := PackedVector2Array([
+		center + Vector2(0.0, -radius),
+		center + Vector2(radius, 0.0),
+		center + Vector2(0.0, radius),
+		center + Vector2(-radius, 0.0),
+	])
+	draw_colored_polygon(points, Color(0.54, 0.12, 0.16, 0.90))
+	draw_circle(center, radius * 0.24, Color(1.0, 0.86, 0.36, 0.95))

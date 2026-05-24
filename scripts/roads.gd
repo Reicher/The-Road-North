@@ -26,8 +26,8 @@ func seed_run_endpoints() -> void:
 	force_place_tile(_map.get_goal_position(), goal_definition, 2)
 
 
-func place_tile(grid_position: Vector2i, definition: Resource, rotation_steps: int = 0) -> bool:
-	var tile_data := make_tile_data(definition, rotation_steps)
+func place_tile(grid_position: Vector2i, definition: Resource, rotation_steps: int = 0, enemy_data: Dictionary = {}) -> bool:
+	var tile_data := make_tile_data(definition, rotation_steps, enemy_data)
 	var connections: Dictionary = tile_data.get("connections", {})
 	if not _map.can_place_tile(grid_position, connections):
 		return false
@@ -56,13 +56,18 @@ func get_visual_tile(grid_position: Vector2i) -> RoadTile:
 	return _visual_tiles.get(grid_position) as RoadTile
 
 
-func make_tile_data(definition: Resource, rotation_steps: int = 0) -> Dictionary:
+func make_tile_data(definition: Resource, rotation_steps: int = 0, enemy_data: Dictionary = {}) -> Dictionary:
 	var normalized_rotation := posmod(rotation_steps, 4)
-	return {
+	var tile_data := {
 		"definition": definition,
 		"rotation_steps": normalized_rotation,
 		"connections": definition.get_rotated_openings(normalized_rotation),
 	}
+	if not enemy_data.is_empty():
+		var revealed_enemy := enemy_data.duplicate(true)
+		revealed_enemy["revealed"] = true
+		tile_data["enemy"] = revealed_enemy
+	return tile_data
 
 
 func _store_and_spawn_tile(grid_position: Vector2i, tile_data: Dictionary) -> bool:
@@ -73,6 +78,8 @@ func _store_and_spawn_tile(grid_position: Vector2i, tile_data: Dictionary) -> bo
 	visual_tile.definition = tile_data["definition"]
 	visual_tile.rotation_steps = tile_data["rotation_steps"]
 	visual_tile.tile_size = _map.tile_size
+	if tile_data.has("enemy"):
+		visual_tile.enemy_data = tile_data["enemy"]
 	visual_tile.position = _map.grid_to_world(grid_position)
 	add_child(visual_tile)
 	_visual_tiles[grid_position] = visual_tile

@@ -1,6 +1,8 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/map.gd" id="1_ab4jp"]
+[ext_resource type="Script" path="res://scripts/player_stats_ui.gd" id="2_7ls0f"]
+[ext_resource type="Script" path="res://scripts/game_over_ui.gd" id="2_sv6li"]
 [ext_resource type="Script" path="res://scripts/map_camera.gd" id="2_u2vaw"]
 [ext_resource type="Script" path="res://scripts/roads.gd" id="2_vxv7f"]
 [ext_resource type="Script" path="res://scripts/deck_controller.gd" id="4_0bp0f"]
@@ -22,6 +24,7 @@ map_path = NodePath("../Map")
 map_path = NodePath("../Map")
 food_label_path = NodePath("../FoodLabel")
 health_label_path = NodePath("../HealthLabel")
+inventory_path = NodePath("../UI/Inventory")
 
 [node name="PlacementController" type="Node2D" parent="."]
 script = ExtResource("6_pf4am")
@@ -39,19 +42,20 @@ reserved_bottom_path = NodePath("../UI/Hand")
 
 [node name="PlaceholderLabel" type="Label" parent="."]
 offset_left = 24.0
-offset_top = 24.0
+offset_top = 144.0
 offset_right = 296.0
-offset_bottom = 50.0
+offset_bottom = 170.0
 text = "Road to Karlskoga"
 
 [node name="FoodLabel" type="Label" parent="."]
 offset_left = 24.0
-offset_top = 56.0
+offset_top = 176.0
 offset_right = 296.0
-offset_bottom = 82.0
+offset_bottom = 202.0
 text = "Food: 27"
 
 [node name="HealthLabel" type="Label" parent="."]
+visible = false
 offset_left = 24.0
 offset_top = 88.0
 offset_right = 296.0
@@ -78,6 +82,23 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("8_ddx2e")
+
+[node name="PlayerStats" type="Control" parent="UI"]
+anchors_preset = 0
+offset_right = 82.0
+offset_bottom = 114.0
+script = ExtResource("2_7ls0f")
+player_path = NodePath("../../Player")
+
+[node name="GameOver" type="Control" parent="UI"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_sv6li")
+player_path = NodePath("../../Player")
 
 [node name="DeckController" type="Node" parent="."]
 script = ExtResource("4_0bp0f")
