@@ -5,10 +5,10 @@
 [ext_resource type="Script" path="res://scripts/game_over_ui.gd" id="2_sv6li"]
 [ext_resource type="Script" path="res://scripts/map_camera.gd" id="2_u2vaw"]
 [ext_resource type="Script" path="res://scripts/roads.gd" id="2_vxv7f"]
-[ext_resource type="Script" path="res://scripts/deck_controller.gd" id="4_0bp0f"]
-[ext_resource type="Script" path="res://scripts/hand_ui.gd" id="4_0v6l3"]
+[ext_resource type="PackedScene" path="res://scenes/deck_controller.tscn" id="4_0bp0f"]
+[ext_resource type="PackedScene" path="res://ui/hand.tscn" id="4_0v6l3"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="4_3xm24"]
-[ext_resource type="Script" path="res://scripts/placement_controller.gd" id="6_pf4am"]
+[ext_resource type="PackedScene" path="res://scenes/placement_controller.tscn" id="6_pf4am"]
 [ext_resource type="Script" path="res://scripts/inventory_ui.gd" id="8_ddx2e"]
 
 [node name="Level" type="Node2D"]
@@ -26,8 +26,7 @@ food_label_path = NodePath("../FoodLabel")
 health_label_path = NodePath("../HealthLabel")
 inventory_path = NodePath("../UI/Inventory")
 
-[node name="PlacementController" type="Node2D" parent="."]
-script = ExtResource("6_pf4am")
+[node name="PlacementController" parent="." instance=ExtResource("6_pf4am")]
 map_path = NodePath("../Map")
 roads_path = NodePath("../Roads")
 player_path = NodePath("../Player")
@@ -64,16 +63,7 @@ text = "Health: 5"
 
 [node name="UI" type="CanvasLayer" parent="."]
 
-[node name="Hand" type="Control" parent="UI"]
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -276.0
-grow_horizontal = 2
-grow_vertical = 0
-script = ExtResource("4_0v6l3")
-demo_cards_enabled = false
+[node name="Hand" parent="UI" instance=ExtResource("4_0v6l3")]
 
 [node name="Inventory" type="Control" parent="UI"]
 anchors_preset = 15
@@ -100,7 +90,6 @@ grow_vertical = 2
 script = ExtResource("2_sv6li")
 player_path = NodePath("../../Player")
 
-[node name="DeckController" type="Node" parent="."]
-script = ExtResource("4_0bp0f")
+[node name="DeckController" parent="." instance=ExtResource("4_0bp0f")]
 map_path = NodePath("../Map")
 hand_path = NodePath("../UI/Hand")

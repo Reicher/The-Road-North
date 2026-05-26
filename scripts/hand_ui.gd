@@ -23,6 +23,7 @@ var focused_index := -1
 
 var _layout_tween: Tween
 var _ready_completed := false
+var _card_parent: Control
 
 
 func _ready() -> void:
@@ -30,6 +31,7 @@ func _ready() -> void:
 		return
 	_ready_completed = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_resolve_card_parent()
 	resized.connect(_on_resized)
 	if demo_cards_enabled and cards.is_empty():
 		set_cards(_make_demo_cards())
@@ -63,6 +65,7 @@ func set_cards(card_data_list: Array) -> void:
 
 
 func add_card(card_data: Dictionary, animate := true) -> CardView:
+	_resolve_card_parent()
 	var card := card_scene.instantiate() as CardView
 	card.custom_minimum_size = card_size
 	card.size = card_size
@@ -70,7 +73,7 @@ func add_card(card_data: Dictionary, animate := true) -> CardView:
 	card.configure(card_data)
 	card.focus_requested.connect(_on_card_focus_requested)
 	card.use_requested.connect(_on_card_use_requested)
-	add_child(card)
+	_card_parent.add_child(card)
 	cards.append(card)
 	_layout_cards(animate)
 	return card
@@ -212,6 +215,16 @@ func _is_canvas_position_over_card(canvas_position: Vector2) -> bool:
 		if Rect2(Vector2.ZERO, card.size).has_point(local_position):
 			return true
 	return false
+
+
+func _resolve_card_parent() -> void:
+	if _card_parent != null:
+		return
+
+	_card_parent = get_node_or_null("CardContainer") as Control
+	if _card_parent == null:
+		_card_parent = self
+		return
 
 
 func _make_demo_cards() -> Array[Dictionary]:
