@@ -248,11 +248,10 @@ func _add_enemies_to_road_cards(cards: Array[Dictionary]) -> void:
 
 
 func _make_enemy_data() -> Dictionary:
-	var enemy_health := _rng.randi_range(1, 5)
 	return {
 		"revealed": false,
-		"health": enemy_health,
-		"max_health": enemy_health,
-		"attack": _rng.randi_range(1, 5),
-		"armor": _rng.randi_range(1, 5),
+		"health": 1,
+		"max_health": 1,
+		"attack": _rng.randi_range(1, 3),
+		"armor": _rng.randi_range(1, 3),
 	}

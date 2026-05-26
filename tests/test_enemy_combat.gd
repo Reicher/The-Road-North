@@ -33,12 +33,21 @@ func run() -> void:
 		"attack": 1,
 		"armor": 1,
 	}
+	var armored_enemy_data := {
+		"revealed": false,
+		"health": 1,
+		"max_health": 1,
+		"attack": 1,
+		"armor": 3,
+	}
 
 	roads.force_place_tile(Vector2i(4, 8), T_JUNCTION, 0)
 	_assert(roads.place_tile(Vector2i(4, 7), STRAIGHT, 0, enemy_data), "Expected enemy road card placement to succeed")
+	_assert(roads.place_tile(Vector2i(3, 8), STRAIGHT, 1, armored_enemy_data), "Expected armored enemy road card placement to succeed")
 	var enemy_tile: Dictionary = map.get_tile(Vector2i(4, 7))["enemy"]
 	_assert(enemy_tile["revealed"] == true, "Expected placing an enemy road card to reveal the enemy")
-	_assert(roads.get_visual_tile(Vector2i(4, 7)).enemy_data["health"] == 2, "Expected enemy stats to render on the road tile")
+	_assert(enemy_tile["health"] == 1, "Expected placed enemies to have one life")
+	_assert(roads.get_visual_tile(Vector2i(4, 7)).enemy_data["health"] == 1, "Expected visual enemy data to use one life")
 
 	var health_label := Label.new()
 	health_label.name = "HealthLabel"
@@ -56,6 +65,20 @@ func run() -> void:
 	player.move_duration = 0.0
 	root.add_child(player)
 	player._ready()
+
+	var blocked_result := {"blocked": false}
+	player.move_blocked.connect(func(_target_position: Vector2i, reason: String) -> void:
+		blocked_result["blocked"] = true
+	)
+	_assert(not player.can_move_to(Vector2i(3, 8)), "Expected enemy armor to make the tile unreachable")
+	map.tile_pressed.emit(Vector2i(3, 8))
+	_assert(not blocked_result["blocked"], "Expected tapping armored enemy tiles to be ignored before movement")
+	_assert(player.grid_position == Vector2i(4, 8), "Expected ignored armored enemy tap to keep player position")
+	_assert(player.food == 3, "Expected ignored armored enemy tap not to spend food")
+	_assert(not player.move_to(Vector2i(3, 8)), "Expected movement into armored enemy to be blocked")
+	_assert(player.grid_position == Vector2i(4, 8), "Expected blocked enemy movement to keep player position")
+	_assert(player.food == 3, "Expected blocked enemy movement not to spend food")
+	_assert(map.get_tile(Vector2i(3, 8)).has("enemy"), "Expected blocked enemy movement to keep the enemy on the tile")
 
 	_assert(player.move_to(Vector2i(4, 7)), "Expected player to enter enemy road tile")
 	while player.is_in_combat():

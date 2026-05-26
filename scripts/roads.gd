@@ -80,6 +80,8 @@ func make_tile_data(definition: Resource, rotation_steps: int = 0, enemy_data: D
 	if not enemy_data.is_empty():
 		var revealed_enemy := enemy_data.duplicate(true)
 		revealed_enemy["revealed"] = true
+		revealed_enemy["health"] = 1
+		revealed_enemy["max_health"] = 1
 		tile_data["enemy"] = revealed_enemy
 	return tile_data
 

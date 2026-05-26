@@ -38,9 +38,10 @@ func _draw() -> void:
 	var font_size: int = maxi(14, roundi(tile_size * 0.15))
 	var icon_size := tile_size * 0.18
 	var row_y := -tile_size * 0.31
-	_draw_enemy_stat(font, Vector2(-tile_size * 0.32, row_y), "health", int(enemy_data.get("health", 0)), icon_size, font_size)
-	_draw_enemy_stat(font, Vector2(-tile_size * 0.02, row_y), "attack", int(enemy_data.get("attack", 0)), icon_size, font_size)
-	_draw_enemy_stat(font, Vector2(tile_size * 0.28, row_y), "armor", int(enemy_data.get("armor", 0)), icon_size, font_size)
+	var stat_spacing := tile_size * 0.27
+	var text_bias := icon_size * 0.28
+	_draw_enemy_stat(font, Vector2(-stat_spacing * 0.5 - text_bias, row_y), "attack", int(enemy_data.get("attack", 0)), icon_size, font_size)
+	_draw_enemy_stat(font, Vector2(stat_spacing * 0.5 - text_bias, row_y), "armor", int(enemy_data.get("armor", 0)), icon_size, font_size)
 
 
 func _draw_enemy_stat(font: Font, icon_center: Vector2, stat_name: String, value: int, icon_size: float, font_size: int) -> void:

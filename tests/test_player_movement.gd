@@ -44,13 +44,13 @@ func _initialize() -> void:
 
 	_assert(player.grid_position == Vector2i(4, 8), "Expected player to start at the requested grid position")
 	_assert(player.food == 3, "Expected player to start with configured food")
-	_assert(player.health == 5, "Expected player to start with default health")
-	_assert(health_label.text == "Health: 5", "Expected health label to show default health")
+	_assert(player.health == 3, "Expected player to start with default health")
+	_assert(health_label.text == "Health: 3", "Expected health label to show default health")
 
 	_assert(player.move_to(Vector2i(4, 7)), "Expected player to move north onto connected road")
 	_assert(player.grid_position == Vector2i(4, 7), "Expected player grid position to update after movement")
 	_assert(player.food == 2, "Expected valid movement to consume one food")
-	_assert(player.health == 5, "Expected movement not to change health")
+	_assert(player.health == 3, "Expected movement not to change health")
 
 	_assert(not player.move_to(Vector2i(5, 7)), "Expected empty or disconnected tile movement to be blocked")
 	_assert(player.grid_position == Vector2i(4, 7), "Expected invalid movement to leave player in place")
