@@ -129,7 +129,7 @@ Road card subtype distribution applies only within the road card category.
 
 The deck is shuffled randomly at the start of each level.
 
-The player always has 5 cards in hand.
+The player always has 4 cards in hand.
 
 When a card is used:
 - it disappears from the hand

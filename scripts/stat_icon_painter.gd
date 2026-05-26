@@ -8,6 +8,8 @@ const SHIELD_COLOR := Color(0.10, 0.78, 0.82)
 const SHIELD_EDGE_COLOR := Color(0.04, 0.36, 0.42)
 const FOOD_COLOR := Color(0.92, 0.64, 0.28)
 const FOOD_EDGE_COLOR := Color(0.48, 0.26, 0.10)
+const GOLD_COLOR := Color(0.96, 0.75, 0.20)
+const GOLD_EDGE_COLOR := Color(0.54, 0.34, 0.08)
 
 
 static func draw_heart(canvas: CanvasItem, center: Vector2, size: float) -> void:
@@ -63,3 +65,9 @@ static func draw_food(canvas: CanvasItem, center: Vector2, size: float) -> void:
 	canvas.draw_rect(loaf_rect, FOOD_COLOR, true)
 	canvas.draw_arc(center + Vector2(-size * 0.13, -size * 0.03), size * 0.10, -PI * 0.15, PI * 0.75, 10, FOOD_EDGE_COLOR, maxf(1.5, size * 0.06))
 	canvas.draw_arc(center + Vector2(size * 0.16, -size * 0.03), size * 0.10, -PI * 0.15, PI * 0.75, 10, FOOD_EDGE_COLOR, maxf(1.5, size * 0.06))
+
+
+static func draw_gold(canvas: CanvasItem, center: Vector2, size: float) -> void:
+	canvas.draw_circle(center, size * 0.34, GOLD_COLOR)
+	canvas.draw_arc(center, size * 0.34, 0.0, TAU, 24, GOLD_EDGE_COLOR, maxf(1.5, size * 0.08))
+	canvas.draw_string(ThemeDB.fallback_font, center + Vector2(-size * 0.11, size * 0.15), "G", HORIZONTAL_ALIGNMENT_LEFT, size * 0.24, int(size * 0.54), GOLD_EDGE_COLOR)

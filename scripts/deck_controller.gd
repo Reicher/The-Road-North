@@ -7,8 +7,8 @@ const EVENT_DESTROY_NEIGHBOR := "destroy_neighbor"
 const EVENT_DRAW_TWO := "draw_two"
 
 const ROAD_CARD_RATIO := 0.75
-const ENEMY_ROAD_CARD_RATIO := 0.20
-const HAND_SIZE := 5
+const ENEMY_ROAD_CARD_RATIO := 0.50
+const HAND_SIZE := 4
 
 const ROAD_DISTRIBUTION := {
 	"straight": 30.0,

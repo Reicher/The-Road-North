@@ -21,7 +21,7 @@ func _initialize() -> void:
 	_assert(backpack_button != null, "Expected inventory to create a backpack button")
 	_assert(backpack_button.position.x > 250.0, "Expected backpack button to sit near the top-right corner")
 	_assert(not overlay.visible, "Expected inventory overlay to start closed")
-	_assert(inventory.get_active_items().size() == 2, "Expected player to start with two active items")
+	_assert(inventory.get_active_items().size() == 2, "Expected player inventory to start with two visible items")
 	_assert(inventory.get_attack_bonus() == 2, "Expected Sword to add two attack")
 	_assert(inventory.get_armor_bonus() == 2, "Expected Shield to add two armor")
 
@@ -35,8 +35,10 @@ func _initialize() -> void:
 	_assert(first_slot.text == "Sword", "Expected first slot to contain Sword")
 	_assert(second_slot.text == "Shield", "Expected second slot to contain Shield")
 	_assert(empty_slot.disabled, "Expected empty inventory slots to be disabled")
+	_assert(first_slot.self_modulate == InventoryUI.EQUIPPED_SLOT_TINT, "Expected strongest sword slot to be tinted")
+	_assert(second_slot.self_modulate == InventoryUI.EQUIPPED_SLOT_TINT, "Expected strongest shield slot to be tinted")
 
-	first_slot.pressed.emit()
+	inventory._on_item_pressed(0, first_slot)
 	_assert(tooltip.visible, "Expected pressing an item to show a tooltip")
 	var tooltip_name := tooltip.get_node("ContentMargin/Text/ItemName") as Label
 	var tooltip_effect := tooltip.get_node("ContentMargin/Text/ItemEffect") as Label
@@ -45,10 +47,10 @@ func _initialize() -> void:
 	_assert(tooltip_name.get_theme_color("font_color") == Color.WHITE, "Expected tooltip name text to be white")
 	_assert(tooltip_effect.get_theme_color("font_color") == Color.WHITE, "Expected tooltip effect text to be white")
 
-	first_slot.pressed.emit()
+	inventory._on_item_pressed(0, first_slot)
 	_assert(not tooltip.visible, "Expected pressing the same item again to hide the tooltip")
 
-	first_slot.pressed.emit()
+	inventory._on_item_pressed(0, first_slot)
 	_assert(tooltip.visible, "Expected pressing the item after hiding it to show the tooltip again")
 
 	var outside_click := InputEventMouseButton.new()
@@ -60,7 +62,7 @@ func _initialize() -> void:
 	_assert(not tooltip.visible, "Expected outside click to hide the tooltip")
 
 	inventory.toggle_inventory()
-	first_slot.pressed.emit()
+	inventory._on_item_pressed(0, first_slot)
 	var inside_click := InputEventMouseButton.new()
 	inside_click.button_index = MOUSE_BUTTON_LEFT
 	inside_click.pressed = true

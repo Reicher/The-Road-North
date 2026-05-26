@@ -2,6 +2,7 @@ class_name GamePlayer
 extends Node2D
 
 signal food_changed(food: int)
+signal gold_changed(gold: int)
 signal health_changed(health: int)
 signal moved(grid_position: Vector2i)
 signal move_blocked(target_position: Vector2i, reason: String)
@@ -11,8 +12,10 @@ signal game_over(reason: String)
 @export var food_label_path: NodePath
 @export var health_label_path: NodePath
 @export var inventory_path: NodePath
+@export var loot_ui_path: NodePath
 @export var start_position := Vector2i(-1, -1)
 @export var starting_food := -1
+@export var starting_gold := 0
 @export var starting_health := 3
 @export var attack := 0
 @export var armor := 0
@@ -23,6 +26,7 @@ signal game_over(reason: String)
 
 var grid_position := Vector2i.ZERO
 var food := 0
+var gold := 0
 var health := 0
 var input_enabled := true
 
@@ -30,6 +34,8 @@ var _map: GameMap
 var _food_label: Label
 var _health_label: Label
 var _inventory: InventoryUI
+var _loot_ui: Node
+var _loot_rng := RandomNumberGenerator.new()
 var _moving := false
 var _move_target := Vector2i.ZERO
 var _combat_running := false
@@ -41,6 +47,8 @@ func _ready() -> void:
 	_food_label = get_node_or_null(food_label_path) as Label
 	_health_label = get_node_or_null(health_label_path) as Label
 	_inventory = get_node_or_null(inventory_path) as InventoryUI
+	_loot_ui = get_node_or_null(loot_ui_path)
+	_loot_rng.randomize()
 
 	if _map == null:
 		push_warning("Player needs a GameMap at map_path.")
@@ -52,6 +60,7 @@ func _ready() -> void:
 	grid_position = start_position
 	position = _map.grid_to_world(grid_position)
 	food = starting_food if starting_food >= 0 else _map.playable_width * 3
+	gold = starting_gold
 	health = starting_health
 	_update_food_label()
 	_update_health_label()
@@ -143,6 +152,21 @@ func set_health(value: int) -> void:
 	_check_game_over()
 
 
+func add_food(amount: int) -> void:
+	if amount <= 0:
+		return
+	food += amount
+	_update_food_label()
+	food_changed.emit(food)
+
+
+func add_gold(amount: int) -> void:
+	if amount <= 0:
+		return
+	gold += amount
+	gold_changed.emit(gold)
+
+
 func _on_tile_pressed(target_position: Vector2i) -> void:
 	if not input_enabled:
 		return
@@ -218,6 +242,7 @@ func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previ
 	if visual_tile != null:
 		visual_tile.set_enemy_data({})
 		visual_tile.enemy_offset = Vector2.ZERO
+	_show_enemy_loot(enemy_data)
 
 	position = _map.grid_to_world(target_position)
 	grid_position = target_position
@@ -265,6 +290,50 @@ func _find_visual_tile(target_position: Vector2i) -> RoadTile:
 	if roads == null:
 		return null
 	return roads.get_visual_tile(target_position)
+
+
+func _show_enemy_loot(enemy_data: Dictionary) -> void:
+	if _loot_ui == null:
+		return
+	var loot := _make_enemy_loot(enemy_data)
+	if not loot.is_empty():
+		_loot_ui.call("open_loot", loot)
+
+
+func _make_enemy_loot(enemy_data: Dictionary) -> Array[Dictionary]:
+	var loot: Array[Dictionary] = []
+	loot.append({
+		"kind": "food",
+		"amount": 3,
+	})
+	loot.append({
+		"kind": "gold",
+		"amount": 5,
+	})
+	loot.append({
+		"kind": "item",
+		"item": _make_enemy_item(enemy_data),
+	})
+	return loot
+
+
+func _make_enemy_item(enemy_data: Dictionary) -> Dictionary:
+	var value := _loot_rng.randi_range(1, 5)
+	var enemy_attack := int(enemy_data.get("attack", 0))
+	var enemy_armor := int(enemy_data.get("armor", 0))
+	if enemy_attack >= enemy_armor:
+		return {
+			"name": "Sword",
+			"effect": "+%d Attack" % value,
+			"attack": value,
+			"armor": 0,
+		}
+	return {
+		"name": "Armor",
+		"effect": "+%d Armor" % value,
+		"attack": 0,
+		"armor": value,
+	}
 
 
 func _check_game_over() -> void:

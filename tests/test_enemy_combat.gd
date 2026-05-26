@@ -3,6 +3,8 @@ extends SceneTree
 const MAP_SCRIPT := preload("res://scripts/map.gd")
 const ROADS_SCRIPT := preload("res://scripts/roads.gd")
 const PLAYER_SCRIPT := preload("res://scripts/player.gd")
+const INVENTORY_SCRIPT := preload("res://scripts/inventory_ui.gd")
+const LOOT_SCRIPT := preload("res://scripts/loot_ui.gd")
 const STRAIGHT := preload("res://data/road_straight.tres")
 const T_JUNCTION := preload("res://data/road_t_junction.tres")
 
@@ -53,14 +55,28 @@ func run() -> void:
 	health_label.name = "HealthLabel"
 	root.add_child(health_label)
 
+	var inventory = INVENTORY_SCRIPT.new()
+	inventory.name = "Inventory"
+	root.add_child(inventory)
+	inventory._ready()
+
+	var loot_ui = LOOT_SCRIPT.new()
+	loot_ui.name = "Loot"
+	loot_ui.player_path = NodePath("../Player")
+	loot_ui.inventory_path = NodePath("../Inventory")
+	root.add_child(loot_ui)
+	loot_ui._ready()
+
 	var player = PLAYER_SCRIPT.new()
 	player.name = "Player"
 	player.map_path = NodePath("../Map")
 	player.health_label_path = NodePath("../HealthLabel")
+	player.inventory_path = NodePath("../Inventory")
+	player.loot_ui_path = NodePath("../Loot")
 	player.start_position = Vector2i(4, 8)
 	player.starting_food = 3
 	player.starting_health = 5
-	player.attack = 3
+	player.attack = 0
 	player.armor = 1
 	player.move_duration = 0.0
 	root.add_child(player)
@@ -87,6 +103,12 @@ func run() -> void:
 	_assert(player.health == 5, "Expected armor to prevent enemy damage in this combat")
 	_assert(not map.get_tile(Vector2i(4, 7)).has("enemy"), "Expected defeated enemy to be removed from tile data")
 	_assert(roads.get_visual_tile(Vector2i(4, 7)).enemy_data.is_empty(), "Expected defeated enemy to disappear from visual tile")
+	_assert(loot_ui.is_open(), "Expected defeated enemies to open the loot screen")
+
+	loot_ui.take_all()
+	_assert(player.food == 5, "Expected enemy food loot to add after movement food is spent")
+	_assert(player.gold == 5, "Expected enemy gold loot to add to the gold counter")
+	_assert(inventory.get_active_items().size() == 3, "Expected enemy item loot to move into one backpack slot")
 
 	quit()
 

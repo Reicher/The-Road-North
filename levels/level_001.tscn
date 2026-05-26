@@ -12,9 +12,9 @@ playable_height = 9
 seed_start_and_goal = true
 
 [node name="DeckController" parent="." index="9"]
-hand_size = 5
+hand_size = 4
 road_card_ratio = 0.75
-enemy_road_card_ratio = 0.2
+enemy_road_card_ratio = 0.5
 road_distribution = {
 "corner": 30.0,
 "dead_end": 10.0,

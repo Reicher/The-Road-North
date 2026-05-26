@@ -33,9 +33,9 @@ func _initialize() -> void:
 	root.add_child(deck_controller)
 	deck_controller._ready()
 
-	_assert(hand.cards.size() == 5, "Expected the opening hand to contain five cards")
-	_assert(deck_controller.cards_remaining() == 76, "Expected a 9x9 deck to draw five cards from eighty-one")
-	_assert(deck_controller.drawn_count == 5, "Expected opening hand draw count to be tracked")
+	_assert(hand.cards.size() == 4, "Expected the opening hand to contain four cards")
+	_assert(deck_controller.cards_remaining() == 77, "Expected a 9x9 deck to draw four cards from eighty-one")
+	_assert(deck_controller.drawn_count == 4, "Expected opening hand draw count to be tracked")
 
 	var category_counts := {"Road": 0, "Event": 0}
 	var enemy_road_count := 0
@@ -49,12 +49,12 @@ func _initialize() -> void:
 			enemy_road_count += 1
 	_assert(category_counts["Road"] == 61, "Expected 75 percent of an 81 card deck to round to 61 road cards")
 	_assert(category_counts["Event"] == 20, "Expected the remaining deck cards to be events")
-	_assert(enemy_road_count == 12, "Expected 20 percent of road cards to carry hidden enemies")
+	_assert(enemy_road_count == 31, "Expected half of road cards to carry hidden enemies")
 
 	var first_card = hand.cards[0]
 	deck_controller.consume_card(first_card)
-	_assert(hand.cards.size() == 5, "Expected using a card to draw one replacement")
-	_assert(deck_controller.cards_remaining() == 75, "Expected replacement draw to remove one card from the deck")
+	_assert(hand.cards.size() == 4, "Expected using a card to draw one replacement")
+	_assert(deck_controller.cards_remaining() == 76, "Expected replacement draw to remove one card from the deck")
 	_assert(not hand.cards.has(first_card), "Expected used card to leave the hand")
 
 	deck_controller.deck.clear()
