@@ -6,6 +6,7 @@ extends Node2D
 @export var start_definition: Resource = preload("res://data/road_t_junction.tres")
 @export var goal_definition: Resource = preload("res://data/road_t_junction.tres")
 @export var seed_start_and_goal := true
+@export var initial_tiles: Array[Dictionary] = []
 
 var _map: GameMap
 var _visual_tiles: Dictionary = {}
@@ -19,11 +20,24 @@ func _ready() -> void:
 
 	if seed_start_and_goal:
 		seed_run_endpoints()
+	seed_initial_tiles()
 
 
 func seed_run_endpoints() -> void:
 	force_place_tile(_map.get_start_position(), start_definition, 0)
 	force_place_tile(_map.get_goal_position(), goal_definition, 2)
+
+
+func seed_initial_tiles() -> void:
+	for tile_entry in initial_tiles:
+		var definition: Resource = tile_entry.get("definition")
+		if definition == null:
+			continue
+		var grid_position: Vector2i = tile_entry.get("position", Vector2i(-1, -1))
+		if seed_start_and_goal and (grid_position == _map.get_start_position() or grid_position == _map.get_goal_position()):
+			continue
+		var rotation_steps: int = int(tile_entry.get("rotation_steps", 0))
+		force_place_tile(grid_position, definition, rotation_steps)
 
 
 func place_tile(grid_position: Vector2i, definition: Resource, rotation_steps: int = 0, enemy_data: Dictionary = {}) -> bool:

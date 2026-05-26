@@ -1,95 +1,24 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/map.gd" id="1_ab4jp"]
-[ext_resource type="Script" path="res://scripts/player_stats_ui.gd" id="2_7ls0f"]
-[ext_resource type="Script" path="res://scripts/game_over_ui.gd" id="2_sv6li"]
-[ext_resource type="Script" path="res://scripts/map_camera.gd" id="2_u2vaw"]
-[ext_resource type="Script" path="res://scripts/roads.gd" id="2_vxv7f"]
-[ext_resource type="PackedScene" path="res://scenes/deck_controller.tscn" id="4_0bp0f"]
-[ext_resource type="PackedScene" path="res://ui/hand.tscn" id="4_0v6l3"]
-[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="4_3xm24"]
-[ext_resource type="PackedScene" path="res://scenes/placement_controller.tscn" id="6_pf4am"]
-[ext_resource type="Script" path="res://scripts/inventory_ui.gd" id="8_ddx2e"]
+[ext_resource type="PackedScene" path="res://scenes/level.tscn" id="1_f3kdo"]
 
-[node name="Level" type="Node2D"]
+[node name="Level" instance=ExtResource("1_f3kdo")]
 
-[node name="Map" type="Node2D" parent="."]
-script = ExtResource("1_ab4jp")
+[node name="Map" parent="." index="0"]
+playable_width = 9
+playable_height = 9
 
-[node name="Roads" type="Node2D" parent="."]
-script = ExtResource("2_vxv7f")
-map_path = NodePath("../Map")
+[node name="Roads" parent="." index="1"]
+seed_start_and_goal = true
 
-[node name="Player" parent="." instance=ExtResource("4_3xm24")]
-map_path = NodePath("../Map")
-food_label_path = NodePath("../FoodLabel")
-health_label_path = NodePath("../HealthLabel")
-inventory_path = NodePath("../UI/Inventory")
-
-[node name="PlacementController" parent="." instance=ExtResource("6_pf4am")]
-map_path = NodePath("../Map")
-roads_path = NodePath("../Roads")
-player_path = NodePath("../Player")
-hand_path = NodePath("../UI/Hand")
-deck_controller_path = NodePath("../DeckController")
-
-[node name="Camera2D" type="Camera2D" parent="."]
-enabled = true
-script = ExtResource("2_u2vaw")
-map_path = NodePath("../Map")
-reserved_bottom_path = NodePath("../UI/Hand")
-
-[node name="PlaceholderLabel" type="Label" parent="."]
-offset_left = 24.0
-offset_top = 144.0
-offset_right = 296.0
-offset_bottom = 170.0
-text = "Road to Karlskoga"
-
-[node name="FoodLabel" type="Label" parent="."]
-offset_left = 24.0
-offset_top = 176.0
-offset_right = 296.0
-offset_bottom = 202.0
-text = "Food: 27"
-
-[node name="HealthLabel" type="Label" parent="."]
-visible = false
-offset_left = 24.0
-offset_top = 88.0
-offset_right = 296.0
-offset_bottom = 114.0
-text = "Health: 5"
-
-[node name="UI" type="CanvasLayer" parent="."]
-
-[node name="Hand" parent="UI" instance=ExtResource("4_0v6l3")]
-
-[node name="Inventory" type="Control" parent="UI"]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("8_ddx2e")
-
-[node name="PlayerStats" type="Control" parent="UI"]
-anchors_preset = 0
-offset_right = 82.0
-offset_bottom = 114.0
-script = ExtResource("2_7ls0f")
-player_path = NodePath("../../Player")
-
-[node name="GameOver" type="Control" parent="UI"]
-visible = false
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("2_sv6li")
-player_path = NodePath("../../Player")
-
-[node name="DeckController" parent="." instance=ExtResource("4_0bp0f")]
-map_path = NodePath("../Map")
-hand_path = NodePath("../UI/Hand")
+[node name="DeckController" parent="." index="9"]
+hand_size = 5
+road_card_ratio = 0.75
+enemy_road_card_ratio = 0.2
+road_distribution = {
+"corner": 30.0,
+"dead_end": 10.0,
+"four_way": 10.0,
+"straight": 30.0,
+"t_junction": 20.0
+}

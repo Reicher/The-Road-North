@@ -22,6 +22,9 @@ const ROAD_DISTRIBUTION := {
 @export var hand_path: NodePath
 @export var hand_size := HAND_SIZE
 @export var shuffle_seed := 0
+@export_range(0.0, 1.0, 0.01) var road_card_ratio := ROAD_CARD_RATIO
+@export_range(0.0, 1.0, 0.01) var enemy_road_card_ratio := ENEMY_ROAD_CARD_RATIO
+@export var road_distribution := ROAD_DISTRIBUTION.duplicate()
 
 @export var straight_definition: Resource = preload("res://data/road_straight.tres")
 @export var corner_definition: Resource = preload("res://data/road_corner.tres")
@@ -63,7 +66,7 @@ func start_run() -> void:
 
 func generate_deck() -> void:
 	var deck_size := _get_deck_size()
-	var road_count := roundi(float(deck_size) * ROAD_CARD_RATIO)
+	var road_count := roundi(float(deck_size) * road_card_ratio)
 	var event_count: int = maxi(0, deck_size - road_count)
 
 	deck.clear()
@@ -166,7 +169,7 @@ func _make_road_cards(count: int) -> Array[Dictionary]:
 		"four_way": four_way_definition,
 		"dead_end": dead_end_definition,
 	}
-	var counts := _counts_from_distribution(count, ROAD_DISTRIBUTION)
+	var counts := _counts_from_distribution(count, road_distribution)
 	var cards: Array[Dictionary] = []
 	for subtype in counts:
 		var card_count: int = counts[subtype]
@@ -231,7 +234,7 @@ func _counts_from_distribution(total: int, distribution: Dictionary) -> Dictiona
 
 
 func _add_enemies_to_road_cards(cards: Array[Dictionary]) -> void:
-	var enemy_count := roundi(float(cards.size()) * ENEMY_ROAD_CARD_RATIO)
+	var enemy_count := roundi(float(cards.size()) * enemy_road_card_ratio)
 	for index in range(cards.size() - 1, 0, -1):
 		var swap_index := _rng.randi_range(0, index)
 		var card := cards[index]

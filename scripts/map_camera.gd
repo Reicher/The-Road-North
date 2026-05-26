@@ -1,29 +1,41 @@
 extends Camera2D
 
 @export var map_path: NodePath
+@export var player_path: NodePath
 @export var reserved_bottom_path: NodePath
 @export var initial_visible_tile_width := 5.0
-@export var zoom_in_limit := 3.0
+@export var zoom_in_visible_tile_width := 3.0
+@export_range(0.0, 10.0, 0.1) var start_zoom_hold_duration := 2.0
+@export_range(0.0, 5.0, 0.05) var start_zoom_duration := 0.85
+@export_range(0.0, 2.0, 0.01) var move_focus_duration := 0.18
 @export var zoom_step := 0.1
 
 var _map: Node
+var _player: Node2D
 var _reserved_bottom_control: Control
 var _touch_points: Dictionary = {}
 var _last_pinch_distance := 0.0
 var _last_pinch_center := Vector2.ZERO
+var _start_zoom_tween: Tween
+var _move_focus_tween: Tween
 
 
 func _ready() -> void:
 	_map = get_node_or_null(map_path)
+	_player = get_node_or_null(player_path) as Node2D
 	_reserved_bottom_control = get_node_or_null(reserved_bottom_path) as Control
 	anchor_mode = Camera2D.ANCHOR_MODE_DRAG_CENTER
 	get_viewport().size_changed.connect(_refresh_limits)
 	if _reserved_bottom_control != null:
 		_reserved_bottom_control.resized.connect(_refresh_limits)
+	var moved_callback := Callable(self, "_on_player_moved")
+	if _player != null and _player.has_signal("moved") and not _player.is_connected("moved", moved_callback):
+		_player.connect("moved", moved_callback)
 	if _map != null:
-		zoom = Vector2.ONE * _get_initial_zoom()
-		position = _get_initial_position()
+		zoom = Vector2.ONE * _get_zoom_out_limit()
+		position = _get_full_map_position()
 		_clamp_position()
+		_play_start_zoom_sequence()
 
 
 func _input(event: InputEvent) -> void:
@@ -169,34 +181,103 @@ func _get_zoom_out_limit() -> float:
 	return maxf(viewport_size.x / padded_size.x, viewport_size.y / padded_size.y)
 
 
-func _get_initial_zoom() -> float:
-	if _map == null:
-		return 1.0
-
-	return clampf(_get_initial_zoom_target(), _get_zoom_out_limit(), _get_zoom_in_limit())
-
-
-func _get_initial_position() -> Vector2:
-	if _map == null:
-		return Vector2.ZERO
-
-	var padded_rect: Rect2 = _map.get_padded_world_rect()
-	var visible_size: Vector2 = _get_map_viewport_size() / zoom
-	var map_area_center := Vector2(padded_rect.get_center().x, padded_rect.end.y - visible_size.y * 0.5)
-	return map_area_center + _get_map_area_center_offset()
-
-
 func _get_zoom_in_limit() -> float:
-	return maxf(maxf(zoom_in_limit, _get_zoom_out_limit()), _get_initial_zoom_target())
+	return maxf(_get_zoom_for_visible_tile_width(zoom_in_visible_tile_width), _get_zoom_out_limit())
 
 
 func _get_initial_zoom_target() -> float:
+	return _get_zoom_for_visible_tile_width(initial_visible_tile_width)
+
+
+func _get_zoom_for_visible_tile_width(visible_tile_width: float) -> float:
 	if _map == null:
 		return 1.0
 
 	var viewport_width: float = _get_map_viewport_size().x
-	var tile_width: float = maxf(_map.tile_size * initial_visible_tile_width, 1.0)
+	var tile_width: float = maxf(_map.tile_size * maxf(visible_tile_width, 1.0), 1.0)
 	return viewport_width / tile_width
+
+
+func _get_full_map_position() -> Vector2:
+	if _map == null:
+		return Vector2.ZERO
+
+	return _map.get_padded_world_rect().get_center() + _get_map_area_center_offset()
+
+
+func _get_player_tile_position() -> Vector2:
+	if _map == null:
+		return Vector2.ZERO
+	if _player != null:
+		var player_grid_position: Variant = _player.get("grid_position")
+		if player_grid_position is Vector2i:
+			return _map.grid_to_world(player_grid_position)
+		return _player.global_position
+	if _map.has_method("get_start_position"):
+		return _map.grid_to_world(_map.get_start_position())
+	return _map.get_padded_world_rect().get_center()
+
+
+func _play_start_zoom_sequence() -> void:
+	if _start_zoom_tween != null:
+		_start_zoom_tween.kill()
+
+	zoom = Vector2.ONE * _get_zoom_out_limit()
+	position = _get_full_map_position()
+	_clamp_position()
+
+	await get_tree().create_timer(start_zoom_hold_duration).timeout
+	if _map == null or not is_inside_tree():
+		return
+
+	zoom = Vector2.ONE * _get_zoom_in_limit()
+	position = _get_player_tile_position()
+	_clamp_position()
+	var target_zoom := zoom
+	var target_position := position
+
+	zoom = Vector2.ONE * _get_zoom_out_limit()
+	position = _get_full_map_position()
+	_clamp_position()
+
+	_start_zoom_tween = create_tween()
+	_start_zoom_tween.set_trans(Tween.TRANS_SINE)
+	_start_zoom_tween.set_ease(Tween.EASE_IN_OUT)
+	_start_zoom_tween.set_parallel(true)
+	_start_zoom_tween.tween_property(self, "zoom", target_zoom, start_zoom_duration)
+	_start_zoom_tween.tween_property(self, "position", target_position, start_zoom_duration)
+	_start_zoom_tween.chain().tween_callback(_clamp_position)
+
+
+func _on_player_moved(grid_position: Vector2i) -> void:
+	_focus_on_grid_position(grid_position)
+
+
+func _focus_on_grid_position(grid_position: Vector2i) -> void:
+	if _map == null:
+		return
+	if _move_focus_tween != null:
+		_move_focus_tween.kill()
+
+	var target_position := _get_clamped_camera_position_for_world_position(_map.grid_to_world(grid_position))
+	if move_focus_duration <= 0.0:
+		position = target_position
+		return
+
+	_move_focus_tween = create_tween()
+	_move_focus_tween.set_trans(Tween.TRANS_SINE)
+	_move_focus_tween.set_ease(Tween.EASE_OUT)
+	_move_focus_tween.tween_property(self, "position", target_position, move_focus_duration)
+	_move_focus_tween.tween_callback(_clamp_position)
+
+
+func _get_clamped_camera_position_for_world_position(world_position: Vector2) -> Vector2:
+	var previous_position := position
+	position = world_position
+	_clamp_position()
+	var clamped_position := position
+	position = previous_position
+	return clamped_position
 
 
 func _get_map_viewport_size() -> Vector2:

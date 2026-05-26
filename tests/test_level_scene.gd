@@ -1,0 +1,33 @@
+extends SceneTree
+
+const LEVEL_001 := preload("res://levels/level_001.tscn")
+
+
+func _initialize() -> void:
+	var level := LEVEL_001.instantiate()
+	get_root().add_child(level)
+
+	var map := level.get_node("Map") as GameMap
+	var roads := level.get_node("Roads") as Roads
+	var deck_controller := level.get_node("DeckController") as DeckController
+	var hand := level.get_node("UI/Hand") as HandUI
+
+	_assert(map != null, "Expected level scene to include a GameMap")
+	_assert(roads != null, "Expected level scene to include Roads")
+	_assert(deck_controller != null, "Expected level scene to include DeckController")
+	_assert(hand != null, "Expected level scene to include HandUI")
+	_assert(map.playable_width == 9 and map.playable_height == 9, "Expected level 001 to configure a 9x9 map")
+	_assert(roads.seed_start_and_goal, "Expected level 001 to seed start and goal tiles")
+	_assert(deck_controller.hand_size == 5, "Expected level 001 to configure a five-card hand")
+	_assert(is_equal_approx(deck_controller.road_card_ratio, 0.75), "Expected level 001 to configure road card ratio")
+	_assert(is_equal_approx(deck_controller.enemy_road_card_ratio, 0.2), "Expected level 001 to configure enemy road card ratio")
+	_assert(deck_controller.road_distribution["straight"] == 30.0, "Expected level 001 to configure road distribution")
+
+	quit()
+
+
+func _assert(condition: bool, message: String) -> void:
+	if condition:
+		return
+	push_error(message)
+	quit(1)

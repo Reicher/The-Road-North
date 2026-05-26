@@ -44,6 +44,16 @@ Each playable map is represented by a Level scene.
 Example:
 - levels/level_001.tscn
 
+Shared level plumbing should live in a reusable base scene:
+- scenes/level.tscn
+
+Individual level scenes should inherit from the base scene and override level-specific data such as:
+- map size
+- initial seeded tiles
+- deck ratios and card distribution
+- hand size
+- starting player values
+
 The Level scene is responsible for:
 - map state
 - tile placement

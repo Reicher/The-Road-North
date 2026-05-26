@@ -1,0 +1,72 @@
+[gd_scene load_steps=11 format=3]
+
+[ext_resource type="Script" path="res://scripts/map.gd" id="1_1fs71"]
+[ext_resource type="Script" path="res://scripts/player_stats_ui.gd" id="2_05s0l"]
+[ext_resource type="Script" path="res://scripts/game_over_ui.gd" id="3_e3plw"]
+[ext_resource type="Script" path="res://scripts/map_camera.gd" id="4_tbxl1"]
+[ext_resource type="Script" path="res://scripts/roads.gd" id="5_6it63"]
+[ext_resource type="PackedScene" path="res://scenes/deck_controller.tscn" id="6_wxmfr"]
+[ext_resource type="PackedScene" path="res://ui/hand.tscn" id="7_vcnun"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="8_p4o14"]
+[ext_resource type="PackedScene" path="res://scenes/placement_controller.tscn" id="9_s8m4e"]
+[ext_resource type="Script" path="res://scripts/inventory_ui.gd" id="10_xf4av"]
+
+[node name="Level" type="Node2D"]
+
+[node name="Map" type="Node2D" parent="."]
+script = ExtResource("1_1fs71")
+
+[node name="Roads" type="Node2D" parent="."]
+script = ExtResource("5_6it63")
+map_path = NodePath("../Map")
+
+[node name="Player" parent="." instance=ExtResource("8_p4o14")]
+map_path = NodePath("../Map")
+inventory_path = NodePath("../UI/Inventory")
+
+[node name="PlacementController" parent="." instance=ExtResource("9_s8m4e")]
+map_path = NodePath("../Map")
+roads_path = NodePath("../Roads")
+player_path = NodePath("../Player")
+hand_path = NodePath("../UI/Hand")
+deck_controller_path = NodePath("../DeckController")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+enabled = true
+script = ExtResource("4_tbxl1")
+map_path = NodePath("../Map")
+player_path = NodePath("../Player")
+reserved_bottom_path = NodePath("../UI/Hand")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Hand" parent="UI" instance=ExtResource("7_vcnun")]
+
+[node name="Inventory" type="Control" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("10_xf4av")
+
+[node name="PlayerStats" type="Control" parent="UI"]
+anchors_preset = 0
+offset_right = 82.0
+offset_bottom = 114.0
+script = ExtResource("2_05s0l")
+player_path = NodePath("../../Player")
+
+[node name="GameOver" type="Control" parent="UI"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("3_e3plw")
+player_path = NodePath("../../Player")
+
+[node name="DeckController" parent="." instance=ExtResource("6_wxmfr")]
+map_path = NodePath("../Map")
+hand_path = NodePath("../UI/Hand")

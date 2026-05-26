@@ -6,6 +6,8 @@ const SWORD_COLOR := Color(0.86, 0.86, 0.78)
 const SWORD_HILT_COLOR := Color(0.45, 0.31, 0.16)
 const SHIELD_COLOR := Color(0.10, 0.78, 0.82)
 const SHIELD_EDGE_COLOR := Color(0.04, 0.36, 0.42)
+const FOOD_COLOR := Color(0.92, 0.64, 0.28)
+const FOOD_EDGE_COLOR := Color(0.48, 0.26, 0.10)
 
 
 static func draw_heart(canvas: CanvasItem, center: Vector2, size: float) -> void:
@@ -51,3 +53,13 @@ static func draw_shield(canvas: CanvasItem, center: Vector2, size: float) -> voi
 	var outline := points.duplicate()
 	outline.append(points[0])
 	canvas.draw_polyline(outline, SHIELD_EDGE_COLOR, maxf(1.5, size * 0.08))
+
+
+static func draw_food(canvas: CanvasItem, center: Vector2, size: float) -> void:
+	var loaf_rect := Rect2(center + Vector2(-size * 0.34, -size * 0.12), Vector2(size * 0.68, size * 0.36))
+	canvas.draw_circle(center + Vector2(-size * 0.20, -size * 0.10), size * 0.20, FOOD_COLOR)
+	canvas.draw_circle(center + Vector2(0.0, -size * 0.18), size * 0.24, FOOD_COLOR)
+	canvas.draw_circle(center + Vector2(size * 0.22, -size * 0.10), size * 0.20, FOOD_COLOR)
+	canvas.draw_rect(loaf_rect, FOOD_COLOR, true)
+	canvas.draw_arc(center + Vector2(-size * 0.13, -size * 0.03), size * 0.10, -PI * 0.15, PI * 0.75, 10, FOOD_EDGE_COLOR, maxf(1.5, size * 0.06))
+	canvas.draw_arc(center + Vector2(size * 0.16, -size * 0.03), size * 0.10, -PI * 0.15, PI * 0.75, 10, FOOD_EDGE_COLOR, maxf(1.5, size * 0.06))
