@@ -85,10 +85,15 @@ func _test_destroy_neighbor_event() -> void:
 	_assert(not placement.has_valid_preview(), "Expected goal tile target to be invalid")
 
 	map.tile_pressed.emit(Vector2i(6, 6))
-	_assert(placement.has_valid_preview(), "Expected any non-endpoint placed tile to be valid")
+	_assert(not placement.has_valid_preview(), "Expected non-neighbor placed tile target to be invalid")
+	_assert(not placement.confirm_placement(), "Expected non-neighbor destroy target not to confirm")
+	_assert(map.get_tile(Vector2i(6, 6)) != null, "Expected non-neighbor target to remain placed")
+
+	map.tile_pressed.emit(Vector2i(4, 7))
+	_assert(placement.has_valid_preview(), "Expected neighboring placed tile target to be valid")
 	_assert(placement.confirm_placement(), "Expected valid destroy target to confirm")
-	_assert(map.get_tile(Vector2i(6, 6)) == null, "Expected destroy event to remove the selected tile")
-	_assert(roads.get_visual_tile(Vector2i(6, 6)) == null, "Expected destroy event to remove the visual tile")
+	_assert(map.get_tile(Vector2i(4, 7)) == null, "Expected destroy event to remove the selected tile")
+	_assert(roads.get_visual_tile(Vector2i(4, 7)) == null, "Expected destroy event to remove the visual tile")
 	_assert(not hand.cards.has(destroy_card), "Expected confirmed destroy event to consume the card")
 	_assert(player.input_enabled, "Expected movement input to resume after destroy")
 

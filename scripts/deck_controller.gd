@@ -1,6 +1,8 @@
 class_name DeckController
 extends Node
 
+const DECK_BUILDER_SCRIPT := preload("res://scripts/deck_builder.gd")
+
 const ROAD_CATEGORY := "Road"
 const EVENT_CATEGORY := "Event"
 const EVENT_DESTROY_NEIGHBOR := "destroy_neighbor"
@@ -21,6 +23,7 @@ const ROAD_DISTRIBUTION := {
 
 @export var map_path: NodePath
 @export var hand_path: NodePath
+@export var deck_builder_path: NodePath = NodePath("DeckBuilder")
 @export var hand_size := HAND_SIZE
 @export var shuffle_seed := 0
 @export_range(0.0, 1.0, 0.01) var road_card_ratio := ROAD_CARD_RATIO
@@ -39,12 +42,14 @@ var drawn_count := 0
 
 var _map: GameMap
 var _hand: HandUI
+var _deck_builder: Node
 var _rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
 	_map = get_node_or_null(map_path) as GameMap
 	_hand = get_node_or_null(hand_path) as HandUI
+	_deck_builder = _get_or_create_deck_builder()
 	if _map == null:
 		push_warning("DeckController needs a GameMap at map_path.")
 		return
@@ -67,15 +72,7 @@ func start_run() -> void:
 
 
 func generate_deck() -> void:
-	var deck_size := _get_deck_size()
-	var road_count := roundi(float(deck_size) * road_card_ratio)
-	var event_count: int = maxi(0, deck_size - road_count)
-
-	deck.clear()
-	for road_card in _make_road_cards(road_count):
-		deck.append(road_card)
-	for event_card in _make_event_cards(event_count):
-		deck.append(event_card)
+	deck = _deck_builder.make_deck(_get_deck_size(), _rng, _deck_config())
 
 
 func shuffle_deck() -> void:
@@ -163,180 +160,27 @@ func _prepare_rng() -> void:
 		_rng.seed = shuffle_seed
 
 
-func _make_road_cards(count: int) -> Array[Dictionary]:
-	var definitions: Dictionary = {
-		"straight": straight_definition,
-		"corner": corner_definition,
-		"t_junction": t_junction_definition,
-		"four_way": four_way_definition,
-		"dead_end": dead_end_definition,
-	}
-	var counts := _counts_from_distribution(count, road_distribution)
-	var cards: Array[Dictionary] = []
-	for subtype in counts:
-		var card_count: int = counts[subtype]
-		for _index in card_count:
-			cards.append({
-				"category": ROAD_CATEGORY,
-				"tile_definition": definitions[subtype],
-			})
-	_add_enemies_to_road_cards(cards)
-	_add_landmarks_to_road_cards(cards)
-	return cards
-
-
-func _make_event_cards(count: int) -> Array[Dictionary]:
-	var cards: Array[Dictionary] = []
-	for index in count:
-		if index % 2 == 0:
-			cards.append({
-				"category": EVENT_CATEGORY,
-				"title": "Clear Road",
-				"detail": "Destroy a neighboring placed tile.",
-				"event_type": "destroy_neighbor",
-			})
-		else:
-			cards.append({
-				"category": EVENT_CATEGORY,
-				"title": "Supplies",
-				"detail": "Draw two extra cards.",
-				"event_type": "draw_two",
-			})
-	return cards
-
-
-func _counts_from_distribution(total: int, distribution: Dictionary) -> Dictionary:
-	var counts: Dictionary = {}
-	var fractions: Array[Dictionary] = []
-	var assigned := 0
-	var weight_total := 0.0
-
-	for key in distribution:
-		weight_total += float(distribution[key])
-
-	for key in distribution:
-		var exact_count := float(total) * float(distribution[key]) / weight_total
-		var base_count := floori(exact_count)
-		counts[key] = base_count
-		fractions.append({
-			"key": key,
-			"fraction": exact_count - float(base_count),
-		})
-		assigned += base_count
-
-	fractions.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["fraction"]) > float(b["fraction"]))
-
-	var remaining := total - assigned
-	for index in remaining:
-		var key: String = fractions[index % fractions.size()]["key"]
-		counts[key] += 1
-
-	return counts
-
-
-func _add_enemies_to_road_cards(cards: Array[Dictionary]) -> void:
-	var enemy_count := roundi(float(cards.size()) * enemy_road_card_ratio)
-	for index in range(cards.size() - 1, 0, -1):
-		var swap_index := _rng.randi_range(0, index)
-		var card := cards[index]
-		cards[index] = cards[swap_index]
-		cards[swap_index] = card
-
-	for index in mini(enemy_count, cards.size()):
-		var card: Dictionary = cards[index]
-		card["enemy"] = _make_enemy_data()
-		card["title"] = _guarded_title_for_card(card)
-		card["detail"] = "Enemy waits on this road."
-		cards[index] = card
-
-
-func _make_enemy_data() -> Dictionary:
+func _deck_config() -> Dictionary:
 	return {
-		"revealed": false,
-		"health": 1,
-		"max_health": 1,
-		"attack": _rng.randi_range(1, 3),
-		"armor": _rng.randi_range(1, 3),
+		"road_card_ratio": road_card_ratio,
+		"enemy_road_card_ratio": enemy_road_card_ratio,
+		"landmark_road_card_ratio": landmark_road_card_ratio,
+		"road_distribution": road_distribution,
+		"road_definitions": {
+			"straight": straight_definition,
+			"corner": corner_definition,
+			"t_junction": t_junction_definition,
+			"four_way": four_way_definition,
+			"dead_end": dead_end_definition,
+		},
 	}
 
 
-func _add_landmarks_to_road_cards(cards: Array[Dictionary]) -> void:
-	var landmark_count := roundi(float(cards.size()) * landmark_road_card_ratio)
-	var eligible_indices: Array[int] = []
-	for index in cards.size():
-		if not cards[index].has("enemy"):
-			eligible_indices.append(index)
-	for index in range(eligible_indices.size() - 1, 0, -1):
-		var swap_index := _rng.randi_range(0, index)
-		var card_index := eligible_indices[index]
-		eligible_indices[index] = eligible_indices[swap_index]
-		eligible_indices[swap_index] = card_index
-
-	for index in mini(landmark_count, eligible_indices.size()):
-		var card_index := eligible_indices[index]
-		var card: Dictionary = cards[card_index]
-		card["landmark"] = _make_landmark_data(index)
-		card["title"] = _landmark_title_for_card(card)
-		card["detail"] = _landmark_detail(card["landmark"])
-		cards[card_index] = card
-
-
-func _make_landmark_data(index: int) -> Dictionary:
-	var landmark_types: Array[String] = [GameMap.LANDMARK_BERRY_BUSH, GameMap.LANDMARK_RUINS, GameMap.LANDMARK_CACHE]
-	var kind: String = landmark_types[index % landmark_types.size()]
-	if kind == GameMap.LANDMARK_BERRY_BUSH:
-		return {
-			"type": kind,
-			"loot": [{"kind": "food", "amount": 3}],
-		}
-	if kind == GameMap.LANDMARK_RUINS:
-		return {
-			"type": kind,
-			"loot": [{"kind": "gold", "amount": 4}],
-		}
-	return {
-		"type": kind,
-		"loot": [{
-			"kind": "item",
-			"item": {
-				"name": "Old Compass",
-				"effect": "+1 Attack",
-				"attack": 1,
-				"armor": 0,
-			},
-		}],
-	}
-
-
-func _landmark_title_for_card(card: Dictionary) -> String:
-	var landmark: Dictionary = card.get("landmark", {})
-	var prefix := "Landmark"
-	var kind := str(landmark.get("type", ""))
-	if kind == GameMap.LANDMARK_BERRY_BUSH:
-		prefix = "Berry Bush"
-	elif kind == GameMap.LANDMARK_RUINS:
-		prefix = "Ruins"
-	elif kind == GameMap.LANDMARK_CACHE:
-		prefix = "Cache"
-	var definition: Resource = card.get("tile_definition")
-	if definition == null:
-		return prefix
-	return "%s %s" % [prefix, str(definition.get("display_name"))]
-
-
-func _landmark_detail(landmark: Dictionary) -> String:
-	var kind := str(landmark.get("type", ""))
-	if kind == GameMap.LANDMARK_BERRY_BUSH:
-		return "Grants food when reached."
-	if kind == GameMap.LANDMARK_RUINS:
-		return "Grants gold when reached."
-	if kind == GameMap.LANDMARK_CACHE:
-		return "Contains an item when reached."
-	return "Reward waits on this road."
-
-
-func _guarded_title_for_card(card: Dictionary) -> String:
-	var definition: Resource = card.get("tile_definition")
-	if definition == null:
-		return "Guarded Road"
-	return "Guarded %s" % str(definition.get("display_name"))
+func _get_or_create_deck_builder() -> Node:
+	var builder := get_node_or_null(deck_builder_path)
+	if builder != null:
+		return builder
+	builder = DECK_BUILDER_SCRIPT.new()
+	builder.name = "DeckBuilder"
+	add_child(builder)
+	return builder

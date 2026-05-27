@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/player_stats_ui.gd" id="1_sgy2y"]
+
+[node name="PlayerStats" type="Control"]
+anchors_preset = 0
+offset_right = 82.0
+offset_bottom = 114.0
+script = ExtResource("1_sgy2y")

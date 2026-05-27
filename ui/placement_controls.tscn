@@ -1,0 +1,32 @@
+[gd_scene format=3]
+
+[node name="PlacementControls" type="CanvasLayer"]
+layer = 20
+
+[node name="PromptLabel" type="Label" parent="."]
+visible = false
+custom_minimum_size = Vector2(160, 36)
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "Place tile"
+
+[node name="Buttons" type="HBoxContainer" parent="."]
+visible = false
+alignment = 1
+theme_override_constants/separation = 10
+
+[node name="RotateButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(96, 44)
+focus_mode = 0
+text = "Rotate"
+
+[node name="ConfirmButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(96, 44)
+focus_mode = 0
+disabled = true
+text = "Confirm"
+
+[node name="CancelButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(96, 44)
+focus_mode = 0
+text = "Cancel"

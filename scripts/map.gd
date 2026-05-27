@@ -68,7 +68,6 @@ func _unhandled_input(event: InputEvent) -> void:
 func _handle_world_press(world_position: Vector2) -> void:
 	var grid_position: Vector2i = world_to_grid(world_position)
 	if is_inside_playable_area(grid_position):
-		print("Tile pressed: ", grid_position)
 		tile_pressed.emit(grid_position)
 
 
@@ -224,4 +223,3 @@ func _tile_has_opening(tile_data: Variant, direction_name: String) -> bool:
 		var connections: Dictionary = tile_data.get("connections", tile_data)
 		return connections.get(direction_name, false) == true
 	return false
-

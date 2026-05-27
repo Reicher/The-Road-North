@@ -1,6 +1,9 @@
 class_name GamePlayer
 extends Node2D
 
+const PLAYER_REWARDS_SCRIPT := preload("res://scripts/player_rewards.gd")
+const PLAYER_COMBAT_SCRIPT := preload("res://scripts/player_combat.gd")
+
 signal food_changed(food: int)
 signal gold_changed(gold: int)
 signal health_changed(health: int)
@@ -13,6 +16,8 @@ signal game_over(reason: String)
 @export var health_label_path: NodePath
 @export var inventory_path: NodePath
 @export var loot_ui_path: NodePath
+@export var rewards_path: NodePath = NodePath("Rewards")
+@export var combat_path: NodePath = NodePath("Combat")
 @export var start_position := Vector2i(-1, -1)
 @export var starting_food := -1
 @export var starting_gold := 0
@@ -36,7 +41,8 @@ var _food_label: Label
 var _health_label: Label
 var _inventory: InventoryUI
 var _loot_ui: Node
-var _loot_rng := RandomNumberGenerator.new()
+var _rewards: Node
+var _combat: Node
 var _moving := false
 var _move_target := Vector2i.ZERO
 var _combat_running := false
@@ -49,7 +55,10 @@ func _ready() -> void:
 	_health_label = get_node_or_null(health_label_path) as Label
 	_inventory = get_node_or_null(inventory_path) as InventoryUI
 	_loot_ui = get_node_or_null(loot_ui_path)
-	_loot_rng.randomize()
+	_rewards = _get_or_create_rewards()
+	_rewards.setup(self, _inventory, _loot_ui)
+	_combat = _get_or_create_combat()
+	_combat.setup(self, _map)
 
 	if _map == null:
 		push_warning("Player needs a GameMap at map_path.")
@@ -86,7 +95,7 @@ func _draw() -> void:
 func can_move_to(target_position: Vector2i) -> bool:
 	if _map == null or _moving or _combat_running or _game_over or food <= 0:
 		return false
-	return _map.can_move_between(grid_position, target_position) and _can_defeat_enemy_at(target_position)
+	return _map.can_move_between(grid_position, target_position) and _combat.can_defeat_enemy_at(target_position)
 
 
 func move_to(target_position: Vector2i) -> bool:
@@ -108,7 +117,7 @@ func move_to(target_position: Vector2i) -> bool:
 	if not _map.can_move_between(grid_position, target_position):
 		move_blocked.emit(target_position, "invalid_road")
 		return false
-	if not _can_defeat_enemy_at(target_position):
+	if not _combat.can_defeat_enemy_at(target_position):
 		return false
 
 	_moving = true
@@ -116,7 +125,7 @@ func move_to(target_position: Vector2i) -> bool:
 	_update_food_label()
 	food_changed.emit(food)
 
-	var enemy_data := _get_enemy_data(target_position)
+	var enemy_data: Dictionary = _combat.get_enemy_data(target_position)
 	if not enemy_data.is_empty() and int(enemy_data.get("health", 0)) > 0:
 		_move_into_enemy(target_position, enemy_data)
 		return true
@@ -171,7 +180,7 @@ func add_gold(amount: int) -> void:
 func _on_tile_pressed(target_position: Vector2i) -> void:
 	if not input_enabled:
 		return
-	if _is_blocked_by_enemy_armor(target_position):
+	if _combat.is_blocked_by_enemy_armor(grid_position, target_position):
 		return
 	move_to(target_position)
 
@@ -199,17 +208,11 @@ func _update_health_label() -> void:
 
 
 func get_total_attack() -> int:
-	var bonus := 0
-	if _inventory != null:
-		bonus = _inventory.get_attack_bonus()
-	return attack + bonus
+	return attack + _rewards.get_attack_bonus()
 
 
 func get_total_armor() -> int:
-	var bonus := 0
-	if _inventory != null:
-		bonus = _inventory.get_armor_bonus()
-	return armor + bonus
+	return armor + _rewards.get_armor_bonus()
 
 
 func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary) -> void:
@@ -236,7 +239,7 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary) -> void
 
 
 func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previous_input_enabled: bool) -> void:
-	var enemy_damage: int = maxi(0, int(enemy_data.get("attack", 0)) - get_total_armor())
+	var enemy_damage: int = _combat.get_damage_from(enemy_data)
 	set_health(maxi(0, health - enemy_damage))
 
 	var visual_tile := _find_visual_tile(target_position)
@@ -265,28 +268,6 @@ func _update_enemy_visual(target_position: Vector2i, enemy_data: Dictionary) -> 
 		visual_tile.set_enemy_data(enemy_data)
 
 
-func _can_defeat_enemy_at(target_position: Vector2i) -> bool:
-	var enemy_data := _get_enemy_data(target_position)
-	if enemy_data.is_empty():
-		return true
-	if int(enemy_data.get("health", 0)) <= 0:
-		return true
-	return get_total_attack() > int(enemy_data.get("armor", 0))
-
-
-func _is_blocked_by_enemy_armor(target_position: Vector2i) -> bool:
-	return _map != null and _map.can_move_between(grid_position, target_position) and not _can_defeat_enemy_at(target_position)
-
-
-func _get_enemy_data(target_position: Vector2i) -> Dictionary:
-	if _map == null:
-		return {}
-	var tile_data: Variant = _map.get_tile(target_position)
-	if not (tile_data is Dictionary):
-		return {}
-	return tile_data.get("enemy", {})
-
-
 func _find_visual_tile(target_position: Vector2i) -> RoadTile:
 	var parent := get_parent()
 	if parent == null:
@@ -298,11 +279,7 @@ func _find_visual_tile(target_position: Vector2i) -> RoadTile:
 
 
 func _show_enemy_loot(enemy_data: Dictionary) -> void:
-	if _loot_ui == null:
-		return
-	var loot := _make_enemy_loot(enemy_data)
-	if not loot.is_empty():
-		_loot_ui.call("open_loot", loot)
+	_rewards.open_enemy_loot(enemy_data)
 
 
 func _collect_landmark_at(target_position: Vector2i) -> void:
@@ -315,60 +292,27 @@ func _collect_landmark_at(target_position: Vector2i) -> void:
 	if visual_tile != null:
 		visual_tile.landmark_data = {}
 	var loot: Array = landmark.get("loot", [])
-	if loot.is_empty():
-		return
-	if _loot_ui != null:
-		_loot_ui.call("open_loot", loot)
-		return
-	for entry in loot:
-		if entry is Dictionary:
-			_collect_landmark_loot_entry(entry)
+	_rewards.collect_landmark_loot(loot)
 
 
-func _collect_landmark_loot_entry(entry: Dictionary) -> void:
-	var kind := str(entry.get("kind", "item"))
-	if kind == "food":
-		add_food(int(entry.get("amount", 0)))
-	elif kind == "gold":
-		add_gold(int(entry.get("amount", 0)))
-	elif kind == "item" and _inventory != null:
-		_inventory.add_item(entry.get("item", {}).duplicate(true))
+func _get_or_create_rewards() -> Node:
+	var rewards := get_node_or_null(rewards_path)
+	if rewards != null:
+		return rewards
+	rewards = PLAYER_REWARDS_SCRIPT.new()
+	rewards.name = "Rewards"
+	add_child(rewards)
+	return rewards
 
 
-func _make_enemy_loot(enemy_data: Dictionary) -> Array[Dictionary]:
-	var loot: Array[Dictionary] = []
-	loot.append({
-		"kind": "food",
-		"amount": 1,
-	})
-	loot.append({
-		"kind": "gold",
-		"amount": 1,
-	})
-	loot.append({
-		"kind": "item",
-		"item": _make_enemy_item(enemy_data),
-	})
-	return loot
-
-
-func _make_enemy_item(enemy_data: Dictionary) -> Dictionary:
-	var value := _loot_rng.randi_range(1, 5)
-	var enemy_attack := int(enemy_data.get("attack", 0))
-	var enemy_armor := int(enemy_data.get("armor", 0))
-	if enemy_attack >= enemy_armor:
-		return {
-			"name": "Sword",
-			"effect": "+%d Attack" % value,
-			"attack": value,
-			"armor": 0,
-		}
-	return {
-		"name": "Armor",
-		"effect": "+%d Armor" % value,
-		"attack": 0,
-		"armor": value,
-	}
+func _get_or_create_combat() -> Node:
+	var combat := get_node_or_null(combat_path)
+	if combat != null:
+		return combat
+	combat = PLAYER_COMBAT_SCRIPT.new()
+	combat.name = "Combat"
+	add_child(combat)
+	return combat
 
 
 func _check_game_over() -> void:

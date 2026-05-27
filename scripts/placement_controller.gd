@@ -1,8 +1,6 @@
 class_name PlacementController
 extends Node2D
 
-const UIStyle = preload("res://scripts/ui_style.gd")
-
 signal placement_started(card: CardView)
 signal placement_cancelled(card: CardView)
 signal placement_confirmed(grid_position: Vector2i, card: CardView)
@@ -38,6 +36,7 @@ class PlacementHint extends Node2D:
 @export var hand_path: NodePath
 @export var deck_controller_path: NodePath
 @export var tile_scene: PackedScene = preload("res://scenes/tile.tscn")
+@export var controls_scene: PackedScene = preload("res://ui/placement_controls.tscn")
 
 var active_card: CardView
 var active_definition: Resource
@@ -82,7 +81,7 @@ func _ready() -> void:
 		push_warning("PlacementController needs a HandUI at hand_path.")
 		return
 
-	_build_controls()
+	_ensure_controls()
 	_hide_preview()
 
 	if not _hand.card_use_requested.is_connected(_on_card_use_requested):
@@ -253,7 +252,9 @@ func _is_valid_destroy_target(grid_position: Vector2i) -> bool:
 		return false
 	if grid_position == _player.grid_position:
 		return false
-	return true
+	if not _map.get_neighbors(_player.grid_position).has(grid_position):
+		return false
+	return _can_destroy_without_disconnect(grid_position)
 
 
 func _confirm_destroy_target() -> bool:
@@ -320,54 +321,24 @@ func _hide_preview() -> void:
 	set_process(false)
 
 
-func _build_controls() -> void:
-	_controls_layer = CanvasLayer.new()
-	_controls_layer.name = "PlacementControls"
-	_controls_layer.layer = 20
-	add_child(_controls_layer)
+func _ensure_controls() -> void:
+	_controls_layer = get_node_or_null("PlacementControls") as CanvasLayer
+	if _controls_layer == null:
+		_controls_layer = controls_scene.instantiate() as CanvasLayer
+		add_child(_controls_layer)
 
-	_prompt_label = Label.new()
-	_prompt_label.name = "PromptLabel"
-	_prompt_label.text = "Place tile"
-	_prompt_label.visible = false
-	_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_prompt_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_prompt_label.add_theme_font_size_override("font_size", 18)
-	_prompt_label.add_theme_color_override("font_color", UIStyle.text(_prompt_label))
-	_prompt_label.add_theme_color_override("font_shadow_color", Color(1.0, 0.93, 0.70, 0.70))
-	_prompt_label.add_theme_constant_override("shadow_offset_x", 2)
-	_prompt_label.add_theme_constant_override("shadow_offset_y", 2)
-	_prompt_label.custom_minimum_size = Vector2(160.0, 36.0)
-	_controls_layer.add_child(_prompt_label)
+	_prompt_label = _controls_layer.get_node("PromptLabel") as Label
+	_controls = _controls_layer.get_node("Buttons") as HBoxContainer
+	_rotate_button = _controls_layer.get_node("Buttons/RotateButton") as Button
+	_confirm_button = _controls_layer.get_node("Buttons/ConfirmButton") as Button
+	_cancel_button = _controls_layer.get_node("Buttons/CancelButton") as Button
 
-	_controls = HBoxContainer.new()
-	_controls.name = "Buttons"
-	_controls.visible = false
-	_controls.alignment = BoxContainer.ALIGNMENT_CENTER
-	_controls.add_theme_constant_override("separation", 10)
-	_controls_layer.add_child(_controls)
-
-	_rotate_button = _make_button("Rotate")
-	_rotate_button.pressed.connect(rotate_preview)
-	_controls.add_child(_rotate_button)
-
-	_confirm_button = _make_button("Confirm")
-	_confirm_button.disabled = true
-	_confirm_button.pressed.connect(confirm_placement)
-	_controls.add_child(_confirm_button)
-
-	_cancel_button = _make_button("Cancel")
-	_cancel_button.pressed.connect(cancel_placement)
-	_controls.add_child(_cancel_button)
-
-
-func _make_button(text: String) -> Button:
-	var button := Button.new()
-	button.name = "%sButton" % text
-	button.text = text
-	button.focus_mode = Control.FOCUS_NONE
-	button.custom_minimum_size = Vector2(96.0, 44.0)
-	return button
+	if not _rotate_button.pressed.is_connected(rotate_preview):
+		_rotate_button.pressed.connect(rotate_preview)
+	if not _confirm_button.pressed.is_connected(confirm_placement):
+		_confirm_button.pressed.connect(confirm_placement)
+	if not _cancel_button.pressed.is_connected(cancel_placement):
+		_cancel_button.pressed.connect(cancel_placement)
 
 
 func _show_prompt() -> void:
@@ -399,8 +370,9 @@ func _show_destroy_controls() -> void:
 
 func _highlight_destroy_targets() -> void:
 	_targeted_tiles.clear()
-	for grid_position in _map.tiles:
-		_targeted_tiles.append(grid_position)
+	for grid_position in _map.get_neighbors(_player.grid_position):
+		if _map.get_tile(grid_position) != null:
+			_targeted_tiles.append(grid_position)
 	_refresh_target_highlights()
 
 
@@ -424,6 +396,39 @@ func _clear_target_highlights() -> void:
 		if visual_tile != null:
 			visual_tile.set_highlight(false)
 	_targeted_tiles.clear()
+
+
+func _can_destroy_without_disconnect(grid_position: Vector2i) -> bool:
+	var start_position := _map.get_start_position()
+	var reachable_before := _collect_reachable_tiles(start_position, Vector2i(-1, -1))
+	var reachable_after := _collect_reachable_tiles(start_position, grid_position)
+	for placed_position in reachable_before:
+		if placed_position == grid_position:
+			continue
+		if not reachable_after.has(placed_position):
+			return false
+	return true
+
+
+func _collect_reachable_tiles(start_position: Vector2i, excluded_position: Vector2i) -> Dictionary:
+	var reachable := {}
+	if _map.get_tile(start_position) == null or start_position == excluded_position:
+		return reachable
+
+	var pending: Array[Vector2i] = [start_position]
+	reachable[start_position] = true
+	while not pending.is_empty():
+		var current: Vector2i = pending.pop_front()
+		for neighbor in _map.get_neighbors(current):
+			if neighbor == excluded_position or reachable.has(neighbor):
+				continue
+			if _map.get_tile(neighbor) == null:
+				continue
+			if not _map.can_move_between(current, neighbor):
+				continue
+			reachable[neighbor] = true
+			pending.append(neighbor)
+	return reachable
 
 
 func _refresh_placement_hints() -> void:
