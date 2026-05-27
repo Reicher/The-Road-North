@@ -81,7 +81,15 @@ func _initialize() -> void:
 	_assert(placement.get_node("PlacementControls/PromptLabel").visible, "Expected Use to show placement prompt text")
 	_assert(hand.position == hand_rest_position, "Expected placement mode to keep the hand in its separate panel")
 	_assert(placement.get_node("PlacementControls").layer > ui.layer, "Expected placement buttons to appear above the hand UI")
+	_assert(placement.get_node("PlacementControls/Buttons").visible, "Expected placement buttons to show before selecting a preview")
+	_assert(placement.get_node("PlacementControls/Buttons/CancelButton").visible, "Expected cancel button to be available before selecting a preview")
+	_assert(placement.get_node("PlacementControls/Buttons/RotateButton").disabled, "Expected rotate button to wait for a preview tile")
 	_assert(placement.get_node("PlacementControls/Buttons/ConfirmButton").disabled, "Expected confirm button to stay disabled before a preview exists")
+	var hint_positions := placement.get_placement_hint_positions()
+	_assert(hint_positions.has(Vector2i(4, 7)), "Expected placement hints to include the adjacent tile above the player")
+	_assert(hint_positions.has(Vector2i(3, 8)), "Expected placement hints to include a left-side tile that is valid after rotation")
+	_assert(hint_positions.has(Vector2i(5, 8)), "Expected placement hints to include a right-side tile that is valid after rotation")
+	_assert(not hint_positions.has(Vector2i(4, 6)), "Expected placement hints to ignore non-adjacent tiles")
 
 	map.tile_pressed.emit(Vector2i(4, 6))
 	_assert(not placement.has_valid_preview(), "Expected non-adjacent preview to be invalid")
@@ -92,6 +100,7 @@ func _initialize() -> void:
 	map.tile_pressed.emit(Vector2i(4, 7))
 	_assert(placement.has_valid_preview(), "Expected adjacent matching road to be valid")
 	_assert(not placement.get_node("PlacementControls/PromptLabel").visible, "Expected placement prompt to hide after preview appears")
+	_assert(not placement.get_node("PlacementControls/Buttons/RotateButton").disabled, "Expected rotate button to enable after selecting a preview")
 	_assert(not placement.get_node("PlacementControls/Buttons/ConfirmButton").disabled, "Expected confirm button to enable for a valid preview")
 	placement.rotate_preview()
 	_assert(not placement.has_valid_preview(), "Expected rotated mismatch to become invalid")
@@ -112,16 +121,17 @@ func _initialize() -> void:
 	_assert(not placement.is_placing(), "Expected confirm to exit placement mode")
 	_assert(player.input_enabled, "Expected movement input to resume after confirm")
 	_assert(hand.position == hand_rest_position, "Expected hand to return after confirmed placement")
+	_assert(placement.get_placement_hint_positions().is_empty(), "Expected confirmed placement to clear placement hint markers")
 
 	var corner_card = hand.cards[0]
 	_assert(placement.begin_placement(corner_card), "Expected another road card to enter placement mode")
-	map.tile_pressed.emit(Vector2i(5, 8))
 	placement.cancel_placement()
 	_assert(hand.cards.has(corner_card), "Expected cancel to keep the card in hand")
 	_assert(not placement.is_placing(), "Expected cancel to exit placement mode")
 	_assert(player.input_enabled, "Expected movement input to resume after cancel")
 	_assert(hand.position == hand_rest_position, "Expected hand to return after cancelling placement")
 	_assert(hand.get_focused_card() == null, "Expected cancelled placement to leave the hand unfocused")
+	_assert(placement.get_placement_hint_positions().is_empty(), "Expected cancel to clear placement hint markers")
 
 	quit()
 

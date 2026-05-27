@@ -3,8 +3,8 @@ extends Node2D
 
 @export var map_path: NodePath
 @export var tile_scene: PackedScene = preload("res://scenes/tile.tscn")
-@export var start_definition: Resource = preload("res://data/road_t_junction.tres")
-@export var goal_definition: Resource = preload("res://data/road_t_junction.tres")
+@export var start_definition: Resource = preload("res://data/start_camp.tres")
+@export var goal_definition: Resource = preload("res://data/goal_town.tres")
 @export var seed_start_and_goal := true
 @export var initial_tiles: Array[Dictionary] = []
 
@@ -40,8 +40,8 @@ func seed_initial_tiles() -> void:
 		force_place_tile(grid_position, definition, rotation_steps)
 
 
-func place_tile(grid_position: Vector2i, definition: Resource, rotation_steps: int = 0, enemy_data: Dictionary = {}) -> bool:
-	var tile_data := make_tile_data(definition, rotation_steps, enemy_data)
+func place_tile(grid_position: Vector2i, definition: Resource, rotation_steps: int = 0, enemy_data: Dictionary = {}, landmark_data: Dictionary = {}) -> bool:
+	var tile_data := make_tile_data(definition, rotation_steps, enemy_data, landmark_data)
 	var connections: Dictionary = tile_data.get("connections", {})
 	if not _map.can_place_tile(grid_position, connections):
 		return false
@@ -70,7 +70,7 @@ func get_visual_tile(grid_position: Vector2i) -> RoadTile:
 	return _visual_tiles.get(grid_position) as RoadTile
 
 
-func make_tile_data(definition: Resource, rotation_steps: int = 0, enemy_data: Dictionary = {}) -> Dictionary:
+func make_tile_data(definition: Resource, rotation_steps: int = 0, enemy_data: Dictionary = {}, landmark_data: Dictionary = {}) -> Dictionary:
 	var normalized_rotation := posmod(rotation_steps, 4)
 	var tile_data := {
 		"definition": definition,
@@ -83,6 +83,8 @@ func make_tile_data(definition: Resource, rotation_steps: int = 0, enemy_data: D
 		revealed_enemy["health"] = 1
 		revealed_enemy["max_health"] = 1
 		tile_data["enemy"] = revealed_enemy
+	if not landmark_data.is_empty():
+		tile_data["landmark"] = landmark_data.duplicate(true)
 	return tile_data
 
 
@@ -96,6 +98,8 @@ func _store_and_spawn_tile(grid_position: Vector2i, tile_data: Dictionary) -> bo
 	visual_tile.tile_size = _map.tile_size
 	if tile_data.has("enemy"):
 		visual_tile.enemy_data = tile_data["enemy"]
+	if tile_data.has("landmark"):
+		visual_tile.landmark_data = tile_data["landmark"]
 	visual_tile.position = _map.grid_to_world(grid_position)
 	add_child(visual_tile)
 	_visual_tiles[grid_position] = visual_tile

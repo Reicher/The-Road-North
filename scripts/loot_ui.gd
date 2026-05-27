@@ -1,11 +1,51 @@
 class_name LootUI
 extends Control
 
+const UIStyle = preload("res://scripts/ui_style.gd")
+
+
+class ResourceLootRow extends Control:
+	var entry: Dictionary = {}:
+		set(value):
+			entry = value
+			queue_redraw()
+	var row_size := Vector2(240.0, 38.0):
+		set(value):
+			row_size = value
+			custom_minimum_size = row_size
+			size = row_size
+			queue_redraw()
+
+	func _ready() -> void:
+		custom_minimum_size = row_size
+		size = row_size
+
+	func _draw() -> void:
+		var rect := Rect2(Vector2.ZERO, size)
+		UIStyle.draw_panel(self, rect, UIStyle.card_fill(self), UIStyle.panel_border(self))
+		var icon_center := Vector2(26.0, size.y * 0.5)
+		var kind := str(entry.get("kind", ""))
+		if kind == "food":
+			StatIconPainter.draw_food(self, icon_center, 26.0)
+		elif kind == "gold":
+			StatIconPainter.draw_gold(self, icon_center, 26.0)
+		var font: Font = ThemeDB.fallback_font
+		draw_string(font, Vector2(52.0, size.y * 0.5 + 8.0), _format_resource_text(), HORIZONTAL_ALIGNMENT_LEFT, size.x - 62.0, 18, UIStyle.text(self))
+
+	func _format_resource_text() -> String:
+		var kind := str(entry.get("kind", ""))
+		if kind == "food":
+			return "+%d Food" % int(entry.get("amount", 0))
+		if kind == "gold":
+			return "+%d Gold" % int(entry.get("amount", 0))
+		return ""
+
 @export var player_path: NodePath
 @export var inventory_path: NodePath
 @export var panel_size := Vector2(286.0, 310.0)
 
 var loot: Array[Dictionary] = []
+var collected_resources: Array[Dictionary] = []
 
 var _player: GamePlayer
 var _inventory: InventoryUI
@@ -57,6 +97,7 @@ func _input(event: InputEvent) -> void:
 func open_loot(new_loot: Array) -> void:
 	_resolve_paths()
 	loot.clear()
+	collected_resources.clear()
 	_hide_tooltip()
 	for entry in new_loot:
 		if entry is Dictionary:
@@ -64,7 +105,7 @@ func open_loot(new_loot: Array) -> void:
 			if _collect_resource_entry(entry_copy):
 				continue
 			loot.append(entry_copy)
-	visible = not loot.is_empty()
+	visible = not loot.is_empty() or not collected_resources.is_empty()
 	if visible and _inventory != null:
 		_inventory.set_inventory_open(true)
 		_inventory.set_outside_close_enabled(false)
@@ -74,6 +115,7 @@ func open_loot(new_loot: Array) -> void:
 
 func close_loot() -> void:
 	loot.clear()
+	collected_resources.clear()
 	_cancel_drag()
 	_cancel_backpack_drag()
 	_hide_tooltip()
@@ -180,13 +222,13 @@ func _build_loot_screen() -> void:
 	_tooltip_name = Label.new()
 	_tooltip_name.name = "ItemName"
 	_tooltip_name.add_theme_font_size_override("font_size", 13)
-	_tooltip_name.add_theme_color_override("font_color", Color.WHITE)
+	_tooltip_name.add_theme_color_override("font_color", UIStyle.text(self))
 	tooltip_stack.add_child(_tooltip_name)
 
 	_tooltip_effect = Label.new()
 	_tooltip_effect.name = "ItemEffect"
 	_tooltip_effect.add_theme_font_size_override("font_size", 12)
-	_tooltip_effect.add_theme_color_override("font_color", Color.WHITE)
+	_tooltip_effect.add_theme_color_override("font_color", UIStyle.muted_text(self))
 	tooltip_stack.add_child(_tooltip_effect)
 
 
@@ -196,6 +238,13 @@ func _refresh_loot() -> void:
 	for child in _loot_list.get_children():
 		_loot_list.remove_child(child)
 		child.free()
+
+	for index in collected_resources.size():
+		var resource_row := ResourceLootRow.new()
+		resource_row.name = "LootResource%d" % index
+		resource_row.entry = collected_resources[index]
+		resource_row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		_loot_list.add_child(resource_row)
 
 	for index in loot.size():
 		var entry := loot[index]
@@ -211,12 +260,11 @@ func _refresh_loot() -> void:
 			item_button.gui_input.connect(_on_item_gui_input.bind(index, item_button))
 			_loot_list.add_child(item_button)
 		else:
-			var resource_label := Label.new()
-			resource_label.name = "LootResource%d" % index
-			resource_label.text = _format_loot_entry(entry)
-			resource_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			resource_label.custom_minimum_size = Vector2(240.0, 34.0)
-			_loot_list.add_child(resource_label)
+			var resource_row := ResourceLootRow.new()
+			resource_row.name = "LootResource%d" % (collected_resources.size() + index)
+			resource_row.entry = entry
+			resource_row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			_loot_list.add_child(resource_row)
 
 
 func _on_item_gui_input(event: InputEvent, item_index: int, source_button: Button) -> void:
@@ -246,7 +294,7 @@ func _start_drag(item_index: int, source_button: Button, local_position: Vector2
 	if _drag_ghost == null:
 		_drag_ghost = Label.new()
 		_drag_ghost.name = "DragGhost"
-		_drag_ghost.add_theme_color_override("font_color", Color.WHITE)
+		_drag_ghost.add_theme_color_override("font_color", UIStyle.text(self))
 		_drag_ghost.add_theme_font_size_override("font_size", 14)
 		_drag_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_drag_ghost)
@@ -352,10 +400,12 @@ func _collect_resource_entry(entry: Dictionary) -> bool:
 	if kind == "food":
 		if _player != null:
 			_player.add_food(int(entry.get("amount", 0)))
+		collected_resources.append(entry.duplicate(true))
 		return true
 	if kind == "gold":
 		if _player != null:
 			_player.add_gold(int(entry.get("amount", 0)))
+		collected_resources.append(entry.duplicate(true))
 		return true
 	return false
 
@@ -418,7 +468,7 @@ func _show_drag_ghost(text: String, canvas_position: Vector2) -> void:
 	if _drag_ghost == null:
 		_drag_ghost = Label.new()
 		_drag_ghost.name = "DragGhost"
-		_drag_ghost.add_theme_color_override("font_color", Color.WHITE)
+		_drag_ghost.add_theme_color_override("font_color", UIStyle.text(self))
 		_drag_ghost.add_theme_font_size_override("font_size", 14)
 		_drag_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_drag_ghost)

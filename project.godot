@@ -19,6 +19,10 @@ config/features=PackedStringArray("4.6", "Mobile")
 window/size/viewport_width=720
 window/size/viewport_height=1280
 
+[gui]
+
+theme/custom="res://themes/game_ui_theme.tres"
+
 [rendering]
 
 renderer/rendering_method="mobile"

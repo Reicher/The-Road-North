@@ -79,6 +79,8 @@ func run() -> void:
 	player.attack = 0
 	player.armor = 1
 	player.move_duration = 0.0
+	player.combat_bump_duration = 0.0
+	player.post_combat_loot_delay = 0.05
 	root.add_child(player)
 	player._ready()
 
@@ -97,6 +99,10 @@ func run() -> void:
 	_assert(map.get_tile(Vector2i(3, 8)).has("enemy"), "Expected blocked enemy movement to keep the enemy on the tile")
 
 	_assert(player.move_to(Vector2i(4, 7)), "Expected player to enter enemy road tile")
+	_assert(player.is_in_combat(), "Expected combat to stay active while post-combat feedback is visible")
+	_assert(not map.get_tile(Vector2i(4, 7)).has("enemy"), "Expected defeated enemy to be removed before loot opens")
+	_assert(roads.get_visual_tile(Vector2i(4, 7)).enemy_data.is_empty(), "Expected defeated enemy to disappear before loot opens")
+	_assert(not loot_ui.is_open(), "Expected loot screen to wait until after post-combat feedback")
 	while player.is_in_combat():
 		await process_frame
 
@@ -106,8 +112,8 @@ func run() -> void:
 	_assert(loot_ui.is_open(), "Expected defeated enemies to open the loot screen")
 
 	loot_ui.take_all()
-	_assert(player.food == 5, "Expected enemy food loot to add after movement food is spent")
-	_assert(player.gold == 5, "Expected enemy gold loot to add to the gold counter")
+	_assert(player.food == 3, "Expected enemy food loot to add a small amount after movement food is spent")
+	_assert(player.gold == 1, "Expected enemy gold loot to add a small amount to the gold counter")
 	_assert(inventory.get_active_items().size() == 3, "Expected enemy item loot to move into one backpack slot")
 
 	quit()

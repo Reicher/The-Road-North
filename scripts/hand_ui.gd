@@ -1,6 +1,8 @@
 class_name HandUI
 extends Control
 
+const UIStyle = preload("res://scripts/ui_style.gd")
+
 signal card_focused(card: CardView)
 signal card_unfocused
 signal card_use_requested(card: CardView)
@@ -9,7 +11,7 @@ signal card_use_requested(card: CardView)
 @export var demo_cards_enabled := true
 @export var card_size := Vector2(132.0, 190.0)
 @export var bottom_margin := 24.0
-@export var panel_color := Color(0.15, 0.20, 0.18)
+@export var panel_color := Color.TRANSPARENT
 @export_range(0.0, 1.0, 0.01) var focused_lift_ratio := 0.28
 @export var focused_scale := 1.16
 @export var arc_depth := 28.0
@@ -40,7 +42,8 @@ func _ready() -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(Vector2.ZERO, size), panel_color, true)
+	var fill := panel_color if panel_color != Color.TRANSPARENT else UIStyle.panel_fill(self)
+	UIStyle.draw_panel(self, Rect2(Vector2.ZERO, size).grow_individual(12.0, 0.0, 12.0, 12.0), fill, UIStyle.panel_border(self))
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -183,6 +186,9 @@ func _layout_cards(animated := true) -> void:
 
 
 func _on_card_focus_requested(card: CardView) -> void:
+	if card == get_focused_card():
+		clear_focus()
+		return
 	focus_card(card)
 
 

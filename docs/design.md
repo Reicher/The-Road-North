@@ -103,7 +103,7 @@ Connections are fully bidirectional.
 
 The player may freely backtrack if valid roads and food exist.
 
-The player starts each run with food equal to the playable map width multiplied by 3. On a 9x9 map this is 27 food.
+The player starts each run with food equal to the playable map width multiplied by 2. On a 9x9 map this is 18 food.
 
 The movement itself should be tweened/interpolated over a short duration so the marker appears to travel along the road rather than teleport instantly.
 

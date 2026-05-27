@@ -1,6 +1,8 @@
 class_name PlacementController
 extends Node2D
 
+const UIStyle = preload("res://scripts/ui_style.gd")
+
 signal placement_started(card: CardView)
 signal placement_cancelled(card: CardView)
 signal placement_confirmed(grid_position: Vector2i, card: CardView)
@@ -9,9 +11,26 @@ signal tile_destroyed(grid_position: Vector2i, card: CardView)
 const VALID_COLOR := Color(0.20, 0.90, 0.32, 0.46)
 const INVALID_COLOR := Color(0.95, 0.18, 0.14, 0.50)
 const TARGET_COLOR := Color(0.98, 0.83, 0.24, 0.62)
+const PLACEMENT_HINT_COLOR := Color(0.24, 0.88, 0.38, 0.58)
 const MODE_NONE := ""
 const MODE_ROAD_PLACEMENT := "road_placement"
 const MODE_DESTROY_TARGETING := "destroy_targeting"
+
+
+class PlacementHint extends Node2D:
+	var tile_size := 96.0:
+		set(value):
+			tile_size = value
+			queue_redraw()
+	var hint_color := PLACEMENT_HINT_COLOR:
+		set(value):
+			hint_color = value
+			queue_redraw()
+
+	func _draw() -> void:
+		var radius := tile_size * 0.17
+		draw_circle(Vector2.ZERO, radius, hint_color)
+		draw_arc(Vector2.ZERO, radius + 4.0, 0.0, TAU, 32, hint_color.lightened(0.35), 3.0)
 
 @export var map_path: NodePath
 @export var roads_path: NodePath
@@ -40,6 +59,7 @@ var _rotate_button: Button
 var _confirm_button: Button
 var _cancel_button: Button
 var _placement_valid := false
+var _placement_hints: Dictionary = {}
 
 
 func _ready() -> void:
@@ -108,6 +128,8 @@ func begin_placement(card: CardView) -> bool:
 	_player.input_enabled = false
 	_hand.clear_focus()
 	_hide_preview()
+	_refresh_placement_hints()
+	_show_idle_placement_controls()
 	_show_prompt()
 	placement_started.emit(card)
 	return true
@@ -148,7 +170,7 @@ func confirm_placement() -> bool:
 	if active_mode != MODE_ROAD_PLACEMENT:
 		return false
 
-	var placed := _roads.place_tile(preview_position, active_definition, rotation_steps, active_card.enemy_data)
+	var placed := _roads.place_tile(preview_position, active_definition, rotation_steps, active_card.enemy_data, active_card.landmark_data)
 	if not placed:
 		_refresh_preview()
 		return false
@@ -210,6 +232,7 @@ func _refresh_preview() -> void:
 	_preview_tile.tile_tint = Color(1.0, 1.0, 1.0, 0.72)
 	_preview_tile.set_highlight(true, VALID_COLOR if _placement_valid else INVALID_COLOR)
 	_prompt_label.visible = false
+	_rotate_button.disabled = false
 	_confirm_button.disabled = not _placement_valid
 	_controls.visible = true
 	_position_controls()
@@ -270,6 +293,7 @@ func _end_placement(keep_card_focused: bool) -> void:
 		_hand.focus_card(ending_card)
 	elif not keep_card_focused:
 		_hand.clear_focus()
+	_clear_placement_hints()
 	_clear_target_highlights()
 	_hide_preview()
 
@@ -288,6 +312,7 @@ func _hide_preview() -> void:
 		_controls.visible = false
 	if _rotate_button != null:
 		_rotate_button.visible = true
+		_rotate_button.disabled = false
 	if _prompt_label != null:
 		_prompt_label.visible = false
 	if _confirm_button != null:
@@ -308,8 +333,8 @@ func _build_controls() -> void:
 	_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_prompt_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_prompt_label.add_theme_font_size_override("font_size", 18)
-	_prompt_label.add_theme_color_override("font_color", Color(0.98, 0.94, 0.82))
-	_prompt_label.add_theme_color_override("font_shadow_color", Color(0.10, 0.08, 0.05, 0.75))
+	_prompt_label.add_theme_color_override("font_color", UIStyle.text(_prompt_label))
+	_prompt_label.add_theme_color_override("font_shadow_color", Color(1.0, 0.93, 0.70, 0.70))
 	_prompt_label.add_theme_constant_override("shadow_offset_x", 2)
 	_prompt_label.add_theme_constant_override("shadow_offset_y", 2)
 	_prompt_label.custom_minimum_size = Vector2(160.0, 36.0)
@@ -355,6 +380,15 @@ func _show_prompt() -> void:
 	set_process(true)
 
 
+func _show_idle_placement_controls() -> void:
+	_rotate_button.visible = true
+	_rotate_button.disabled = true
+	_confirm_button.disabled = true
+	_controls.visible = true
+	_position_controls()
+	set_process(true)
+
+
 func _show_destroy_controls() -> void:
 	_rotate_button.visible = false
 	_confirm_button.disabled = true
@@ -390,6 +424,47 @@ func _clear_target_highlights() -> void:
 		if visual_tile != null:
 			visual_tile.set_highlight(false)
 	_targeted_tiles.clear()
+
+
+func _refresh_placement_hints() -> void:
+	_clear_placement_hints()
+	if active_mode != MODE_ROAD_PLACEMENT or active_definition == null:
+		return
+	for grid_position in _map.get_neighbors(_player.grid_position):
+		if _has_valid_rotation_for_hint(grid_position):
+			_add_placement_hint(grid_position)
+
+
+func _has_valid_rotation_for_hint(grid_position: Vector2i) -> bool:
+	for test_rotation in 4:
+		var tile_data := _roads.make_tile_data(active_definition, test_rotation)
+		if _is_valid_placement(grid_position, tile_data.get("connections", {})):
+			return true
+	return false
+
+
+func _add_placement_hint(grid_position: Vector2i) -> void:
+	var hint := PlacementHint.new()
+	hint.name = "PlacementHint_%d_%d" % [grid_position.x, grid_position.y]
+	hint.tile_size = _map.tile_size
+	hint.hint_color = PLACEMENT_HINT_COLOR
+	hint.position = _map.grid_to_world(grid_position)
+	add_child(hint)
+	_placement_hints[grid_position] = hint
+
+
+func _clear_placement_hints() -> void:
+	for hint in _placement_hints.values():
+		if hint is Node:
+			hint.queue_free()
+	_placement_hints.clear()
+
+
+func get_placement_hint_positions() -> Array[Vector2i]:
+	var positions: Array[Vector2i] = []
+	for grid_position in _placement_hints:
+		positions.append(grid_position)
+	return positions
 
 
 func _position_prompt() -> void:

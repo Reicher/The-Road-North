@@ -39,8 +39,6 @@ func _initialize() -> void:
 
 	roads.force_place_tile(Vector2i(4, 8), T_JUNCTION, 0)
 	roads.force_place_tile(Vector2i(4, 7), STRAIGHT, 0)
-	roads.force_place_tile(Vector2i(4, 6), CORNER, 1)
-	roads.force_place_tile(Vector2i(5, 6), STRAIGHT, 1)
 
 	_assert(player.grid_position == Vector2i(4, 8), "Expected player to start at the requested grid position")
 	_assert(player.food == 3, "Expected player to start with configured food")
@@ -52,20 +50,35 @@ func _initialize() -> void:
 	_assert(player.food == 2, "Expected valid movement to consume one food")
 	_assert(player.health == 3, "Expected movement not to change health")
 
+	_assert(roads.place_tile(Vector2i(4, 6), CORNER, 1, {}, {
+		"type": GameMap.LANDMARK_BERRY_BUSH,
+		"loot": [{"kind": "food", "amount": 2}],
+	}), "Expected landmark road card placement to succeed")
 	_assert(not player.move_to(Vector2i(5, 7)), "Expected empty or disconnected tile movement to be blocked")
 	_assert(player.grid_position == Vector2i(4, 7), "Expected invalid movement to leave player in place")
 	_assert(player.food == 2, "Expected invalid movement not to consume food")
 
 	_assert(player.move_to(Vector2i(4, 6)), "Expected bidirectional north/south connection to allow movement")
+	_assert(player.food == 3, "Expected landmark food to be collected after movement cost")
+	_assert(map.get_landmark(Vector2i(4, 6)).is_empty(), "Expected collected landmark to be removed")
+	roads.force_place_tile(Vector2i(5, 6), STRAIGHT, 1)
 	_assert(player.move_to(Vector2i(5, 6)), "Expected bidirectional east/west connection to allow movement")
-	_assert(player.food == 0, "Expected each valid movement to consume food")
+	_assert(player.food == 2, "Expected each valid movement to consume food after landmark reward")
 
+	player.food = 0
 	_assert(not player.move_to(Vector2i(4, 6)), "Expected movement to be blocked when food is empty")
 	_assert(player.grid_position == Vector2i(5, 6), "Expected no-food movement to leave player in place")
 
 	player.set_health(4)
 	_assert(player.health == 4, "Expected player health to be mutable state")
 	_assert(health_label.text == "Health: 4", "Expected health label to update after health changes")
+
+	var default_food_player = PLAYER_SCRIPT.new()
+	default_food_player.name = "DefaultFoodPlayer"
+	default_food_player.map_path = NodePath("../Map")
+	root.add_child(default_food_player)
+	default_food_player._ready()
+	_assert(default_food_player.food == map.playable_width * 2, "Expected default starting food to be twice the map width")
 
 	quit()
 

@@ -1,13 +1,15 @@
 class_name PlayerStatsUI
 extends Control
 
+const UIStyle = preload("res://scripts/ui_style.gd")
+
 @export var player_path: NodePath
 @export var top_margin := 18.0
 @export var left_margin := 18.0
-@export var icon_size := 26.0
-@export var row_height := 34.0
-@export var panel_color := Color(0.12, 0.10, 0.08, 0.78)
-@export var border_color := Color(0.88, 0.68, 0.36, 0.78)
+@export var icon_size := 34.0
+@export var row_height := 44.0
+@export var panel_color := Color.TRANSPARENT
+@export var border_color := Color.TRANSPARENT
 
 var _player: GamePlayer
 
@@ -15,7 +17,7 @@ var _player: GamePlayer
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_player = get_node_or_null(player_path) as GamePlayer
-	custom_minimum_size = Vector2(82.0, row_height * 5.0 + 12.0)
+	custom_minimum_size = Vector2(112.0, row_height * 5.0 + 16.0)
 	size = custom_minimum_size
 	position = Vector2(left_margin, top_margin)
 	if _player != null and not _player.health_changed.is_connected(_on_player_health_changed):
@@ -29,8 +31,9 @@ func _ready() -> void:
 
 func _draw() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
-	draw_rect(rect, panel_color, true)
-	draw_rect(rect, border_color, false, 2.0)
+	var fill := panel_color if panel_color != Color.TRANSPARENT else UIStyle.panel_fill(self)
+	var border := border_color if border_color != Color.TRANSPARENT else UIStyle.panel_border(self)
+	UIStyle.draw_panel(self, rect, fill, border)
 	_draw_stat_row(0, "food", _get_food())
 	_draw_stat_row(1, "gold", _get_gold())
 	_draw_stat_row(2, "health", _get_health())
@@ -39,7 +42,7 @@ func _draw() -> void:
 
 
 func _draw_stat_row(index: int, stat_name: String, value: int) -> void:
-	var row_center := Vector2(18.0, 10.0 + row_height * float(index) + row_height * 0.5)
+	var row_center := Vector2(24.0, 8.0 + row_height * float(index) + row_height * 0.5)
 	if stat_name == "food":
 		StatIconPainter.draw_food(self, row_center, icon_size)
 	elif stat_name == "gold":
@@ -52,7 +55,9 @@ func _draw_stat_row(index: int, stat_name: String, value: int) -> void:
 		StatIconPainter.draw_shield(self, row_center, icon_size)
 
 	var font: Font = ThemeDB.fallback_font
-	draw_string(font, Vector2(44.0, row_center.y + 8.0), str(value), HORIZONTAL_ALIGNMENT_LEFT, 30.0, 20, Color(1.0, 0.94, 0.82))
+	var text_position := Vector2(56.0, row_center.y + 10.0)
+	draw_string_outline(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 42.0, 24, 4, UIStyle.panel_fill(self))
+	draw_string(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 42.0, 24, UIStyle.text(self))
 
 
 func _get_food() -> int:

@@ -9,6 +9,8 @@ const ROAD_DEFINITION_PATHS: Array[String] = [
 	"res://data/road_t_junction.tres",
 	"res://data/road_four_way.tres",
 	"res://data/road_dead_end.tres",
+	"res://data/start_camp.tres",
+	"res://data/goal_town.tres",
 ]
 
 
@@ -40,6 +42,14 @@ func _initialize() -> void:
 	_assert(corner_openings["north"] == false, "Expected rotated corner to close north")
 	_assert(corner_openings["west"] == false, "Expected rotated corner to close west")
 	corner_tile.queue_free()
+
+	var start_camp := load("res://data/start_camp.tres")
+	_assert(start_camp.get("visual_identity") == "house", "Expected start tile to use a simple house visual identity")
+	_assert(start_camp.get("road_visible") == false, "Expected start tile road art to be hidden")
+	var goal_town := load("res://data/goal_town.tres")
+	_assert(goal_town.get_rotated_openings(2)["south"] == true, "Expected rotated goal town to open inward")
+	_assert(goal_town.get("visual_identity") == "house", "Expected goal tile to use a simple house visual identity")
+	_assert(goal_town.get("road_visible") == false, "Expected goal tile road art to be hidden")
 
 	quit()
 

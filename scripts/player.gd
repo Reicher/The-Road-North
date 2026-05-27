@@ -21,6 +21,7 @@ signal game_over(reason: String)
 @export var armor := 0
 @export_range(0.0, 1.0, 0.01) var move_duration := 0.16
 @export_range(0.0, 3.0, 0.01) var combat_bump_duration := 0.72
+@export_range(0.0, 2.0, 0.01) var post_combat_loot_delay := 0.45
 @export var pawn_color := Color(0.93, 0.56, 0.25)
 @export var pawn_shadow_color := Color(0.18, 0.16, 0.14, 0.32)
 
@@ -59,7 +60,7 @@ func _ready() -> void:
 
 	grid_position = start_position
 	position = _map.grid_to_world(grid_position)
-	food = starting_food if starting_food >= 0 else _map.playable_width * 3
+	food = starting_food if starting_food >= 0 else _map.playable_width * 2
 	gold = starting_gold
 	health = starting_health
 	_update_food_label()
@@ -178,6 +179,7 @@ func _on_tile_pressed(target_position: Vector2i) -> void:
 func _finish_move(target_position: Vector2i) -> void:
 	grid_position = target_position
 	_moving = false
+	_collect_landmark_at(grid_position)
 	moved.emit(grid_position)
 	_check_game_over()
 
@@ -242,13 +244,16 @@ func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previ
 	if visual_tile != null:
 		visual_tile.set_enemy_data({})
 		visual_tile.enemy_offset = Vector2.ZERO
-	_show_enemy_loot(enemy_data)
 
 	position = _map.grid_to_world(target_position)
 	grid_position = target_position
 	_moving = false
+	if post_combat_loot_delay > 0.0:
+		await get_tree().create_timer(post_combat_loot_delay).timeout
+	_show_enemy_loot(enemy_data)
 	input_enabled = previous_input_enabled
 	_combat_running = false
+	_collect_landmark_at(grid_position)
 	moved.emit(grid_position)
 	_check_game_over()
 
@@ -300,15 +305,45 @@ func _show_enemy_loot(enemy_data: Dictionary) -> void:
 		_loot_ui.call("open_loot", loot)
 
 
+func _collect_landmark_at(target_position: Vector2i) -> void:
+	if _map == null:
+		return
+	var landmark := _map.consume_landmark(target_position)
+	if landmark.is_empty():
+		return
+	var visual_tile := _find_visual_tile(target_position)
+	if visual_tile != null:
+		visual_tile.landmark_data = {}
+	var loot: Array = landmark.get("loot", [])
+	if loot.is_empty():
+		return
+	if _loot_ui != null:
+		_loot_ui.call("open_loot", loot)
+		return
+	for entry in loot:
+		if entry is Dictionary:
+			_collect_landmark_loot_entry(entry)
+
+
+func _collect_landmark_loot_entry(entry: Dictionary) -> void:
+	var kind := str(entry.get("kind", "item"))
+	if kind == "food":
+		add_food(int(entry.get("amount", 0)))
+	elif kind == "gold":
+		add_gold(int(entry.get("amount", 0)))
+	elif kind == "item" and _inventory != null:
+		_inventory.add_item(entry.get("item", {}).duplicate(true))
+
+
 func _make_enemy_loot(enemy_data: Dictionary) -> Array[Dictionary]:
 	var loot: Array[Dictionary] = []
 	loot.append({
 		"kind": "food",
-		"amount": 3,
+		"amount": 1,
 	})
 	loot.append({
 		"kind": "gold",
-		"amount": 5,
+		"amount": 1,
 	})
 	loot.append({
 		"kind": "item",

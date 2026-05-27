@@ -7,7 +7,8 @@ const EVENT_DESTROY_NEIGHBOR := "destroy_neighbor"
 const EVENT_DRAW_TWO := "draw_two"
 
 const ROAD_CARD_RATIO := 0.75
-const ENEMY_ROAD_CARD_RATIO := 0.50
+const ENEMY_ROAD_CARD_RATIO := 1.0 / 3.0
+const LANDMARK_ROAD_CARD_RATIO := 0.20
 const HAND_SIZE := 4
 
 const ROAD_DISTRIBUTION := {
@@ -24,6 +25,7 @@ const ROAD_DISTRIBUTION := {
 @export var shuffle_seed := 0
 @export_range(0.0, 1.0, 0.01) var road_card_ratio := ROAD_CARD_RATIO
 @export_range(0.0, 1.0, 0.01) var enemy_road_card_ratio := ENEMY_ROAD_CARD_RATIO
+@export_range(0.0, 1.0, 0.01) var landmark_road_card_ratio := LANDMARK_ROAD_CARD_RATIO
 @export var road_distribution := ROAD_DISTRIBUTION.duplicate()
 
 @export var straight_definition: Resource = preload("res://data/road_straight.tres")
@@ -179,6 +181,7 @@ func _make_road_cards(count: int) -> Array[Dictionary]:
 				"tile_definition": definitions[subtype],
 			})
 	_add_enemies_to_road_cards(cards)
+	_add_landmarks_to_road_cards(cards)
 	return cards
 
 
@@ -191,7 +194,6 @@ func _make_event_cards(count: int) -> Array[Dictionary]:
 				"title": "Clear Road",
 				"detail": "Destroy a neighboring placed tile.",
 				"event_type": "destroy_neighbor",
-				"card_color": Color(0.79, 0.76, 0.67),
 			})
 		else:
 			cards.append({
@@ -199,7 +201,6 @@ func _make_event_cards(count: int) -> Array[Dictionary]:
 				"title": "Supplies",
 				"detail": "Draw two extra cards.",
 				"event_type": "draw_two",
-				"card_color": Color(0.68, 0.82, 0.70),
 			})
 	return cards
 
@@ -244,6 +245,8 @@ func _add_enemies_to_road_cards(cards: Array[Dictionary]) -> void:
 	for index in mini(enemy_count, cards.size()):
 		var card: Dictionary = cards[index]
 		card["enemy"] = _make_enemy_data()
+		card["title"] = _guarded_title_for_card(card)
+		card["detail"] = "Enemy waits on this road."
 		cards[index] = card
 
 
@@ -255,3 +258,85 @@ func _make_enemy_data() -> Dictionary:
 		"attack": _rng.randi_range(1, 3),
 		"armor": _rng.randi_range(1, 3),
 	}
+
+
+func _add_landmarks_to_road_cards(cards: Array[Dictionary]) -> void:
+	var landmark_count := roundi(float(cards.size()) * landmark_road_card_ratio)
+	var eligible_indices: Array[int] = []
+	for index in cards.size():
+		if not cards[index].has("enemy"):
+			eligible_indices.append(index)
+	for index in range(eligible_indices.size() - 1, 0, -1):
+		var swap_index := _rng.randi_range(0, index)
+		var card_index := eligible_indices[index]
+		eligible_indices[index] = eligible_indices[swap_index]
+		eligible_indices[swap_index] = card_index
+
+	for index in mini(landmark_count, eligible_indices.size()):
+		var card_index := eligible_indices[index]
+		var card: Dictionary = cards[card_index]
+		card["landmark"] = _make_landmark_data(index)
+		card["title"] = _landmark_title_for_card(card)
+		card["detail"] = _landmark_detail(card["landmark"])
+		cards[card_index] = card
+
+
+func _make_landmark_data(index: int) -> Dictionary:
+	var landmark_types: Array[String] = [GameMap.LANDMARK_BERRY_BUSH, GameMap.LANDMARK_RUINS, GameMap.LANDMARK_CACHE]
+	var kind: String = landmark_types[index % landmark_types.size()]
+	if kind == GameMap.LANDMARK_BERRY_BUSH:
+		return {
+			"type": kind,
+			"loot": [{"kind": "food", "amount": 3}],
+		}
+	if kind == GameMap.LANDMARK_RUINS:
+		return {
+			"type": kind,
+			"loot": [{"kind": "gold", "amount": 4}],
+		}
+	return {
+		"type": kind,
+		"loot": [{
+			"kind": "item",
+			"item": {
+				"name": "Old Compass",
+				"effect": "+1 Attack",
+				"attack": 1,
+				"armor": 0,
+			},
+		}],
+	}
+
+
+func _landmark_title_for_card(card: Dictionary) -> String:
+	var landmark: Dictionary = card.get("landmark", {})
+	var prefix := "Landmark"
+	var kind := str(landmark.get("type", ""))
+	if kind == GameMap.LANDMARK_BERRY_BUSH:
+		prefix = "Berry Bush"
+	elif kind == GameMap.LANDMARK_RUINS:
+		prefix = "Ruins"
+	elif kind == GameMap.LANDMARK_CACHE:
+		prefix = "Cache"
+	var definition: Resource = card.get("tile_definition")
+	if definition == null:
+		return prefix
+	return "%s %s" % [prefix, str(definition.get("display_name"))]
+
+
+func _landmark_detail(landmark: Dictionary) -> String:
+	var kind := str(landmark.get("type", ""))
+	if kind == GameMap.LANDMARK_BERRY_BUSH:
+		return "Grants food when reached."
+	if kind == GameMap.LANDMARK_RUINS:
+		return "Grants gold when reached."
+	if kind == GameMap.LANDMARK_CACHE:
+		return "Contains an item when reached."
+	return "Reward waits on this road."
+
+
+func _guarded_title_for_card(card: Dictionary) -> String:
+	var definition: Resource = card.get("tile_definition")
+	if definition == null:
+		return "Guarded Road"
+	return "Guarded %s" % str(definition.get("display_name"))

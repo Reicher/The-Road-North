@@ -1,6 +1,7 @@
 extends SceneTree
 
 const INVENTORY_SCRIPT := preload("res://scripts/inventory_ui.gd")
+const UIStyle := preload("res://scripts/ui_style.gd")
 
 
 func _initialize() -> void:
@@ -19,6 +20,8 @@ func _initialize() -> void:
 	var tooltip := inventory.get_node("ItemTooltip") as PanelContainer
 
 	_assert(backpack_button != null, "Expected inventory to create a backpack button")
+	_assert(backpack_button.size == Vector2(78.0, 58.0), "Expected backpack button to be large enough for touch")
+	_assert(backpack_button.get_theme_font_size("font_size") == 18, "Expected backpack label to be more readable")
 	_assert(backpack_button.position.x > 250.0, "Expected backpack button to sit near the top-right corner")
 	_assert(not overlay.visible, "Expected inventory overlay to start closed")
 	_assert(inventory.get_active_items().size() == 2, "Expected player inventory to start with two visible items")
@@ -44,8 +47,8 @@ func _initialize() -> void:
 	var tooltip_effect := tooltip.get_node("ContentMargin/Text/ItemEffect") as Label
 	_assert(tooltip_name.text == "Sword", "Expected tooltip to show the item name")
 	_assert(tooltip_effect.text == "+2 Attack", "Expected tooltip to show the item effect")
-	_assert(tooltip_name.get_theme_color("font_color") == Color.WHITE, "Expected tooltip name text to be white")
-	_assert(tooltip_effect.get_theme_color("font_color") == Color.WHITE, "Expected tooltip effect text to be white")
+	_assert(tooltip_name.get_theme_color("font_color") == UIStyle.text(inventory), "Expected tooltip name text to use the shared UI text color")
+	_assert(tooltip_effect.get_theme_color("font_color") == UIStyle.muted_text(inventory), "Expected tooltip effect text to use the shared UI muted text color")
 
 	inventory._on_item_pressed(0, first_slot)
 	_assert(not tooltip.visible, "Expected pressing the same item again to hide the tooltip")

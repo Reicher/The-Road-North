@@ -102,6 +102,9 @@ func _initialize() -> void:
 	_assert(player.food == 5, "Expected food loot to add when the loot screen opens")
 	_assert(player.gold == 6, "Expected gold loot to add when the loot screen opens")
 	_assert(loot_ui.loot.size() == 1, "Expected only item loot to remain in the loot screen")
+	_assert(loot_ui.collected_resources.size() == 2, "Expected collected resource loot to remain visible in the loot screen")
+	_assert(loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootResource0") is Control, "Expected food loot to show an icon row")
+	_assert(loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootResource1") is Control, "Expected gold loot to show an icon row")
 
 	loot_ui.take_all()
 	_assert(not loot_ui.is_open(), "Expected taking all loot to close when everything fits")

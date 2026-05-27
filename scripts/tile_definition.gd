@@ -10,6 +10,9 @@ const DIRECTION_NAMES: Array[String] = ["north", "east", "south", "west"]
 @export var opens_west := false
 @export var road_color := Color(0.45, 0.36, 0.27)
 @export var shoulder_color := Color(0.69, 0.61, 0.46)
+@export var terrain_color := Color(0.55, 0.63, 0.45)
+@export var visual_identity := "road"
+@export var road_visible := true
 
 
 func get_base_openings() -> Dictionary:

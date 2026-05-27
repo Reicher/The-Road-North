@@ -20,9 +20,26 @@ func _initialize() -> void:
 	root.add_child(hand)
 	hand.set_cards([
 		{"category": "Road", "tile_definition": STRAIGHT},
-		{"category": "Road", "tile_definition": CORNER},
+		{
+			"category": "Road",
+			"tile_definition": CORNER,
+			"landmark": {
+				"type": GameMap.LANDMARK_BERRY_BUSH,
+				"loot": [{"kind": "food", "amount": 2}],
+			},
+		},
 		{"category": "Road", "tile_definition": T_JUNCTION},
-		{"category": "Road", "tile_definition": FOUR_WAY},
+		{
+			"category": "Road",
+			"tile_definition": FOUR_WAY,
+			"enemy": {
+				"revealed": false,
+				"health": 1,
+				"max_health": 1,
+				"attack": 1,
+				"armor": 1,
+			},
+		},
 		{"category": "Road", "tile_definition": DEAD_END},
 	])
 
@@ -39,9 +56,26 @@ func _initialize() -> void:
 	_assert(focused_card.focused, "Expected focused card state to update")
 	_assert(focused_card.get_node("UseButton").visible, "Expected Use button to appear only on focused card")
 	_assert(not hand.cards[1].get_node("UseButton").visible, "Expected Use button to stay hidden on unfocused cards")
+	var title_label := focused_card.get_node("Title") as Label
+	var plain_title_label := hand.cards[0].get_node("Title") as Label
+	var berry_title_label := hand.cards[1].get_node("Title") as Label
+	var enemy_title_label := hand.cards[3].get_node("Title") as Label
+	var detail_label := focused_card.get_node("Detail") as Label
+	var use_button := focused_card.get_node("UseButton") as Button
+	_assert(plain_title_label.text == "Straight Road", "Expected plain road cards to show only the road type")
+	_assert(berry_title_label.text == "Berry\nCorner", "Expected berry road cards to show modifier above road type")
+	_assert(enemy_title_label.text == "Enemy\nFour-Way", "Expected enemy road cards to show modifier above road type")
+	_assert(title_label.offset_bottom < CardView.ART_RECT.position.y, "Expected two-line card titles to stay above the card art")
+	_assert(detail_label.offset_bottom < focused_card.size.y + use_button.offset_top, "Expected focused Use button to stay below card detail text")
 	_assert(focused_card.position.y < hand.cards[1].position.y, "Expected focused card to lift above surrounding cards")
 	_assert(hand.cards[1].position.y <= hand.cards[0].position.y, "Expected neighboring cards to keep the hand arc height")
 	_assert(hand.cards[3].position.y <= hand.cards[4].position.y, "Expected neighboring cards to keep the hand arc height")
+
+	hand.call("_on_card_focus_requested", focused_card)
+	_assert(hand.call("get_focused_card") == null, "Expected tapping the focused card again to clear focus")
+	_assert(not focused_card.get_node("UseButton").visible, "Expected Use button to hide after tapping the focused card again")
+
+	hand.call("focus_card", focused_card)
 
 	hand.clear_focus()
 	_assert(hand.call("get_focused_card") == null, "Expected clear_focus to remove the selected card")

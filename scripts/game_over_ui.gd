@@ -1,6 +1,8 @@
 class_name GameOverUI
 extends Control
 
+const UIStyle = preload("res://scripts/ui_style.gd")
+
 @export var player_path: NodePath
 
 var _player: GamePlayer
@@ -31,7 +33,7 @@ func _gui_input(event: InputEvent) -> void:
 
 func _draw() -> void:
 	if visible:
-		draw_rect(Rect2(Vector2.ZERO, size), Color(0.05, 0.04, 0.03, 0.58), true)
+		draw_rect(Rect2(Vector2.ZERO, size), Color(0.05, 0.04, 0.03, 0.52), true)
 
 
 func _build_overlay() -> void:
@@ -59,7 +61,7 @@ func _build_overlay() -> void:
 	title.text = "Game over"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 32)
-	title.add_theme_color_override("font_color", Color(1.0, 0.92, 0.76))
+	title.add_theme_color_override("font_color", UIStyle.text(self))
 	stack.add_child(title)
 
 	_restart_button = Button.new()

@@ -17,6 +17,10 @@ const OPPOSITE_DIRECTIONS: Dictionary = {
 	"west": "east",
 }
 
+const LANDMARK_BERRY_BUSH := "berry_bush"
+const LANDMARK_RUINS := "ruins"
+const LANDMARK_CACHE := "cache"
+
 @export_range(1, 64, 1) var playable_width := 9:
 	set(value):
 		playable_width = value
@@ -81,6 +85,27 @@ func set_tile(grid_position: Vector2i, tile_data: Variant) -> bool:
 
 func clear_tile(grid_position: Vector2i) -> void:
 	tiles.erase(grid_position)
+
+
+func get_landmark(grid_position: Vector2i) -> Dictionary:
+	var tile_data: Variant = get_tile(grid_position)
+	if tile_data is Dictionary:
+		var landmark: Variant = tile_data.get("landmark", {})
+		if landmark is Dictionary:
+			return landmark
+	return {}
+
+
+func consume_landmark(grid_position: Vector2i) -> Dictionary:
+	var landmark := get_landmark(grid_position).duplicate(true)
+	if landmark.is_empty():
+		return {}
+	var tile_data: Variant = get_tile(grid_position)
+	if tile_data is Dictionary:
+		tile_data.erase("landmark")
+		tiles[grid_position] = tile_data
+	queue_redraw()
+	return landmark
 
 
 func get_start_position() -> Vector2i:
@@ -199,3 +224,4 @@ func _tile_has_opening(tile_data: Variant, direction_name: String) -> bool:
 		var connections: Dictionary = tile_data.get("connections", tile_data)
 		return connections.get(direction_name, false) == true
 	return false
+

@@ -1,15 +1,17 @@
 class_name InventoryUI
 extends Control
 
+const UIStyle = preload("res://scripts/ui_style.gd")
+
 signal item_drag_started(slot_index: int, item: Dictionary, source_button: Button, canvas_position: Vector2)
 signal item_drag_moved(canvas_position: Vector2)
 signal item_drag_finished(slot_index: int, item: Dictionary, source_button: Button, canvas_position: Vector2)
 
 const SLOT_COUNT := 5
-const EQUIPPED_SLOT_TINT := Color(1.0, 0.92, 0.58)
+const EQUIPPED_SLOT_TINT := Color(1.0, 0.86, 0.45)
 const NORMAL_SLOT_TINT := Color.WHITE
 
-@export var button_size := Vector2(64.0, 48.0)
+@export var button_size := Vector2(78.0, 58.0)
 @export var slot_size := Vector2(82.0, 82.0)
 @export var top_margin := 18.0
 @export var right_margin := 18.0
@@ -174,10 +176,11 @@ func set_outside_close_enabled(enabled: bool) -> void:
 func _build_inventory() -> void:
 	_backpack_button = Button.new()
 	_backpack_button.name = "BackpackButton"
-	_backpack_button.text = "Pack"
+	_backpack_button.text = "Bag"
 	_backpack_button.focus_mode = Control.FOCUS_NONE
 	_backpack_button.custom_minimum_size = button_size
 	_backpack_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_backpack_button.add_theme_font_size_override("font_size", 18)
 	_backpack_button.pressed.connect(toggle_inventory)
 	add_child(_backpack_button)
 
@@ -223,13 +226,13 @@ func _build_inventory() -> void:
 	_tooltip_name = Label.new()
 	_tooltip_name.name = "ItemName"
 	_tooltip_name.add_theme_font_size_override("font_size", 13)
-	_tooltip_name.add_theme_color_override("font_color", Color.WHITE)
+	_tooltip_name.add_theme_color_override("font_color", UIStyle.text(self))
 	tooltip_stack.add_child(_tooltip_name)
 
 	_tooltip_effect = Label.new()
 	_tooltip_effect.name = "ItemEffect"
 	_tooltip_effect.add_theme_font_size_override("font_size", 12)
-	_tooltip_effect.add_theme_color_override("font_color", Color.WHITE)
+	_tooltip_effect.add_theme_color_override("font_color", UIStyle.muted_text(self))
 	tooltip_stack.add_child(_tooltip_effect)
 
 

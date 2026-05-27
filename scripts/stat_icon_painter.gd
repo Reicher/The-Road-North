@@ -27,17 +27,24 @@ static func draw_heart(canvas: CanvasItem, center: Vector2, size: float) -> void
 
 
 static func draw_sword(canvas: CanvasItem, center: Vector2, size: float) -> void:
-	var blade_top := center + Vector2(size * 0.24, -size * 0.36)
-	var blade_bottom := center + Vector2(-size * 0.14, size * 0.08)
-	var blade_width := size * 0.10
+	var blade_top := center + Vector2(size * 0.30, -size * 0.40)
+	var blade_bottom := center + Vector2(-size * 0.06, size * 0.02)
+	var blade_normal := Vector2(-0.76, -0.65)
+	var blade_width := size * 0.09
+	var edge_color := Color(0.36, 0.36, 0.34)
 	canvas.draw_colored_polygon(PackedVector2Array([
 		blade_top,
-		blade_bottom + Vector2(-blade_width, 0.0),
-		blade_bottom + Vector2(blade_width, 0.0),
+		blade_bottom + blade_normal * blade_width,
+		blade_bottom - blade_normal * blade_width,
 	]), SWORD_COLOR)
-	canvas.draw_line(center + Vector2(-size * 0.28, size * 0.20), center + Vector2(size * 0.10, -size * 0.18), SWORD_COLOR, maxf(2.0, size * 0.10))
-	canvas.draw_line(center + Vector2(-size * 0.25, size * 0.00), center + Vector2(size * 0.04, size * 0.28), SWORD_HILT_COLOR, maxf(2.0, size * 0.10))
-	canvas.draw_line(center + Vector2(-size * 0.32, size * 0.30), center + Vector2(-size * 0.16, size * 0.14), SWORD_HILT_COLOR, maxf(2.0, size * 0.11))
+	canvas.draw_line(blade_top + Vector2(-size * 0.03, size * 0.05), blade_bottom, Color(1.0, 1.0, 0.92), maxf(1.0, size * 0.035))
+	canvas.draw_line(blade_bottom + blade_normal * blade_width, blade_top, edge_color, maxf(1.0, size * 0.035))
+	canvas.draw_line(blade_top, blade_bottom - blade_normal * blade_width, edge_color, maxf(1.0, size * 0.035))
+
+	var guard_center := center + Vector2(-size * 0.12, size * 0.10)
+	canvas.draw_line(guard_center + Vector2(-size * 0.20, -size * 0.12), guard_center + Vector2(size * 0.16, size * 0.18), SWORD_HILT_COLOR, maxf(2.0, size * 0.12))
+	canvas.draw_line(guard_center + Vector2(-size * 0.03, size * 0.03), center + Vector2(-size * 0.34, size * 0.36), SWORD_HILT_COLOR.darkened(0.08), maxf(2.0, size * 0.12))
+	canvas.draw_circle(center + Vector2(-size * 0.38, size * 0.40), size * 0.075, SWORD_HILT_COLOR)
 
 
 static func draw_shield(canvas: CanvasItem, center: Vector2, size: float) -> void:

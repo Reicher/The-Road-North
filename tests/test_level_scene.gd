@@ -25,9 +25,12 @@ func _initialize() -> void:
 	_assert(player.loot_ui_path == NodePath("../UI/Loot"), "Expected player to connect to LootUI")
 	_assert(map.playable_width == 9 and map.playable_height == 9, "Expected level 001 to configure a 9x9 map")
 	_assert(roads.seed_start_and_goal, "Expected level 001 to seed start and goal tiles")
+	_assert(roads.start_definition.get("visual_identity") == "house", "Expected start tile to use simple house visuals")
+	_assert(roads.goal_definition.get("visual_identity") == "house", "Expected goal tile to use simple house visuals")
 	_assert(deck_controller.hand_size == 4, "Expected level 001 to configure a four-card hand")
 	_assert(is_equal_approx(deck_controller.road_card_ratio, 0.75), "Expected level 001 to configure road card ratio")
-	_assert(is_equal_approx(deck_controller.enemy_road_card_ratio, 0.5), "Expected level 001 to configure enemy road card ratio")
+	_assert(is_equal_approx(deck_controller.enemy_road_card_ratio, 1.0 / 3.0), "Expected level 001 to configure enemy road card ratio")
+	_assert(is_equal_approx(deck_controller.landmark_road_card_ratio, 0.20), "Expected level 001 to configure landmark road card ratio")
 	_assert(deck_controller.road_distribution["straight"] == 30.0, "Expected level 001 to configure road distribution")
 
 	quit()
