@@ -29,6 +29,7 @@ func run() -> void:
 	roads._ready()
 
 	var enemy_data := {
+		"type": GameMap.ENCOUNTER_ENEMY,
 		"revealed": false,
 		"health": 2,
 		"max_health": 2,
@@ -36,17 +37,18 @@ func run() -> void:
 		"armor": 1,
 	}
 	var armored_enemy_data := {
+		"type": GameMap.ENCOUNTER_ENEMY,
 		"revealed": false,
 		"health": 1,
 		"max_health": 1,
-		"attack": 1,
+		"attack": 10,
 		"armor": 3,
 	}
 
 	roads.force_place_tile(Vector2i(4, 8), T_JUNCTION, 0)
 	_assert(roads.place_tile(Vector2i(4, 7), STRAIGHT, 0, enemy_data), "Expected enemy road card placement to succeed")
 	_assert(roads.place_tile(Vector2i(3, 8), STRAIGHT, 1, armored_enemy_data), "Expected armored enemy road card placement to succeed")
-	var enemy_tile: Dictionary = map.get_tile(Vector2i(4, 7))["enemy"]
+	var enemy_tile: Dictionary = map.get_tile(Vector2i(4, 7))["encounter"]
 	_assert(enemy_tile["revealed"] == true, "Expected placing an enemy road card to reveal the enemy")
 	_assert(enemy_tile["health"] == 1, "Expected placed enemies to have one life")
 	_assert(roads.get_visual_tile(Vector2i(4, 7)).enemy_data["health"] == 1, "Expected visual enemy data to use one life")
@@ -84,30 +86,37 @@ func run() -> void:
 	root.add_child(player)
 	player._ready()
 
-	var blocked_result := {"blocked": false}
-	player.move_blocked.connect(func(_target_position: Vector2i, reason: String) -> void:
-		blocked_result["blocked"] = true
+	_assert(player.can_move_to(Vector2i(3, 8)), "Expected dangerous enemy road tiles to remain reachable")
+
+	var lethal_player = PLAYER_SCRIPT.new()
+	lethal_player.name = "LethalPlayer"
+	lethal_player.map_path = NodePath("../Map")
+	lethal_player.start_position = Vector2i(4, 8)
+	lethal_player.starting_food = 3
+	lethal_player.starting_health = 1
+	lethal_player.attack = 0
+	lethal_player.armor = 0
+	lethal_player.move_duration = 0.0
+	lethal_player.combat_bump_duration = 0.0
+	root.add_child(lethal_player)
+	lethal_player._ready()
+	var lethal_result := {"over": false}
+	lethal_player.game_over.connect(func(reason: String) -> void:
+		lethal_result["over"] = reason == "health"
 	)
-	_assert(not player.can_move_to(Vector2i(3, 8)), "Expected enemy armor to make the tile unreachable")
-	map.tile_pressed.emit(Vector2i(3, 8))
-	_assert(not blocked_result["blocked"], "Expected tapping armored enemy tiles to be ignored before movement")
-	_assert(player.grid_position == Vector2i(4, 8), "Expected ignored armored enemy tap to keep player position")
-	_assert(player.food == 3, "Expected ignored armored enemy tap not to spend food")
-	_assert(not player.move_to(Vector2i(3, 8)), "Expected movement into armored enemy to be blocked")
-	_assert(player.grid_position == Vector2i(4, 8), "Expected blocked enemy movement to keep player position")
-	_assert(player.food == 3, "Expected blocked enemy movement not to spend food")
-	_assert(map.get_tile(Vector2i(3, 8)).has("enemy"), "Expected blocked enemy movement to keep the enemy on the tile")
+	_assert(lethal_player.move_to(Vector2i(3, 8)), "Expected movement into dangerous enemies to be allowed")
+	_assert(lethal_result["over"], "Expected dangerous enemies to kill players with too little health")
 
 	_assert(player.move_to(Vector2i(4, 7)), "Expected player to enter enemy road tile")
 	_assert(player.is_in_combat(), "Expected combat to stay active while post-combat feedback is visible")
-	_assert(not map.get_tile(Vector2i(4, 7)).has("enemy"), "Expected defeated enemy to be removed before loot opens")
+	_assert(not map.get_tile(Vector2i(4, 7)).has("encounter"), "Expected defeated enemy to be removed before loot opens")
 	_assert(roads.get_visual_tile(Vector2i(4, 7)).enemy_data.is_empty(), "Expected defeated enemy to disappear before loot opens")
 	_assert(not loot_ui.is_open(), "Expected loot screen to wait until after post-combat feedback")
 	while player.is_in_combat():
 		await process_frame
 
 	_assert(player.health == 5, "Expected armor to prevent enemy damage in this combat")
-	_assert(not map.get_tile(Vector2i(4, 7)).has("enemy"), "Expected defeated enemy to be removed from tile data")
+	_assert(not map.get_tile(Vector2i(4, 7)).has("encounter"), "Expected defeated enemy to be removed from tile data")
 	_assert(roads.get_visual_tile(Vector2i(4, 7)).enemy_data.is_empty(), "Expected defeated enemy to disappear from visual tile")
 	_assert(loot_ui.is_open(), "Expected defeated enemies to open the loot screen")
 

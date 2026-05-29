@@ -1,6 +1,7 @@
 extends SceneTree
 
 const LEVEL_001 := preload("res://levels/level_001.tscn")
+const LEVEL_002 := preload("res://levels/level_002.tscn")
 
 
 func _initialize() -> void:
@@ -30,8 +31,15 @@ func _initialize() -> void:
 	_assert(deck_controller.hand_size == 4, "Expected level 001 to configure a four-card hand")
 	_assert(is_equal_approx(deck_controller.road_card_ratio, 0.75), "Expected level 001 to configure road card ratio")
 	_assert(is_equal_approx(deck_controller.enemy_road_card_ratio, 1.0 / 3.0), "Expected level 001 to configure enemy road card ratio")
-	_assert(is_equal_approx(deck_controller.landmark_road_card_ratio, 0.20), "Expected level 001 to configure landmark road card ratio")
+	_assert(is_equal_approx(deck_controller.reward_road_card_ratio, 0.20), "Expected level 001 to configure reward road card ratio")
 	_assert(deck_controller.road_distribution["straight"] == 30.0, "Expected level 001 to configure road distribution")
+
+	var level_002 := LEVEL_002.instantiate()
+	get_root().add_child(level_002)
+	var second_map := level_002.get_node("Map") as GameMap
+	var second_deck_controller := level_002.get_node("DeckController") as DeckController
+	_assert(second_map.playable_width == 11 and second_map.playable_height == 11, "Expected level 002 to configure an 11x11 map")
+	_assert(second_deck_controller.hand_size == 4, "Expected level 002 to configure a four-card hand")
 
 	quit()
 

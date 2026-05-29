@@ -7,6 +7,7 @@ enum RunState {
 	PLACEMENT_MODE,
 	EVENT_TARGETING,
 	GAME_OVER,
+	RUN_WON,
 }
 
 @export var hand_path: NodePath = NodePath("UI/Hand")
@@ -64,6 +65,8 @@ func _connect_player() -> void:
 		_player.moved.connect(_on_player_moved)
 	if not _player.game_over.is_connected(_on_game_over):
 		_player.game_over.connect(_on_game_over)
+	if not _player.run_won.is_connected(_on_run_won):
+		_player.run_won.connect(_on_run_won)
 
 
 func _on_card_focused(_card: CardView) -> void:
@@ -107,3 +110,7 @@ func _on_player_moved(_grid_position: Vector2i) -> void:
 
 func _on_game_over(_reason: String) -> void:
 	state = RunState.GAME_OVER
+
+
+func _on_run_won() -> void:
+	state = RunState.RUN_WON

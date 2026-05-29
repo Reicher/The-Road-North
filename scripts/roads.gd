@@ -40,8 +40,8 @@ func seed_initial_tiles() -> void:
 		force_place_tile(grid_position, definition, rotation_steps)
 
 
-func place_tile(grid_position: Vector2i, definition: Resource, rotation_steps: int = 0, enemy_data: Dictionary = {}, landmark_data: Dictionary = {}) -> bool:
-	var tile_data := make_tile_data(definition, rotation_steps, enemy_data, landmark_data)
+func place_tile(grid_position: Vector2i, definition: Resource, rotation_steps: int = 0, encounter_data: Dictionary = {}) -> bool:
+	var tile_data := make_tile_data(definition, rotation_steps, encounter_data)
 	var connections: Dictionary = tile_data.get("connections", {})
 	if not _map.can_place_tile(grid_position, connections):
 		return false
@@ -70,21 +70,22 @@ func get_visual_tile(grid_position: Vector2i) -> RoadTile:
 	return _visual_tiles.get(grid_position) as RoadTile
 
 
-func make_tile_data(definition: Resource, rotation_steps: int = 0, enemy_data: Dictionary = {}, landmark_data: Dictionary = {}) -> Dictionary:
+func make_tile_data(definition: Resource, rotation_steps: int = 0, encounter_data: Dictionary = {}) -> Dictionary:
 	var normalized_rotation := posmod(rotation_steps, 4)
 	var tile_data := {
 		"definition": definition,
 		"rotation_steps": normalized_rotation,
 		"connections": definition.get_rotated_openings(normalized_rotation),
 	}
-	if not enemy_data.is_empty():
-		var revealed_enemy := enemy_data.duplicate(true)
-		revealed_enemy["revealed"] = true
-		revealed_enemy["health"] = 1
-		revealed_enemy["max_health"] = 1
-		tile_data["enemy"] = revealed_enemy
-	if not landmark_data.is_empty():
-		tile_data["landmark"] = landmark_data.duplicate(true)
+	if not encounter_data.is_empty():
+		var revealed_encounter := encounter_data.duplicate(true)
+		if not revealed_encounter.has("type") and (revealed_encounter.has("attack") or revealed_encounter.has("armor")):
+			revealed_encounter["type"] = GameMap.ENCOUNTER_ENEMY
+		if str(revealed_encounter.get("type", "")) == GameMap.ENCOUNTER_ENEMY:
+			revealed_encounter["revealed"] = true
+			revealed_encounter["health"] = 1
+			revealed_encounter["max_health"] = 1
+		tile_data["encounter"] = revealed_encounter
 	return tile_data
 
 
@@ -96,10 +97,8 @@ func _store_and_spawn_tile(grid_position: Vector2i, tile_data: Dictionary) -> bo
 	visual_tile.definition = tile_data["definition"]
 	visual_tile.rotation_steps = tile_data["rotation_steps"]
 	visual_tile.tile_size = _map.tile_size
-	if tile_data.has("enemy"):
-		visual_tile.enemy_data = tile_data["enemy"]
-	if tile_data.has("landmark"):
-		visual_tile.landmark_data = tile_data["landmark"]
+	if tile_data.has("encounter"):
+		visual_tile.encounter_data = tile_data["encounter"]
 	visual_tile.position = _map.grid_to_world(grid_position)
 	add_child(visual_tile)
 	_visual_tiles[grid_position] = visual_tile

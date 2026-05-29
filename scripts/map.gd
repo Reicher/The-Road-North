@@ -17,9 +17,10 @@ const OPPOSITE_DIRECTIONS: Dictionary = {
 	"west": "east",
 }
 
-const LANDMARK_BERRY_BUSH := "berry_bush"
-const LANDMARK_RUINS := "ruins"
-const LANDMARK_CACHE := "cache"
+const ENCOUNTER_ENEMY := "enemy"
+const ENCOUNTER_BERRY_BUSH := "berry_bush"
+const ENCOUNTER_RUINS := "ruins"
+const ENCOUNTER_CACHE := "cache"
 
 @export_range(1, 64, 1) var playable_width := 9:
 	set(value):
@@ -86,25 +87,25 @@ func clear_tile(grid_position: Vector2i) -> void:
 	tiles.erase(grid_position)
 
 
-func get_landmark(grid_position: Vector2i) -> Dictionary:
+func get_encounter(grid_position: Vector2i) -> Dictionary:
 	var tile_data: Variant = get_tile(grid_position)
 	if tile_data is Dictionary:
-		var landmark: Variant = tile_data.get("landmark", {})
-		if landmark is Dictionary:
-			return landmark
+		var encounter: Variant = tile_data.get("encounter", {})
+		if encounter is Dictionary:
+			return encounter
 	return {}
 
 
-func consume_landmark(grid_position: Vector2i) -> Dictionary:
-	var landmark := get_landmark(grid_position).duplicate(true)
-	if landmark.is_empty():
+func consume_encounter(grid_position: Vector2i) -> Dictionary:
+	var encounter := get_encounter(grid_position).duplicate(true)
+	if encounter.is_empty():
 		return {}
 	var tile_data: Variant = get_tile(grid_position)
 	if tile_data is Dictionary:
-		tile_data.erase("landmark")
+		tile_data.erase("encounter")
 		tiles[grid_position] = tile_data
 	queue_redraw()
-	return landmark
+	return encounter
 
 
 func get_start_position() -> Vector2i:
@@ -163,18 +164,18 @@ func can_move_between(from_position: Vector2i, to_position: Vector2i) -> bool:
 	return _tile_has_opening(to_tile, OPPOSITE_DIRECTIONS[direction_name])
 
 
-func update_enemy_data(grid_position: Vector2i, enemy_data: Dictionary) -> void:
+func update_encounter_data(grid_position: Vector2i, encounter_data: Dictionary) -> void:
 	var tile_data: Variant = get_tile(grid_position)
 	if tile_data is Dictionary:
-		tile_data["enemy"] = enemy_data.duplicate(true)
+		tile_data["encounter"] = encounter_data.duplicate(true)
 		tiles[grid_position] = tile_data
 	queue_redraw()
 
 
-func clear_enemy(grid_position: Vector2i) -> void:
+func clear_encounter(grid_position: Vector2i) -> void:
 	var tile_data: Variant = get_tile(grid_position)
-	if tile_data is Dictionary and tile_data.has("enemy"):
-		tile_data.erase("enemy")
+	if tile_data is Dictionary and tile_data.has("encounter"):
+		tile_data.erase("encounter")
 		tiles[grid_position] = tile_data
 	queue_redraw()
 

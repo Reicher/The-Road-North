@@ -5,6 +5,7 @@ const ROAD_CATEGORY := "Road"
 const EVENT_CATEGORY := "Event"
 const EVENT_DESTROY_NEIGHBOR := "destroy_neighbor"
 const EVENT_DRAW_TWO := "draw_two"
+const ENCOUNTER_ENEMY := "enemy"
 
 
 func make_deck(deck_size: int, rng: RandomNumberGenerator, config: Dictionary) -> Array[Dictionary]:
@@ -34,8 +35,8 @@ func _make_road_cards(count: int, rng: RandomNumberGenerator, config: Dictionary
 				"category": ROAD_CATEGORY,
 				"tile_definition": definitions[subtype],
 			})
-	_add_enemies_to_road_cards(cards, rng, float(config.get("enemy_road_card_ratio", 0.0)))
-	_add_landmarks_to_road_cards(cards, rng, float(config.get("landmark_road_card_ratio", 0.0)))
+	_add_enemy_encounters_to_road_cards(cards, rng, float(config.get("enemy_road_card_ratio", 0.0)))
+	_add_reward_encounters_to_road_cards(cards, rng, float(config.get("reward_road_card_ratio", 0.0)))
 	return cards
 
 
@@ -46,7 +47,7 @@ func _make_event_cards(count: int) -> Array[Dictionary]:
 			cards.append({
 				"category": EVENT_CATEGORY,
 				"title": "Clear Road",
-				"detail": "Destroy a neighboring placed tile.",
+				"detail": "Destroy a placed tile.",
 				"event_type": EVENT_DESTROY_NEIGHBOR,
 			})
 		else:
@@ -90,20 +91,21 @@ func _counts_from_distribution(total: int, distribution: Dictionary) -> Dictiona
 	return counts
 
 
-func _add_enemies_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, enemy_ratio: float) -> void:
+func _add_enemy_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, enemy_ratio: float) -> void:
 	var enemy_count := roundi(float(cards.size()) * enemy_ratio)
 	_shuffle_cards(cards, rng)
 
 	for index in mini(enemy_count, cards.size()):
 		var card: Dictionary = cards[index]
-		card["enemy"] = _make_enemy_data(rng)
-		card["title"] = _guarded_title_for_card(card)
+		card["encounter"] = _make_enemy_encounter(rng)
+		card["title"] = _encounter_title_for_card(card)
 		card["detail"] = "Enemy waits on this road."
 		cards[index] = card
 
 
-func _make_enemy_data(rng: RandomNumberGenerator) -> Dictionary:
+func _make_enemy_encounter(rng: RandomNumberGenerator) -> Dictionary:
 	return {
+		"type": ENCOUNTER_ENEMY,
 		"revealed": false,
 		"health": 1,
 		"max_health": 1,
@@ -112,32 +114,32 @@ func _make_enemy_data(rng: RandomNumberGenerator) -> Dictionary:
 	}
 
 
-func _add_landmarks_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, landmark_ratio: float) -> void:
-	var landmark_count := roundi(float(cards.size()) * landmark_ratio)
+func _add_reward_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, reward_ratio: float) -> void:
+	var reward_count := roundi(float(cards.size()) * reward_ratio)
 	var eligible_indices: Array[int] = []
 	for index in cards.size():
-		if not cards[index].has("enemy"):
+		if not cards[index].has("encounter"):
 			eligible_indices.append(index)
 	_shuffle_ints(eligible_indices, rng)
 
-	for index in mini(landmark_count, eligible_indices.size()):
+	for index in mini(reward_count, eligible_indices.size()):
 		var card_index := eligible_indices[index]
 		var card: Dictionary = cards[card_index]
-		card["landmark"] = _make_landmark_data(index)
-		card["title"] = _landmark_title_for_card(card)
-		card["detail"] = _landmark_detail(card["landmark"])
+		card["encounter"] = _make_reward_encounter(index)
+		card["title"] = _encounter_title_for_card(card)
+		card["detail"] = _encounter_detail(card["encounter"])
 		cards[card_index] = card
 
 
-func _make_landmark_data(index: int) -> Dictionary:
-	var landmark_types: Array[String] = [GameMap.LANDMARK_BERRY_BUSH, GameMap.LANDMARK_RUINS, GameMap.LANDMARK_CACHE]
-	var kind: String = landmark_types[index % landmark_types.size()]
-	if kind == GameMap.LANDMARK_BERRY_BUSH:
+func _make_reward_encounter(index: int) -> Dictionary:
+	var reward_types: Array[String] = [GameMap.ENCOUNTER_BERRY_BUSH, GameMap.ENCOUNTER_RUINS, GameMap.ENCOUNTER_CACHE]
+	var kind: String = reward_types[index % reward_types.size()]
+	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		return {
 			"type": kind,
 			"loot": [{"kind": "food", "amount": 3}],
 		}
-	if kind == GameMap.LANDMARK_RUINS:
+	if kind == GameMap.ENCOUNTER_RUINS:
 		return {
 			"type": kind,
 			"loot": [{"kind": "gold", "amount": 4}],
@@ -147,7 +149,7 @@ func _make_landmark_data(index: int) -> Dictionary:
 		"loot": [{
 			"kind": "item",
 			"item": {
-				"name": "Old Compass",
+				"name": "Sword",
 				"effect": "+1 Attack",
 				"attack": 1,
 				"armor": 0,
@@ -156,15 +158,17 @@ func _make_landmark_data(index: int) -> Dictionary:
 	}
 
 
-func _landmark_title_for_card(card: Dictionary) -> String:
-	var landmark: Dictionary = card.get("landmark", {})
-	var prefix := "Landmark"
-	var kind := str(landmark.get("type", ""))
-	if kind == GameMap.LANDMARK_BERRY_BUSH:
+func _encounter_title_for_card(card: Dictionary) -> String:
+	var encounter: Dictionary = card.get("encounter", {})
+	var prefix := "Encounter"
+	var kind := str(encounter.get("type", ""))
+	if kind == ENCOUNTER_ENEMY:
+		prefix = "Enemy"
+	elif kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		prefix = "Berry Bush"
-	elif kind == GameMap.LANDMARK_RUINS:
+	elif kind == GameMap.ENCOUNTER_RUINS:
 		prefix = "Ruins"
-	elif kind == GameMap.LANDMARK_CACHE:
+	elif kind == GameMap.ENCOUNTER_CACHE:
 		prefix = "Cache"
 	var definition: Resource = card.get("tile_definition")
 	if definition == null:
@@ -172,22 +176,15 @@ func _landmark_title_for_card(card: Dictionary) -> String:
 	return "%s %s" % [prefix, str(definition.get("display_name"))]
 
 
-func _landmark_detail(landmark: Dictionary) -> String:
-	var kind := str(landmark.get("type", ""))
-	if kind == GameMap.LANDMARK_BERRY_BUSH:
+func _encounter_detail(encounter: Dictionary) -> String:
+	var kind := str(encounter.get("type", ""))
+	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		return "Grants food when reached."
-	if kind == GameMap.LANDMARK_RUINS:
+	if kind == GameMap.ENCOUNTER_RUINS:
 		return "Grants gold when reached."
-	if kind == GameMap.LANDMARK_CACHE:
+	if kind == GameMap.ENCOUNTER_CACHE:
 		return "Contains an item when reached."
 	return "Reward waits on this road."
-
-
-func _guarded_title_for_card(card: Dictionary) -> String:
-	var definition: Resource = card.get("tile_definition")
-	if definition == null:
-		return "Guarded Road"
-	return "Guarded %s" % str(definition.get("display_name"))
 
 
 func _shuffle_cards(cards: Array[Dictionary], rng: RandomNumberGenerator) -> void:

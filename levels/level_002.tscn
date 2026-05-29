@@ -1,0 +1,24 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/level.tscn" id="1_x0hhk"]
+
+[node name="Level" instance=ExtResource("1_x0hhk")]
+
+[node name="Map" parent="." index="0"]
+playable_width = 11
+playable_height = 11
+
+[node name="Roads" parent="." index="1"]
+seed_start_and_goal = true
+
+[node name="DeckController" parent="." index="9"]
+hand_size = 4
+road_card_ratio = 0.75
+enemy_road_card_ratio = 0.333333
+road_distribution = {
+"corner": 30.0,
+"dead_end": 10.0,
+"four_way": 10.0,
+"straight": 30.0,
+"t_junction": 20.0
+}

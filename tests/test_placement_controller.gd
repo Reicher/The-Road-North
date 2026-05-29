@@ -49,7 +49,8 @@ func _initialize() -> void:
 		{
 			"category": "Road",
 			"tile_definition": STRAIGHT,
-			"enemy": {
+			"encounter": {
+				"type": GameMap.ENCOUNTER_ENEMY,
 				"revealed": false,
 				"health": 2,
 				"max_health": 2,
@@ -112,10 +113,10 @@ func _initialize() -> void:
 	_assert(placement.has_valid_preview(), "Expected rotating back to restore valid placement")
 	_assert(placement.confirm_placement(), "Expected valid preview to place the road")
 	_assert(map.get_tile(Vector2i(4, 7)) != null, "Expected confirmed placement to store map tile")
-	_assert(map.get_tile(Vector2i(4, 7)).has("enemy"), "Expected enemy road card to place an enemy tile")
-	_assert(map.get_tile(Vector2i(4, 7))["enemy"]["revealed"] == true, "Expected enemy to reveal when the road card is placed")
+	_assert(map.get_tile(Vector2i(4, 7)).has("encounter"), "Expected enemy road card to place an encounter tile")
+	_assert(map.get_tile(Vector2i(4, 7))["encounter"]["revealed"] == true, "Expected enemy to reveal when the road card is placed")
 	_assert(roads.get_visual_tile(Vector2i(4, 7)) != null, "Expected confirmed placement to spawn visual tile")
-	_assert(map.get_tile(Vector2i(4, 7))["enemy"]["health"] == 1, "Expected enemy road cards to place one-life enemies")
+	_assert(map.get_tile(Vector2i(4, 7))["encounter"]["health"] == 1, "Expected enemy road cards to place one-life enemies")
 	_assert(roads.get_visual_tile(Vector2i(4, 7)).enemy_data["health"] == 1, "Expected visual tile data to use one-life enemies")
 	_assert(not hand.cards.has(straight_card), "Expected confirmed placement to consume the card")
 	_assert(not placement.is_placing(), "Expected confirm to exit placement mode")

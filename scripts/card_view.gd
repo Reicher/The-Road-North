@@ -47,9 +47,9 @@ signal use_requested(card: CardView)
 		_refresh_text()
 		queue_redraw()
 
-@export var landmark_data := {}:
+@export var encounter_data := {}:
 	set(value):
-		landmark_data = value
+		encounter_data = value
 		_refresh_text()
 		queue_redraw()
 
@@ -116,8 +116,12 @@ func configure(card_data: Dictionary) -> void:
 	category = str(card_data.get("category", "Road"))
 	detail = str(card_data.get("detail", _detail_from_definition()))
 	event_type = str(card_data.get("event_type", ""))
-	enemy_data = card_data.get("enemy", {})
-	landmark_data = card_data.get("landmark", {})
+	var raw_encounter: Dictionary = card_data.get("encounter", card_data.get("enemy", {}))
+	if not raw_encounter.is_empty() and not raw_encounter.has("type") and card_data.has("enemy"):
+		raw_encounter = raw_encounter.duplicate(true)
+		raw_encounter["type"] = GameMap.ENCOUNTER_ENEMY
+	encounter_data = raw_encounter
+	enemy_data = encounter_data if _encounter_type() == GameMap.ENCOUNTER_ENEMY else {}
 	card_color = card_data.get("card_color", card_color)
 
 
@@ -223,17 +227,17 @@ func _card_header_text() -> String:
 
 
 func _road_modifier_title() -> String:
-	if not enemy_data.is_empty():
-		return "Enemy"
-	if landmark_data.is_empty():
+	if encounter_data.is_empty():
 		return ""
 
-	var kind := str(landmark_data.get("type", ""))
-	if kind == GameMap.LANDMARK_BERRY_BUSH:
+	var kind := _encounter_type()
+	if kind == GameMap.ENCOUNTER_ENEMY:
+		return "Enemy"
+	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		return "Berry"
-	if kind == GameMap.LANDMARK_RUINS:
+	if kind == GameMap.ENCOUNTER_RUINS:
 		return "Ruins"
-	if kind == GameMap.LANDMARK_CACHE:
+	if kind == GameMap.ENCOUNTER_CACHE:
 		return "Treasure"
 	return "Reward"
 
@@ -277,9 +281,9 @@ func _draw_card_symbol(art_rect: Rect2) -> void:
 	if openings.get("west", false) == true:
 		draw_rect(Rect2(Vector2(art_rect.position.x, center.y - road_width * 0.5), Vector2(art_rect.size.x * 0.5, road_width)), road_color, true)
 	draw_circle(center, road_width * 0.62, road_color)
-	if not landmark_data.is_empty():
-		_draw_landmark_marker(art_rect)
-	if not enemy_data.is_empty():
+	if not encounter_data.is_empty() and _encounter_type() != GameMap.ENCOUNTER_ENEMY:
+		_draw_reward_encounter_marker(art_rect)
+	if _encounter_type() == GameMap.ENCOUNTER_ENEMY:
 		_draw_hidden_enemy_marker(art_rect)
 
 
@@ -297,20 +301,24 @@ func _draw_hidden_enemy_marker(art_rect: Rect2) -> void:
 	draw_circle(center, radius * 0.30, Color(1.0, 0.86, 0.36, 0.98))
 
 
-func _draw_landmark_marker(art_rect: Rect2) -> void:
-	var kind := str(landmark_data.get("type", ""))
+func _draw_reward_encounter_marker(art_rect: Rect2) -> void:
+	var kind := _encounter_type()
 	var center := art_rect.get_center() + Vector2(-art_rect.size.x * 0.22, art_rect.size.y * 0.12)
 	var radius := minf(art_rect.size.x, art_rect.size.y) * 0.16
-	if kind == GameMap.LANDMARK_BERRY_BUSH:
+	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		draw_circle(center, radius, Color(0.18, 0.44, 0.22))
 		draw_circle(center + Vector2(radius * 0.35, -radius * 0.2), radius * 0.22, Color(0.67, 0.10, 0.18))
-	elif kind == GameMap.LANDMARK_RUINS:
+	elif kind == GameMap.ENCOUNTER_RUINS:
 		draw_rect(Rect2(center - Vector2(radius * 0.8, radius * 0.5), Vector2(radius * 0.45, radius)), Color(0.48, 0.49, 0.45), true)
 		draw_rect(Rect2(center + Vector2(radius * 0.2, -radius * 0.3), Vector2(radius * 0.45, radius * 0.8)), Color(0.56, 0.56, 0.51), true)
-	elif kind == GameMap.LANDMARK_CACHE:
+	elif kind == GameMap.ENCOUNTER_CACHE:
 		var box_rect := Rect2(center - Vector2(radius, radius * 0.55), Vector2(radius * 2.0, radius * 1.15))
 		draw_rect(box_rect, Color(0.48, 0.27, 0.12), true)
 		draw_rect(box_rect, Color(0.88, 0.67, 0.28), false, 1.5)
+
+
+func _encounter_type() -> String:
+	return str(encounter_data.get("type", ""))
 
 
 func _resolved_card_color() -> Color:

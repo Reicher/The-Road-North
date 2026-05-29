@@ -70,7 +70,8 @@ func _test_destroy_neighbor_event() -> void:
 
 	_assert(placement.begin_destroy_targeting(destroy_card), "Expected destroy event to enter targeting mode")
 	_assert(not player.input_enabled, "Expected movement input to pause during targeting")
-	_assert(roads.get_visual_tile(Vector2i(4, 7)).highlight_enabled, "Expected neighboring placed tiles to be highlighted")
+	_assert(roads.get_visual_tile(Vector2i(4, 7)).highlight_enabled, "Expected placed tiles to be highlighted")
+	_assert(roads.get_visual_tile(Vector2i(6, 6)).highlight_enabled, "Expected remote placed tiles to be highlighted")
 	_assert(placement.get_node("PlacementControls/Buttons").visible, "Expected targeting controls to appear immediately")
 	_assert(not placement.get_node("PlacementControls/Buttons/RotateButton").visible, "Expected targeting controls to hide rotate")
 	_assert(placement.get_node("PlacementControls/Buttons/ConfirmButton").disabled, "Expected target confirm to start disabled")
@@ -84,16 +85,14 @@ func _test_destroy_neighbor_event() -> void:
 	map.tile_pressed.emit(Vector2i(4, 0))
 	_assert(not placement.has_valid_preview(), "Expected goal tile target to be invalid")
 
-	map.tile_pressed.emit(Vector2i(6, 6))
-	_assert(not placement.has_valid_preview(), "Expected non-neighbor placed tile target to be invalid")
-	_assert(not placement.confirm_placement(), "Expected non-neighbor destroy target not to confirm")
-	_assert(map.get_tile(Vector2i(6, 6)) != null, "Expected non-neighbor target to remain placed")
-
 	map.tile_pressed.emit(Vector2i(4, 7))
-	_assert(placement.has_valid_preview(), "Expected neighboring placed tile target to be valid")
+	_assert(placement.has_valid_preview(), "Expected placed tile target to be valid")
+
+	map.tile_pressed.emit(Vector2i(6, 6))
+	_assert(placement.has_valid_preview(), "Expected remote placed tile target to be valid")
 	_assert(placement.confirm_placement(), "Expected valid destroy target to confirm")
-	_assert(map.get_tile(Vector2i(4, 7)) == null, "Expected destroy event to remove the selected tile")
-	_assert(roads.get_visual_tile(Vector2i(4, 7)) == null, "Expected destroy event to remove the visual tile")
+	_assert(map.get_tile(Vector2i(6, 6)) == null, "Expected destroy event to remove the selected remote tile")
+	_assert(roads.get_visual_tile(Vector2i(6, 6)) == null, "Expected destroy event to remove the remote visual tile")
 	_assert(not hand.cards.has(destroy_card), "Expected confirmed destroy event to consume the card")
 	_assert(player.input_enabled, "Expected movement input to resume after destroy")
 
@@ -150,7 +149,7 @@ func _destroy_card_data() -> Dictionary:
 	return {
 		"category": "Event",
 		"title": "Clear Road",
-		"detail": "Destroy a neighboring placed tile.",
+		"detail": "Destroy a placed tile.",
 		"event_type": "destroy_neighbor",
 	}
 

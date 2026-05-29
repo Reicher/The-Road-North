@@ -10,6 +10,7 @@ signal health_changed(health: int)
 signal moved(grid_position: Vector2i)
 signal move_blocked(target_position: Vector2i, reason: String)
 signal game_over(reason: String)
+signal run_won
 
 @export var map_path: NodePath
 @export var food_label_path: NodePath
@@ -47,6 +48,7 @@ var _moving := false
 var _move_target := Vector2i.ZERO
 var _combat_running := false
 var _game_over := false
+var _run_won := false
 
 
 func _ready() -> void:
@@ -93,9 +95,9 @@ func _draw() -> void:
 
 
 func can_move_to(target_position: Vector2i) -> bool:
-	if _map == null or _moving or _combat_running or _game_over or food <= 0:
+	if _map == null or _moving or _combat_running or _game_over or _run_won or food <= 0:
 		return false
-	return _map.can_move_between(grid_position, target_position) and _combat.can_defeat_enemy_at(target_position)
+	return _map.can_move_between(grid_position, target_position)
 
 
 func move_to(target_position: Vector2i) -> bool:
@@ -104,6 +106,9 @@ func move_to(target_position: Vector2i) -> bool:
 		return false
 	if _game_over:
 		move_blocked.emit(target_position, "game_over")
+		return false
+	if _run_won:
+		move_blocked.emit(target_position, "run_won")
 		return false
 	if _moving:
 		move_blocked.emit(target_position, "moving")
@@ -116,8 +121,6 @@ func move_to(target_position: Vector2i) -> bool:
 		return false
 	if not _map.can_move_between(grid_position, target_position):
 		move_blocked.emit(target_position, "invalid_road")
-		return false
-	if not _combat.can_defeat_enemy_at(target_position):
 		return false
 
 	_moving = true
@@ -153,13 +156,14 @@ func is_in_combat() -> bool:
 	return _combat_running
 
 
-func set_health(value: int) -> void:
+func set_health(value: int, check_game_over := true) -> void:
 	if health == value:
 		return
 	health = value
 	_update_health_label()
 	health_changed.emit(health)
-	_check_game_over()
+	if check_game_over:
+		_check_game_over()
 
 
 func add_food(amount: int) -> void:
@@ -180,17 +184,19 @@ func add_gold(amount: int) -> void:
 func _on_tile_pressed(target_position: Vector2i) -> void:
 	if not input_enabled:
 		return
-	if _combat.is_blocked_by_enemy_armor(grid_position, target_position):
-		return
 	move_to(target_position)
 
 
 func _finish_move(target_position: Vector2i) -> void:
 	grid_position = target_position
 	_moving = false
-	_collect_landmark_at(grid_position)
 	moved.emit(grid_position)
+	if _check_run_won():
+		return
 	_check_game_over()
+	if _game_over:
+		return
+	_resolve_reward_encounter_at(grid_position)
 
 
 func _on_move_tween_finished() -> void:
@@ -240,32 +246,39 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary) -> void
 
 func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previous_input_enabled: bool) -> void:
 	var enemy_damage: int = _combat.get_damage_from(enemy_data)
-	set_health(maxi(0, health - enemy_damage))
-
-	var visual_tile := _find_visual_tile(target_position)
-	_map.clear_enemy(target_position)
-	if visual_tile != null:
-		visual_tile.set_enemy_data({})
-		visual_tile.enemy_offset = Vector2.ZERO
+	set_health(maxi(0, health - enemy_damage), false)
 
 	position = _map.grid_to_world(target_position)
 	grid_position = target_position
 	_moving = false
+	moved.emit(grid_position)
+	if _check_run_won():
+		_combat_running = false
+		return
+	_check_game_over()
+	if _game_over:
+		_combat_running = false
+		return
+
+	var visual_tile := _find_visual_tile(target_position)
+	_map.clear_encounter(target_position)
+	if visual_tile != null:
+		visual_tile.set_encounter_data({})
+		visual_tile.enemy_offset = Vector2.ZERO
+
 	if post_combat_loot_delay > 0.0:
 		await get_tree().create_timer(post_combat_loot_delay).timeout
 	_show_enemy_loot(enemy_data)
 	input_enabled = previous_input_enabled
 	_combat_running = false
-	_collect_landmark_at(grid_position)
-	moved.emit(grid_position)
 	_check_game_over()
 
 
 func _update_enemy_visual(target_position: Vector2i, enemy_data: Dictionary) -> void:
-	_map.update_enemy_data(target_position, enemy_data)
+	_map.update_encounter_data(target_position, enemy_data)
 	var visual_tile := _find_visual_tile(target_position)
 	if visual_tile != null:
-		visual_tile.set_enemy_data(enemy_data)
+		visual_tile.set_encounter_data(enemy_data)
 
 
 func _find_visual_tile(target_position: Vector2i) -> RoadTile:
@@ -282,17 +295,18 @@ func _show_enemy_loot(enemy_data: Dictionary) -> void:
 	_rewards.open_enemy_loot(enemy_data)
 
 
-func _collect_landmark_at(target_position: Vector2i) -> void:
+func _resolve_reward_encounter_at(target_position: Vector2i) -> void:
 	if _map == null:
 		return
-	var landmark := _map.consume_landmark(target_position)
-	if landmark.is_empty():
+	var encounter := _map.get_encounter(target_position)
+	if encounter.is_empty() or str(encounter.get("type", "")) == GameMap.ENCOUNTER_ENEMY:
 		return
+	encounter = _map.consume_encounter(target_position)
 	var visual_tile := _find_visual_tile(target_position)
 	if visual_tile != null:
-		visual_tile.landmark_data = {}
-	var loot: Array = landmark.get("loot", [])
-	_rewards.collect_landmark_loot(loot)
+		visual_tile.set_encounter_data({})
+	var loot: Array = encounter.get("loot", [])
+	_rewards.collect_loot(loot)
 
 
 func _get_or_create_rewards() -> Node:
@@ -316,7 +330,10 @@ func _get_or_create_combat() -> Node:
 
 
 func _check_game_over() -> void:
-	if _game_over:
+	if _game_over or _run_won:
+		return
+	if _map != null and grid_position == _map.get_goal_position():
+		_check_run_won()
 		return
 	var reason := ""
 	if health <= 0:
@@ -328,3 +345,14 @@ func _check_game_over() -> void:
 	_game_over = true
 	input_enabled = false
 	game_over.emit(reason)
+
+
+func _check_run_won() -> bool:
+	if _map == null or _game_over or _run_won:
+		return false
+	if grid_position != _map.get_goal_position():
+		return false
+	_run_won = true
+	input_enabled = false
+	run_won.emit()
+	return true

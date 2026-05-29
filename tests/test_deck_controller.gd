@@ -40,30 +40,31 @@ func _initialize() -> void:
 	var category_counts := {"Road": 0, "Event": 0}
 	var enemy_road_count := 0
 	var enemy_road_has_clear_label := false
-	var landmark_road_count := 0
-	var landmark_road_has_clear_label := false
+	var reward_road_count := 0
+	var reward_road_has_clear_label := false
 	for card in hand.cards:
 		category_counts[card.category] += 1
-		if card.category == "Road" and not card.enemy_data.is_empty():
+		if card.category == "Road" and card.encounter_data.get("type", "") == GameMap.ENCOUNTER_ENEMY:
 			enemy_road_count += 1
-			enemy_road_has_clear_label = enemy_road_has_clear_label or (card.title.begins_with("Guarded ") and card.detail == "Enemy waits on this road.")
-		if card.category == "Road" and not card.landmark_data.is_empty():
-			landmark_road_count += 1
-			landmark_road_has_clear_label = landmark_road_has_clear_label or card.detail.ends_with("when reached.")
+			enemy_road_has_clear_label = enemy_road_has_clear_label or (card.title.begins_with("Enemy ") and card.detail == "Enemy waits on this road.")
+		elif card.category == "Road" and not card.encounter_data.is_empty():
+			reward_road_count += 1
+			reward_road_has_clear_label = reward_road_has_clear_label or card.detail.ends_with("when reached.")
 	for card_data in deck_controller.deck:
 		category_counts[card_data["category"]] += 1
-		if card_data["category"] == "Road" and card_data.has("enemy"):
+		var encounter: Dictionary = card_data.get("encounter", {})
+		if card_data["category"] == "Road" and encounter.get("type", "") == GameMap.ENCOUNTER_ENEMY:
 			enemy_road_count += 1
-			enemy_road_has_clear_label = enemy_road_has_clear_label or (str(card_data.get("title", "")).begins_with("Guarded ") and str(card_data.get("detail", "")) == "Enemy waits on this road.")
-		if card_data["category"] == "Road" and card_data.has("landmark"):
-			landmark_road_count += 1
-			landmark_road_has_clear_label = landmark_road_has_clear_label or str(card_data.get("detail", "")).ends_with("when reached.")
+			enemy_road_has_clear_label = enemy_road_has_clear_label or (str(card_data.get("title", "")).begins_with("Enemy ") and str(card_data.get("detail", "")) == "Enemy waits on this road.")
+		elif card_data["category"] == "Road" and not encounter.is_empty():
+			reward_road_count += 1
+			reward_road_has_clear_label = reward_road_has_clear_label or str(card_data.get("detail", "")).ends_with("when reached.")
 	_assert(category_counts["Road"] == 61, "Expected 75 percent of an 81 card deck to round to 61 road cards")
 	_assert(category_counts["Event"] == 20, "Expected the remaining deck cards to be events")
 	_assert(enemy_road_count == 20, "Expected one third of road cards to carry hidden enemies")
 	_assert(enemy_road_has_clear_label, "Expected enemy road cards to be clearly named and described")
-	_assert(landmark_road_count == 12, "Expected one fifth of road cards to carry landmarks")
-	_assert(landmark_road_has_clear_label, "Expected landmark road cards to be clearly described")
+	_assert(reward_road_count == 12, "Expected one fifth of road cards to carry reward encounters")
+	_assert(reward_road_has_clear_label, "Expected reward encounter road cards to be clearly described")
 
 	var first_card = hand.cards[0]
 	deck_controller.consume_card(first_card)

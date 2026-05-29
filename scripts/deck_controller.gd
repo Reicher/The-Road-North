@@ -10,7 +10,7 @@ const EVENT_DRAW_TWO := "draw_two"
 
 const ROAD_CARD_RATIO := 0.75
 const ENEMY_ROAD_CARD_RATIO := 1.0 / 3.0
-const LANDMARK_ROAD_CARD_RATIO := 0.20
+const REWARD_ROAD_CARD_RATIO := 0.20
 const HAND_SIZE := 4
 
 const ROAD_DISTRIBUTION := {
@@ -28,7 +28,7 @@ const ROAD_DISTRIBUTION := {
 @export var shuffle_seed := 0
 @export_range(0.0, 1.0, 0.01) var road_card_ratio := ROAD_CARD_RATIO
 @export_range(0.0, 1.0, 0.01) var enemy_road_card_ratio := ENEMY_ROAD_CARD_RATIO
-@export_range(0.0, 1.0, 0.01) var landmark_road_card_ratio := LANDMARK_ROAD_CARD_RATIO
+@export_range(0.0, 1.0, 0.01) var reward_road_card_ratio := REWARD_ROAD_CARD_RATIO
 @export var road_distribution := ROAD_DISTRIBUTION.duplicate()
 
 @export var straight_definition: Resource = preload("res://data/road_straight.tres")
@@ -164,7 +164,7 @@ func _deck_config() -> Dictionary:
 	return {
 		"road_card_ratio": road_card_ratio,
 		"enemy_road_card_ratio": enemy_road_card_ratio,
-		"landmark_road_card_ratio": landmark_road_card_ratio,
+		"reward_road_card_ratio": reward_road_card_ratio,
 		"road_distribution": road_distribution,
 		"road_definitions": {
 			"straight": straight_definition,

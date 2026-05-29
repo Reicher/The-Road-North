@@ -247,14 +247,13 @@ A connection is only valid if both tiles connect toward each other.
 
 Version 1 contains two simple event cards.
 
-One event destroys a neighboring placed tile.
+One event destroys a placed tile.
 
 When this card is played:
-- the player is shown all placed neighboring tiles
+- the player is shown all placed tiles
 - the player selects one tile to destroy
 - the start and goal tiles cannot be targeted
 - the tile the player is currently standing on cannot be targeted
-- destroying a tile may not disconnect the map from the start tile
 
 The UI mirrors placement mode:
 - eligible tiles are highlighted

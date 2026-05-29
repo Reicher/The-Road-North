@@ -34,7 +34,7 @@ func open_enemy_loot(enemy_data: Dictionary) -> void:
 		_loot_ui.call("open_loot", loot)
 
 
-func collect_landmark_loot(loot: Array) -> void:
+func collect_loot(loot: Array) -> void:
 	if loot.is_empty():
 		return
 	if _loot_ui != null:
@@ -42,10 +42,10 @@ func collect_landmark_loot(loot: Array) -> void:
 		return
 	for entry in loot:
 		if entry is Dictionary:
-			_collect_landmark_loot_entry(entry)
+			_collect_loot_entry(entry)
 
 
-func _collect_landmark_loot_entry(entry: Dictionary) -> void:
+func _collect_loot_entry(entry: Dictionary) -> void:
 	if _player == null:
 		return
 	var kind := str(entry.get("kind", "item"))

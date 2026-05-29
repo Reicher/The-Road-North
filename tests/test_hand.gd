@@ -23,8 +23,8 @@ func _initialize() -> void:
 		{
 			"category": "Road",
 			"tile_definition": CORNER,
-			"landmark": {
-				"type": GameMap.LANDMARK_BERRY_BUSH,
+			"encounter": {
+				"type": GameMap.ENCOUNTER_BERRY_BUSH,
 				"loot": [{"kind": "food", "amount": 2}],
 			},
 		},
@@ -32,7 +32,8 @@ func _initialize() -> void:
 		{
 			"category": "Road",
 			"tile_definition": FOUR_WAY,
-			"enemy": {
+			"encounter": {
+				"type": GameMap.ENCOUNTER_ENEMY,
 				"revealed": false,
 				"health": 1,
 				"max_health": 1,

@@ -50,6 +50,8 @@ func run() -> void:
 	await process_frame
 	_assert(overlay.visible, "Expected running out of food to show game over")
 	_assert(not player.input_enabled, "Expected game over to disable player input")
+	_assert(overlay.get_node("Prompt/ContentMargin/Stack/Title").text == "You loose", "Expected loss overlay to use loss copy")
+	_assert(overlay.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Restart level", "Expected loss overlay to restart the level")
 	_assert(overlay.get_node("Prompt/ContentMargin/Stack/RestartButton") != null, "Expected restart button under game-over prompt")
 
 	var second_player = PLAYER_SCRIPT.new()

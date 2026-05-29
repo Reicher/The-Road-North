@@ -169,7 +169,7 @@ func confirm_placement() -> bool:
 	if active_mode != MODE_ROAD_PLACEMENT:
 		return false
 
-	var placed := _roads.place_tile(preview_position, active_definition, rotation_steps, active_card.enemy_data, active_card.landmark_data)
+	var placed := _roads.place_tile(preview_position, active_definition, rotation_steps, active_card.encounter_data)
 	if not placed:
 		_refresh_preview()
 		return false
@@ -252,9 +252,7 @@ func _is_valid_destroy_target(grid_position: Vector2i) -> bool:
 		return false
 	if grid_position == _player.grid_position:
 		return false
-	if not _map.get_neighbors(_player.grid_position).has(grid_position):
-		return false
-	return _can_destroy_without_disconnect(grid_position)
+	return true
 
 
 func _confirm_destroy_target() -> bool:
@@ -370,8 +368,8 @@ func _show_destroy_controls() -> void:
 
 func _highlight_destroy_targets() -> void:
 	_targeted_tiles.clear()
-	for grid_position in _map.get_neighbors(_player.grid_position):
-		if _map.get_tile(grid_position) != null:
+	for grid_position in _map.tiles:
+		if grid_position is Vector2i:
 			_targeted_tiles.append(grid_position)
 	_refresh_target_highlights()
 
@@ -396,39 +394,6 @@ func _clear_target_highlights() -> void:
 		if visual_tile != null:
 			visual_tile.set_highlight(false)
 	_targeted_tiles.clear()
-
-
-func _can_destroy_without_disconnect(grid_position: Vector2i) -> bool:
-	var start_position := _map.get_start_position()
-	var reachable_before := _collect_reachable_tiles(start_position, Vector2i(-1, -1))
-	var reachable_after := _collect_reachable_tiles(start_position, grid_position)
-	for placed_position in reachable_before:
-		if placed_position == grid_position:
-			continue
-		if not reachable_after.has(placed_position):
-			return false
-	return true
-
-
-func _collect_reachable_tiles(start_position: Vector2i, excluded_position: Vector2i) -> Dictionary:
-	var reachable := {}
-	if _map.get_tile(start_position) == null or start_position == excluded_position:
-		return reachable
-
-	var pending: Array[Vector2i] = [start_position]
-	reachable[start_position] = true
-	while not pending.is_empty():
-		var current: Vector2i = pending.pop_front()
-		for neighbor in _map.get_neighbors(current):
-			if neighbor == excluded_position or reachable.has(neighbor):
-				continue
-			if _map.get_tile(neighbor) == null:
-				continue
-			if not _map.can_move_between(current, neighbor):
-				continue
-			reachable[neighbor] = true
-			pending.append(neighbor)
-	return reachable
 
 
 func _refresh_placement_hints() -> void:

@@ -32,16 +32,17 @@ extends Node2D
 		highlight_color = value
 		queue_redraw()
 
-@export var enemy_data := {}:
+@export var encounter_data := {}:
 	set(value):
-		enemy_data = value
+		encounter_data = value
 		_refresh_enemy_view()
 		queue_redraw()
 
-@export var landmark_data := {}:
+var enemy_data := {}:
+	get:
+		return encounter_data if _encounter_type() == GameMap.ENCOUNTER_ENEMY else {}
 	set(value):
-		landmark_data = value
-		queue_redraw()
+		encounter_data = value
 
 @export var enemy_offset := Vector2.ZERO:
 	set(value):
@@ -86,8 +87,8 @@ func _draw() -> void:
 		_draw_connections(openings, road_width, road_color)
 		draw_circle(center, road_width * 0.5, road_color)
 	_draw_visual_identity(str(definition.get("visual_identity")), tile_rect)
-	if not landmark_data.is_empty():
-		_draw_landmark(landmark_data, tile_rect)
+	if not encounter_data.is_empty() and _encounter_type() != GameMap.ENCOUNTER_ENEMY:
+		_draw_reward_encounter(encounter_data, tile_rect)
 
 	if highlight_enabled:
 		draw_rect(tile_rect.grow(-3.0), highlight_color, false, 5.0)
@@ -109,7 +110,11 @@ func get_openings() -> Dictionary:
 
 
 func set_enemy_data(value: Dictionary) -> void:
-	enemy_data = value
+	encounter_data = value
+
+
+func set_encounter_data(value: Dictionary) -> void:
+	encounter_data = value
 
 
 func _draw_connections(openings: Dictionary, width: float, color: Color) -> void:
@@ -146,14 +151,14 @@ func _draw_house(tile_rect: Rect2) -> void:
 	draw_rect(Rect2(Vector2(house_rect.get_center().x - tile_size * 0.035, house_rect.end.y - tile_size * 0.10), Vector2(tile_size * 0.07, tile_size * 0.10)), Color(0.30, 0.18, 0.10), true)
 
 
-func _draw_landmark(landmark: Dictionary, tile_rect: Rect2) -> void:
-	var kind := str(landmark.get("type", ""))
+func _draw_reward_encounter(encounter: Dictionary, tile_rect: Rect2) -> void:
+	var kind := str(encounter.get("type", ""))
 	var center := tile_rect.get_center()
-	if kind == GameMap.LANDMARK_BERRY_BUSH:
+	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		_draw_berry_bush(center)
-	elif kind == GameMap.LANDMARK_RUINS:
+	elif kind == GameMap.ENCOUNTER_RUINS:
 		_draw_ruins(center)
-	elif kind == GameMap.LANDMARK_CACHE:
+	elif kind == GameMap.ENCOUNTER_CACHE:
 		_draw_cache(center)
 
 
@@ -185,5 +190,9 @@ func _refresh_enemy_view() -> void:
 	if _enemy_view == null:
 		return
 	_enemy_view.set("tile_size", tile_size)
-	_enemy_view.set("enemy_data", enemy_data)
+	_enemy_view.set("enemy_data", encounter_data if _encounter_type() == GameMap.ENCOUNTER_ENEMY else {})
 	_enemy_view.position = enemy_offset
+
+
+func _encounter_type() -> String:
+	return str(encounter_data.get("type", ""))

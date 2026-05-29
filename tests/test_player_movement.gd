@@ -50,20 +50,20 @@ func _initialize() -> void:
 	_assert(player.food == 2, "Expected valid movement to consume one food")
 	_assert(player.health == 3, "Expected movement not to change health")
 
-	_assert(roads.place_tile(Vector2i(4, 6), CORNER, 1, {}, {
-		"type": GameMap.LANDMARK_BERRY_BUSH,
+	_assert(roads.place_tile(Vector2i(4, 6), CORNER, 1, {
+		"type": GameMap.ENCOUNTER_BERRY_BUSH,
 		"loot": [{"kind": "food", "amount": 2}],
-	}), "Expected landmark road card placement to succeed")
+	}), "Expected reward encounter road card placement to succeed")
 	_assert(not player.move_to(Vector2i(5, 7)), "Expected empty or disconnected tile movement to be blocked")
 	_assert(player.grid_position == Vector2i(4, 7), "Expected invalid movement to leave player in place")
 	_assert(player.food == 2, "Expected invalid movement not to consume food")
 
 	_assert(player.move_to(Vector2i(4, 6)), "Expected bidirectional north/south connection to allow movement")
-	_assert(player.food == 3, "Expected landmark food to be collected after movement cost")
-	_assert(map.get_landmark(Vector2i(4, 6)).is_empty(), "Expected collected landmark to be removed")
+	_assert(player.food == 3, "Expected encounter food to be collected after movement cost")
+	_assert(map.get_encounter(Vector2i(4, 6)).is_empty(), "Expected collected encounter to be removed")
 	roads.force_place_tile(Vector2i(5, 6), STRAIGHT, 1)
 	_assert(player.move_to(Vector2i(5, 6)), "Expected bidirectional east/west connection to allow movement")
-	_assert(player.food == 2, "Expected each valid movement to consume food after landmark reward")
+	_assert(player.food == 2, "Expected each valid movement to consume food after encounter reward")
 
 	player.food = 0
 	_assert(not player.move_to(Vector2i(4, 6)), "Expected movement to be blocked when food is empty")
