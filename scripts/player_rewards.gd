@@ -4,13 +4,15 @@ extends Node
 var _player: GamePlayer
 var _inventory: InventoryUI
 var _loot_ui: Node
+var _map: GameMap
 var _loot_rng := RandomNumberGenerator.new()
 
 
-func setup(player: GamePlayer, inventory: InventoryUI, loot_ui: Node) -> void:
+func setup(player: GamePlayer, inventory: InventoryUI, loot_ui: Node, map: GameMap = null) -> void:
 	_player = player
 	_inventory = inventory
 	_loot_ui = loot_ui
+	_map = map
 	_loot_rng.randomize()
 
 
@@ -43,6 +45,18 @@ func collect_loot(loot: Array) -> void:
 	for entry in loot:
 		if entry is Dictionary:
 			_collect_loot_entry(entry)
+
+
+func collect_reward_at(target_position: Vector2i) -> bool:
+	if _map == null:
+		return false
+	var encounter := _map.get_encounter(target_position)
+	if encounter.is_empty() or str(encounter.get("type", "")) == GameMap.ENCOUNTER_ENEMY:
+		return false
+	encounter = _map.consume_encounter(target_position)
+	var loot: Array = encounter.get("loot", [])
+	collect_loot(loot)
+	return true
 
 
 func _collect_loot_entry(entry: Dictionary) -> void:

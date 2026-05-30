@@ -10,3 +10,46 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_4s1j1")
+
+[node name="Prompt" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="ContentMargin" type="MarginContainer" parent="Prompt"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 18
+
+[node name="Stack" type="VBoxContainer" parent="Prompt/ContentMargin"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="TopSpacer" type="Control" parent="Prompt/ContentMargin/Stack"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Title" type="Label" parent="Prompt/ContentMargin/Stack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
+theme_override_font_sizes/font_size = 32
+text = "Game over"
+horizontal_alignment = 1
+
+[node name="BottomSpacer" type="Control" parent="Prompt/ContentMargin/Stack"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RestartButton" type="Button" parent="Prompt/ContentMargin/Stack"]
+custom_minimum_size = Vector2(188, 52)
+layout_mode = 2
+focus_mode = 0
+text = "Restart"

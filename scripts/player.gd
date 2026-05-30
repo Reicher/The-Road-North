@@ -7,6 +7,7 @@ const PLAYER_COMBAT_SCRIPT := preload("res://scripts/player_combat.gd")
 signal food_changed(food: int)
 signal gold_changed(gold: int)
 signal health_changed(health: int)
+signal move_started(target_position: Vector2i)
 signal moved(grid_position: Vector2i)
 signal move_blocked(target_position: Vector2i, reason: String)
 signal game_over(reason: String)
@@ -58,7 +59,7 @@ func _ready() -> void:
 	_inventory = get_node_or_null(inventory_path) as InventoryUI
 	_loot_ui = get_node_or_null(loot_ui_path)
 	_rewards = _get_or_create_rewards()
-	_rewards.setup(self, _inventory, _loot_ui)
+	_rewards.setup(self, _inventory, _loot_ui, _map)
 	_combat = _get_or_create_combat()
 	_combat.setup(self, _map)
 
@@ -124,6 +125,7 @@ func move_to(target_position: Vector2i) -> bool:
 		return false
 
 	_moving = true
+	move_started.emit(target_position)
 	food -= 1
 	_update_food_label()
 	food_changed.emit(food)
@@ -226,8 +228,8 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary) -> void
 	var previous_input_enabled := input_enabled
 	input_enabled = false
 
-	enemy_data["revealed"] = true
-	_update_enemy_visual(target_position, enemy_data)
+	_combat.reveal_enemy_at(target_position, enemy_data)
+	_set_visual_encounter_data(target_position, enemy_data)
 
 	var target_world_position := _map.grid_to_world(target_position)
 	if combat_bump_duration <= 0.0:
@@ -260,11 +262,8 @@ func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previ
 		_combat_running = false
 		return
 
-	var visual_tile := _find_visual_tile(target_position)
-	_map.clear_encounter(target_position)
-	if visual_tile != null:
-		visual_tile.set_encounter_data({})
-		visual_tile.enemy_offset = Vector2.ZERO
+	_combat.clear_enemy_at(target_position)
+	_clear_visual_encounter_data(target_position)
 
 	if post_combat_loot_delay > 0.0:
 		await get_tree().create_timer(post_combat_loot_delay).timeout
@@ -274,11 +273,17 @@ func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previ
 	_check_game_over()
 
 
-func _update_enemy_visual(target_position: Vector2i, enemy_data: Dictionary) -> void:
-	_map.update_encounter_data(target_position, enemy_data)
+func _set_visual_encounter_data(target_position: Vector2i, encounter_data: Dictionary) -> void:
 	var visual_tile := _find_visual_tile(target_position)
 	if visual_tile != null:
-		visual_tile.set_encounter_data(enemy_data)
+		visual_tile.set_encounter_data(encounter_data)
+
+
+func _clear_visual_encounter_data(target_position: Vector2i) -> void:
+	var visual_tile := _find_visual_tile(target_position)
+	if visual_tile != null:
+		visual_tile.set_encounter_data({})
+		visual_tile.enemy_offset = Vector2.ZERO
 
 
 func _find_visual_tile(target_position: Vector2i) -> RoadTile:
@@ -298,15 +303,8 @@ func _show_enemy_loot(enemy_data: Dictionary) -> void:
 func _resolve_reward_encounter_at(target_position: Vector2i) -> void:
 	if _map == null:
 		return
-	var encounter := _map.get_encounter(target_position)
-	if encounter.is_empty() or str(encounter.get("type", "")) == GameMap.ENCOUNTER_ENEMY:
-		return
-	encounter = _map.consume_encounter(target_position)
-	var visual_tile := _find_visual_tile(target_position)
-	if visual_tile != null:
-		visual_tile.set_encounter_data({})
-	var loot: Array = encounter.get("loot", [])
-	_rewards.collect_loot(loot)
+	if _rewards.collect_reward_at(target_position):
+		_clear_visual_encounter_data(target_position)
 
 
 func _get_or_create_rewards() -> Node:

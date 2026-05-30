@@ -5,8 +5,13 @@ const LEVEL_002 := preload("res://levels/level_002.tscn")
 
 
 func _initialize() -> void:
+	run.call_deferred()
+
+
+func run() -> void:
 	var level := LEVEL_001.instantiate()
 	get_root().add_child(level)
+	await process_frame
 
 	var map := level.get_node("Map") as GameMap
 	var roads := level.get_node("Roads") as Roads
@@ -15,11 +20,13 @@ func _initialize() -> void:
 	var loot := level.get_node("UI/Loot")
 	var inventory := level.get_node("UI/Inventory")
 	var player := level.get_node("Player") as GamePlayer
+	var typed_level := level as Level
 
 	_assert(map != null, "Expected level scene to include a GameMap")
 	_assert(roads != null, "Expected level scene to include Roads")
 	_assert(deck_controller != null, "Expected level scene to include DeckController")
 	_assert(hand != null, "Expected level scene to include HandUI")
+	_assert(typed_level != null, "Expected level scene to use the Level script")
 	_assert(loot != null, "Expected level scene to include LootUI")
 	_assert(inventory != null, "Expected level scene to include InventoryUI")
 	_assert(inventory.get_index() > loot.get_index(), "Expected inventory to sit above loot for backpack interaction")
@@ -30,9 +37,16 @@ func _initialize() -> void:
 	_assert(roads.goal_definition.get("visual_identity") == "house", "Expected goal tile to use simple house visuals")
 	_assert(deck_controller.hand_size == 4, "Expected level 001 to configure a four-card hand")
 	_assert(is_equal_approx(deck_controller.road_card_ratio, 0.75), "Expected level 001 to configure road card ratio")
-	_assert(is_equal_approx(deck_controller.enemy_road_card_ratio, 1.0 / 3.0), "Expected level 001 to configure enemy road card ratio")
-	_assert(is_equal_approx(deck_controller.reward_road_card_ratio, 0.20), "Expected level 001 to configure reward road card ratio")
+	_assert(is_equal_approx(deck_controller.enemy_road_card_ratio, 0.20), "Expected level 001 to configure enemy road card ratio")
+	_assert(is_equal_approx(deck_controller.reward_road_card_ratio, 0.15), "Expected level 001 to configure reward road card ratio")
 	_assert(deck_controller.road_distribution["straight"] == 30.0, "Expected level 001 to configure road distribution")
+	_assert(typed_level.state == Level.RunState.IDLE, "Expected level to start idle")
+	player.move_started.emit(Vector2i(4, 7))
+	_assert(typed_level.state == Level.RunState.PLAYER_MOVING, "Expected level to own player moving state")
+	_assert(not player.input_enabled, "Expected level to disable player input while moving")
+	player.moved.emit(Vector2i(4, 7))
+	_assert(typed_level.state == Level.RunState.IDLE, "Expected level to return idle after movement")
+	_assert(player.input_enabled, "Expected level to re-enable player input after movement")
 
 	var level_002 := LEVEL_002.instantiate()
 	get_root().add_child(level_002)

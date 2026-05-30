@@ -3,7 +3,7 @@ extends SceneTree
 const MAP_SCRIPT := preload("res://scripts/map.gd")
 const ROADS_SCRIPT := preload("res://scripts/roads.gd")
 const PLAYER_SCRIPT := preload("res://scripts/player.gd")
-const GAME_OVER_SCRIPT := preload("res://scripts/game_over_ui.gd")
+const GAME_OVER_SCENE := preload("res://ui/game_over.tscn")
 const STRAIGHT := preload("res://data/road_straight.tres")
 const T_JUNCTION := preload("res://data/road_t_junction.tres")
 
@@ -38,10 +38,9 @@ func run() -> void:
 	root.add_child(player)
 	player._ready()
 
-	var overlay = GAME_OVER_SCRIPT.new()
+	var overlay = GAME_OVER_SCENE.instantiate() as GameOverUI
 	overlay.name = "GameOver"
 	overlay.player_path = NodePath("../Player")
-	overlay.size = Vector2(360.0, 640.0)
 	root.add_child(overlay)
 	overlay._ready()
 

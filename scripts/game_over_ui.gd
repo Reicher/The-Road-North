@@ -32,7 +32,7 @@ func _ready() -> void:
 		_player.game_over.connect(_on_game_over)
 	if _player != null and not _player.run_won.is_connected(_on_run_won):
 		_player.run_won.connect(_on_run_won)
-	_build_overlay()
+	_bind_scene_nodes()
 
 
 func _gui_input(event: InputEvent) -> void:
@@ -47,63 +47,13 @@ func _draw() -> void:
 		draw_rect(Rect2(Vector2.ZERO, size), Color(0.05, 0.04, 0.03, 0.52), true)
 
 
-func _build_overlay() -> void:
-	_panel = PanelContainer.new()
-	_panel.name = "Prompt"
-	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(_panel)
-
-	var margin := MarginContainer.new()
-	margin.name = "ContentMargin"
-	margin.add_theme_constant_override("margin_left", 20)
-	margin.add_theme_constant_override("margin_top", 18)
-	margin.add_theme_constant_override("margin_right", 20)
-	margin.add_theme_constant_override("margin_bottom", 18)
-	_panel.add_child(margin)
-
-	var stack := VBoxContainer.new()
-	stack.name = "Stack"
-	stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	stack.add_theme_constant_override("separation", 14)
-	stack.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_child(stack)
-
-	var top_spacer := Control.new()
-	top_spacer.name = "TopSpacer"
-	top_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	stack.add_child(top_spacer)
-
-	_title_label = Label.new()
-	_title_label.name = "Title"
-	_title_label.text = "Game over"
-	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title_label.add_theme_font_size_override("font_size", 32)
+func _bind_scene_nodes() -> void:
+	_panel = get_node("Prompt") as PanelContainer
+	_title_label = get_node("Prompt/ContentMargin/Stack/Title") as Label
+	_action_button = get_node("Prompt/ContentMargin/Stack/RestartButton") as Button
 	_title_label.add_theme_color_override("font_color", UIStyle.text(self))
-	stack.add_child(_title_label)
-
-	var bottom_spacer := Control.new()
-	bottom_spacer.name = "BottomSpacer"
-	bottom_spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	stack.add_child(bottom_spacer)
-
-	_action_button = Button.new()
-	_action_button.name = "RestartButton"
-	_action_button.text = "Restart"
-	_action_button.focus_mode = Control.FOCUS_NONE
-	_action_button.custom_minimum_size = Vector2(188.0, 52.0)
-	_action_button.pressed.connect(_on_action_button_pressed)
-	stack.add_child(_action_button)
-
-	resized.connect(_layout_overlay)
-	_layout_overlay()
-
-
-func _layout_overlay() -> void:
-	if _panel == null:
-		return
-	_panel.size = size
-	_panel.position = Vector2.ZERO
-
+	if not _action_button.pressed.is_connected(_on_action_button_pressed):
+		_action_button.pressed.connect(_on_action_button_pressed)
 
 func _on_game_over(_reason: String) -> void:
 	_show_end_screen("You loose", "Restart level", "restart_level")
@@ -126,7 +76,6 @@ func _show_end_screen(title: String, button_text: String, action: String) -> voi
 		_hand.visible = false
 	visible = true
 	queue_redraw()
-	_layout_overlay()
 
 
 func _on_action_button_pressed() -> void:

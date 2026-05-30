@@ -3,8 +3,8 @@ extends SceneTree
 const MAP_SCRIPT := preload("res://scripts/map.gd")
 const ROADS_SCRIPT := preload("res://scripts/roads.gd")
 const PLAYER_SCRIPT := preload("res://scripts/player.gd")
-const INVENTORY_SCRIPT := preload("res://scripts/inventory_ui.gd")
-const LOOT_SCRIPT := preload("res://scripts/loot_ui.gd")
+const INVENTORY_SCENE := preload("res://ui/inventory.tscn")
+const LOOT_SCENE := preload("res://ui/loot.tscn")
 const STRAIGHT := preload("res://data/road_straight.tres")
 const T_JUNCTION := preload("res://data/road_t_junction.tres")
 
@@ -57,12 +57,12 @@ func run() -> void:
 	health_label.name = "HealthLabel"
 	root.add_child(health_label)
 
-	var inventory = INVENTORY_SCRIPT.new()
+	var inventory = INVENTORY_SCENE.instantiate() as InventoryUI
 	inventory.name = "Inventory"
 	root.add_child(inventory)
 	inventory._ready()
 
-	var loot_ui = LOOT_SCRIPT.new()
+	var loot_ui = LOOT_SCENE.instantiate() as LootUI
 	loot_ui.name = "Loot"
 	loot_ui.player_path = NodePath("../Player")
 	loot_ui.inventory_path = NodePath("../Inventory")

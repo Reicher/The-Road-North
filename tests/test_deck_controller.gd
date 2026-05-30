@@ -3,6 +3,7 @@ extends SceneTree
 const MAP_SCRIPT := preload("res://scripts/map.gd")
 const HAND_SCRIPT := preload("res://scripts/hand_ui.gd")
 const DECK_CONTROLLER_SCRIPT := preload("res://scripts/deck_controller.gd")
+const CARD_DEFINITION_SCRIPT := preload("res://scripts/card_definition.gd")
 
 
 func _initialize() -> void:
@@ -38,6 +39,7 @@ func _initialize() -> void:
 	_assert(deck_controller.drawn_count == 4, "Expected opening hand draw count to be tracked")
 
 	var category_counts := {"Road": 0, "Event": 0}
+	var typed_definition_count := 0
 	var enemy_road_count := 0
 	var enemy_road_has_clear_label := false
 	var reward_road_count := 0
@@ -52,6 +54,8 @@ func _initialize() -> void:
 			reward_road_has_clear_label = reward_road_has_clear_label or card.detail.ends_with("when reached.")
 	for card_data in deck_controller.deck:
 		category_counts[card_data["category"]] += 1
+		if card_data.get("card_definition") is CARD_DEFINITION_SCRIPT:
+			typed_definition_count += 1
 		var encounter: Dictionary = card_data.get("encounter", {})
 		if card_data["category"] == "Road" and encounter.get("type", "") == GameMap.ENCOUNTER_ENEMY:
 			enemy_road_count += 1
@@ -61,9 +65,10 @@ func _initialize() -> void:
 			reward_road_has_clear_label = reward_road_has_clear_label or str(card_data.get("detail", "")).ends_with("when reached.")
 	_assert(category_counts["Road"] == 61, "Expected 75 percent of an 81 card deck to round to 61 road cards")
 	_assert(category_counts["Event"] == 20, "Expected the remaining deck cards to be events")
-	_assert(enemy_road_count == 20, "Expected one third of road cards to carry hidden enemies")
+	_assert(typed_definition_count == deck_controller.deck.size(), "Expected generated draw pile cards to keep typed card definitions")
+	_assert(enemy_road_count == 12, "Expected one fifth of road cards to carry hidden enemies")
 	_assert(enemy_road_has_clear_label, "Expected enemy road cards to be clearly named and described")
-	_assert(reward_road_count == 12, "Expected one fifth of road cards to carry reward encounters")
+	_assert(reward_road_count == 9, "Expected fifteen percent of road cards to carry reward encounters")
 	_assert(reward_road_has_clear_label, "Expected reward encounter road cards to be clearly described")
 
 	var first_card = hand.cards[0]

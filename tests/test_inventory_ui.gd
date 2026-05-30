@@ -1,6 +1,6 @@
 extends SceneTree
 
-const INVENTORY_SCRIPT := preload("res://scripts/inventory_ui.gd")
+const INVENTORY_SCENE := preload("res://ui/inventory.tscn")
 const UIStyle := preload("res://scripts/ui_style.gd")
 
 
@@ -9,8 +9,7 @@ func _initialize() -> void:
 	root.size = Vector2(360.0, 640.0)
 	get_root().add_child(root)
 
-	var inventory = INVENTORY_SCRIPT.new()
-	inventory.size = root.size
+	var inventory = INVENTORY_SCENE.instantiate() as InventoryUI
 	root.add_child(inventory)
 	inventory._ready()
 

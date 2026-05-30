@@ -74,6 +74,8 @@ Suggested Level scene structure:
   - Camera
   - UI
     - Hand
+    - Loot
+    - Inventory
     - HUD
 
 The Level scene should contain very little direct gameplay logic itself.
@@ -94,13 +96,16 @@ Suggested states:
 - placement_mode
 - event_targeting
 - player_moving
-- win_screen
+- game_over
+- run_won
 
 This is primarily to simplify touch interactions and prevent conflicting input behavior.
 
 Version 1 does not need a large generic state machine framework.
 
 A simple enum and straightforward logic is sufficient.
+
+The Level node owns the high-level run state and coordinates input availability between child nodes. For example, entering placement mode disables player movement, and entering player_moving disables gameplay input until movement resolves.
 
 ---
 
@@ -125,7 +130,7 @@ The Map node should expose helper methods such as:
 
 The Map should not know anything about cards or UI.
 
-It only understands tiles and rules.
+It only understands tiles, coordinate helpers, movement and placement rules, and lightweight tile metadata such as an encounter dictionary attached to a placed tile.
 
 The Map should be the single owner of world/grid coordinate conversion.
 
@@ -215,17 +220,26 @@ Responsibilities:
 - current grid position
 - movement tweening
 - movement state
+- food, health, gold, and simple combat/reward resolution
 
 The player should expose:
 - move_to(grid_position)
 
-The Player scene should not directly validate movement.
+The Player scene asks the Map to validate movement before spending food or starting a move.
 
 The Map handles validation.
 
 Movement should always resolve one step at a time.
 
 The player pawn itself visually indicates the current tile.
+
+The Player emits movement and run outcome signals upward. Level uses those signals to update the high-level run state.
+
+Player child helpers may handle narrow combat and reward responsibilities:
+- Combat: reads enemy encounter data and computes damage
+- Rewards: collects resource loot and inventory item loot
+
+These helpers should remain small and direct. They should not become generic effect systems.
 
 ---
 
@@ -237,6 +251,7 @@ DeckController owns:
 - draw pile
 - draw logic
 - hand refill
+- encounter ratios for road cards
 
 The DeckController should not contain hand UI logic.
 
@@ -355,6 +370,31 @@ Examples:
 Future event cards may use different targeting patterns.
 
 Avoid separate UI systems for event cards.
+
+---
+
+# Combat, Loot, and Inventory
+
+Combat, loot, and inventory are part of the current version 1 prototype structure.
+
+They should stay layered on top of the road-card loop:
+- DeckBuilder may attach enemy or reward encounter data to road cards.
+- DeckController exposes encounter ratios so levels can tune encounter density.
+- Roads stores encounter data on the placed tile and passes it to the visual tile.
+- Player resolves encounters when entering a tile.
+- PlayerRewards handles resource/item collection.
+- PlayerCombat handles simple enemy damage calculations.
+- LootUI presents loot and collection interaction.
+- InventoryUI stores a small fixed backpack and computes attack/armor bonuses.
+
+The structure should remain simple:
+- no generic effect engine
+- no economy system
+- no persistent item progression
+- no equipment slot framework beyond strongest attack and strongest armor bonuses
+- no separate encounter scene hierarchy unless the current tile drawing becomes unmanageable
+
+The Level scene may include Loot and Inventory under UI, but those systems should not own map, deck, or placement rules.
 
 ---
 

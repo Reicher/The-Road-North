@@ -1,7 +1,10 @@
-[gd_scene format=3]
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/placement_controls_ui.gd" id="1_x2qxl"]
 
 [node name="PlacementControls" type="CanvasLayer"]
 layer = 20
+script = ExtResource("1_x2qxl")
 
 [node name="PromptLabel" type="Label" parent="."]
 visible = false

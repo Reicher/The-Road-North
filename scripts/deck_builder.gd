@@ -1,6 +1,8 @@
 class_name DeckBuilder
 extends Node
 
+const CARD_DEFINITION_SCRIPT := preload("res://scripts/card_definition.gd")
+
 const ROAD_CATEGORY := "Road"
 const EVENT_CATEGORY := "Event"
 const EVENT_DESTROY_NEIGHBOR := "destroy_neighbor"
@@ -31,10 +33,7 @@ func _make_road_cards(count: int, rng: RandomNumberGenerator, config: Dictionary
 			continue
 		var card_count: int = counts[subtype]
 		for _index in card_count:
-			cards.append({
-				"category": ROAD_CATEGORY,
-				"tile_definition": definitions[subtype],
-			})
+			cards.append(_make_road_card(definitions[subtype]))
 	_add_enemy_encounters_to_road_cards(cards, rng, float(config.get("enemy_road_card_ratio", 0.0)))
 	_add_reward_encounters_to_road_cards(cards, rng, float(config.get("reward_road_card_ratio", 0.0)))
 	return cards
@@ -44,20 +43,26 @@ func _make_event_cards(count: int) -> Array[Dictionary]:
 	var cards: Array[Dictionary] = []
 	for index in count:
 		if index % 2 == 0:
-			cards.append({
-				"category": EVENT_CATEGORY,
-				"title": "Clear Road",
-				"detail": "Destroy a placed tile.",
-				"event_type": EVENT_DESTROY_NEIGHBOR,
-			})
+			cards.append(_make_event_card("Clear Road", "Destroy a placed tile.", EVENT_DESTROY_NEIGHBOR))
 		else:
-			cards.append({
-				"category": EVENT_CATEGORY,
-				"title": "Supplies",
-				"detail": "Draw two extra cards.",
-				"event_type": EVENT_DRAW_TWO,
-			})
+			cards.append(_make_event_card("Supplies", "Draw two extra cards.", EVENT_DRAW_TWO))
 	return cards
+
+
+func _make_road_card(tile_definition_resource: Resource) -> Dictionary:
+	var definition = CARD_DEFINITION_SCRIPT.new()
+	definition.category = ROAD_CATEGORY
+	definition.tile_definition = tile_definition_resource
+	return definition.to_card_data()
+
+
+func _make_event_card(title: String, detail: String, event_type: String) -> Dictionary:
+	var definition = CARD_DEFINITION_SCRIPT.new()
+	definition.category = EVENT_CATEGORY
+	definition.title = title
+	definition.detail = detail
+	definition.event_type = event_type
+	return definition.to_card_data()
 
 
 func _counts_from_distribution(total: int, distribution: Dictionary) -> Dictionary:
@@ -97,7 +102,7 @@ func _add_enemy_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNu
 
 	for index in mini(enemy_count, cards.size()):
 		var card: Dictionary = cards[index]
-		card["encounter"] = _make_enemy_encounter(rng)
+		_set_card_encounter(card, _make_enemy_encounter(rng))
 		card["title"] = _encounter_title_for_card(card)
 		card["detail"] = "Enemy waits on this road."
 		cards[index] = card
@@ -125,10 +130,17 @@ func _add_reward_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomN
 	for index in mini(reward_count, eligible_indices.size()):
 		var card_index := eligible_indices[index]
 		var card: Dictionary = cards[card_index]
-		card["encounter"] = _make_reward_encounter(index)
+		_set_card_encounter(card, _make_reward_encounter(index))
 		card["title"] = _encounter_title_for_card(card)
 		card["detail"] = _encounter_detail(card["encounter"])
 		cards[card_index] = card
+
+
+func _set_card_encounter(card: Dictionary, encounter: Dictionary) -> void:
+	card["encounter"] = encounter
+	var definition = card.get("card_definition")
+	if definition is CARD_DEFINITION_SCRIPT:
+		definition.encounter = encounter.duplicate(true)
 
 
 func _make_reward_encounter(index: int) -> Dictionary:

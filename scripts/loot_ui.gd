@@ -73,7 +73,7 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_resolve_paths()
 	resized.connect(_layout_loot)
-	_build_loot_screen()
+	_bind_scene_nodes()
 	_layout_loot()
 	visible = false
 	set_process_input(true)
@@ -140,96 +140,34 @@ func take_all() -> void:
 		close_loot()
 
 
-func _build_loot_screen() -> void:
-	var dimmer := ColorRect.new()
-	dimmer.name = "Dimmer"
-	dimmer.color = Color(0.0, 0.0, 0.0, 0.38)
-	dimmer.mouse_filter = Control.MOUSE_FILTER_STOP
-	dimmer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(dimmer)
+func _bind_scene_nodes() -> void:
+	_panel = get_node("LootPanel") as PanelContainer
+	_loot_list = get_node("LootPanel/ContentMargin/Stack/LootList") as VBoxContainer
+	_take_all_button = get_node("LootPanel/ContentMargin/Stack/ButtonRow/TakeAllButton") as Button
+	_close_button = get_node("LootPanel/ContentMargin/Stack/ButtonRow/CloseButton") as Button
+	_tooltip = get_node("ItemTooltip") as PanelContainer
+	_tooltip_name = get_node("ItemTooltip/ContentMargin/Text/ItemName") as Label
+	_tooltip_effect = get_node("ItemTooltip/ContentMargin/Text/ItemEffect") as Label
+	_drag_ghost = get_node("DragGhost") as Label
 
-	_panel = PanelContainer.new()
-	_panel.name = "LootPanel"
 	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(_panel)
-
-	var margin := MarginContainer.new()
-	margin.name = "ContentMargin"
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_bottom", 12)
-	_panel.add_child(margin)
-
-	var stack := VBoxContainer.new()
-	stack.name = "Stack"
-	stack.add_theme_constant_override("separation", 10)
-	margin.add_child(stack)
-
-	var title := Label.new()
-	title.name = "Title"
-	title.text = "Loot"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 18)
-	stack.add_child(title)
-
-	_loot_list = VBoxContainer.new()
-	_loot_list.name = "LootList"
 	_loot_list.add_theme_constant_override("separation", 6)
 	_loot_list.alignment = BoxContainer.ALIGNMENT_CENTER
 	_loot_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	stack.add_child(_loot_list)
-
-	var button_row := HBoxContainer.new()
-	button_row.name = "ButtonRow"
-	button_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	button_row.add_theme_constant_override("separation", 8)
-	stack.add_child(button_row)
-
-	_take_all_button = Button.new()
-	_take_all_button.name = "TakeAllButton"
-	_take_all_button.text = "Take All"
-	_take_all_button.focus_mode = Control.FOCUS_NONE
-	_take_all_button.pressed.connect(take_all)
-	button_row.add_child(_take_all_button)
-
-	_close_button = Button.new()
-	_close_button.name = "CloseButton"
-	_close_button.text = "Close"
-	_close_button.focus_mode = Control.FOCUS_NONE
-	_close_button.pressed.connect(close_loot)
-	button_row.add_child(_close_button)
-
-	_tooltip = PanelContainer.new()
-	_tooltip.name = "ItemTooltip"
+	if not _take_all_button.pressed.is_connected(take_all):
+		_take_all_button.pressed.connect(take_all)
+	if not _close_button.pressed.is_connected(close_loot):
+		_close_button.pressed.connect(close_loot)
 	_tooltip.visible = false
 	_tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_tooltip)
-
-	var tooltip_margin := MarginContainer.new()
-	tooltip_margin.name = "ContentMargin"
-	tooltip_margin.add_theme_constant_override("margin_left", 8)
-	tooltip_margin.add_theme_constant_override("margin_top", 6)
-	tooltip_margin.add_theme_constant_override("margin_right", 8)
-	tooltip_margin.add_theme_constant_override("margin_bottom", 6)
-	_tooltip.add_child(tooltip_margin)
-
-	var tooltip_stack := VBoxContainer.new()
-	tooltip_stack.name = "Text"
-	tooltip_stack.add_theme_constant_override("separation", 2)
-	tooltip_margin.add_child(tooltip_stack)
-
-	_tooltip_name = Label.new()
-	_tooltip_name.name = "ItemName"
 	_tooltip_name.add_theme_font_size_override("font_size", 13)
 	_tooltip_name.add_theme_color_override("font_color", UIStyle.text(self))
-	tooltip_stack.add_child(_tooltip_name)
-
-	_tooltip_effect = Label.new()
-	_tooltip_effect.name = "ItemEffect"
 	_tooltip_effect.add_theme_font_size_override("font_size", 12)
 	_tooltip_effect.add_theme_color_override("font_color", UIStyle.muted_text(self))
-	tooltip_stack.add_child(_tooltip_effect)
+	_drag_ghost.visible = false
+	_drag_ghost.add_theme_color_override("font_color", UIStyle.text(self))
+	_drag_ghost.add_theme_font_size_override("font_size", 14)
+	_drag_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _refresh_loot() -> void:
@@ -291,13 +229,6 @@ func _start_drag(item_index: int, source_button: Button, local_position: Vector2
 		return
 	_dragged_item_index = item_index
 	_drag_source_button = source_button
-	if _drag_ghost == null:
-		_drag_ghost = Label.new()
-		_drag_ghost.name = "DragGhost"
-		_drag_ghost.add_theme_color_override("font_color", UIStyle.text(self))
-		_drag_ghost.add_theme_font_size_override("font_size", 14)
-		_drag_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(_drag_ghost)
 	_drag_ghost.text = source_button.text
 	_drag_ghost.visible = true
 	_update_drag(source_button.get_global_position() + local_position)
@@ -465,13 +396,6 @@ func _event_canvas_position(event: InputEvent, source_button: Button) -> Vector2
 
 
 func _show_drag_ghost(text: String, canvas_position: Vector2) -> void:
-	if _drag_ghost == null:
-		_drag_ghost = Label.new()
-		_drag_ghost.name = "DragGhost"
-		_drag_ghost.add_theme_color_override("font_color", UIStyle.text(self))
-		_drag_ghost.add_theme_font_size_override("font_size", 14)
-		_drag_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(_drag_ghost)
 	_drag_ghost.text = text
 	_drag_ghost.visible = true
 	_update_drag(canvas_position)

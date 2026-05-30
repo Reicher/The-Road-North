@@ -6,6 +6,7 @@ enum RunState {
 	CARD_FOCUSED,
 	PLACEMENT_MODE,
 	EVENT_TARGETING,
+	PLAYER_MOVING,
 	GAME_OVER,
 	RUN_WON,
 }
@@ -61,6 +62,8 @@ func _connect_placement_controller() -> void:
 
 
 func _connect_player() -> void:
+	if not _player.move_started.is_connected(_on_player_move_started):
+		_player.move_started.connect(_on_player_move_started)
 	if not _player.moved.is_connected(_on_player_moved):
 		_player.moved.connect(_on_player_moved)
 	if not _player.game_over.is_connected(_on_game_over):
@@ -70,7 +73,7 @@ func _connect_player() -> void:
 
 
 func _on_card_focused(_card: CardView) -> void:
-	if state != RunState.GAME_OVER:
+	if not _is_terminal_state():
 		state = RunState.CARD_FOCUSED
 
 
@@ -80,8 +83,9 @@ func _on_card_unfocused() -> void:
 
 
 func _on_placement_started(card: CardView) -> void:
-	if state == RunState.GAME_OVER:
+	if _is_terminal_state():
 		return
+	_set_player_input_enabled(false)
 	if card.event_type == DeckController.EVENT_DESTROY_NEIGHBOR:
 		state = RunState.EVENT_TARGETING
 	else:
@@ -89,28 +93,54 @@ func _on_placement_started(card: CardView) -> void:
 
 
 func _on_placement_ended(_card: CardView) -> void:
-	if state != RunState.GAME_OVER:
-		state = RunState.IDLE
+	if _is_terminal_state():
+		return
+	state = RunState.IDLE
+	_set_player_input_enabled(true)
 
 
 func _on_placement_confirmed(_grid_position: Vector2i, _card: CardView) -> void:
-	if state != RunState.GAME_OVER:
-		state = RunState.IDLE
+	if _is_terminal_state():
+		return
+	state = RunState.IDLE
+	_set_player_input_enabled(true)
 
 
 func _on_tile_destroyed(_grid_position: Vector2i, _card: CardView) -> void:
-	if state != RunState.GAME_OVER:
-		state = RunState.IDLE
+	if _is_terminal_state():
+		return
+	state = RunState.IDLE
+	_set_player_input_enabled(true)
+
+
+func _on_player_move_started(_target_position: Vector2i) -> void:
+	if _is_terminal_state():
+		return
+	state = RunState.PLAYER_MOVING
+	_set_player_input_enabled(false)
 
 
 func _on_player_moved(_grid_position: Vector2i) -> void:
-	if state != RunState.GAME_OVER:
-		state = RunState.IDLE
+	if _is_terminal_state():
+		return
+	state = RunState.IDLE
+	_set_player_input_enabled(true)
 
 
 func _on_game_over(_reason: String) -> void:
 	state = RunState.GAME_OVER
+	_set_player_input_enabled(false)
 
 
 func _on_run_won() -> void:
 	state = RunState.RUN_WON
+	_set_player_input_enabled(false)
+
+
+func _is_terminal_state() -> bool:
+	return state == RunState.GAME_OVER or state == RunState.RUN_WON
+
+
+func _set_player_input_enabled(enabled: bool) -> void:
+	if _player != null:
+		_player.input_enabled = enabled

@@ -51,12 +51,7 @@ var _hand: HandUI
 var _deck_controller: DeckController
 var _preview_tile: RoadTile
 var _targeted_tiles: Array[Vector2i] = []
-var _controls_layer: CanvasLayer
-var _prompt_label: Label
-var _controls: HBoxContainer
-var _rotate_button: Button
-var _confirm_button: Button
-var _cancel_button: Button
+var _controls_layer
 var _placement_valid := false
 var _placement_hints: Dictionary = {}
 
@@ -94,7 +89,8 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	_position_controls()
+	if _controls_layer != null:
+		_controls_layer.position_buttons(preview_position, _map, _hand)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -230,11 +226,7 @@ func _refresh_preview() -> void:
 	_placement_valid = _is_valid_placement(preview_position, tile_data.get("connections", {}))
 	_preview_tile.tile_tint = Color(1.0, 1.0, 1.0, 0.72)
 	_preview_tile.set_highlight(true, VALID_COLOR if _placement_valid else INVALID_COLOR)
-	_prompt_label.visible = false
-	_rotate_button.disabled = false
-	_confirm_button.disabled = not _placement_valid
-	_controls.visible = true
-	_position_controls()
+	_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid)
 	set_process(true)
 
 
@@ -270,11 +262,7 @@ func _confirm_destroy_target() -> bool:
 
 func _refresh_destroy_target() -> void:
 	_placement_valid = _is_valid_destroy_target(preview_position)
-	_prompt_label.visible = false
-	_rotate_button.visible = false
-	_confirm_button.disabled = not _placement_valid
-	_controls.visible = true
-	_position_controls()
+	_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, false)
 	_refresh_target_highlights()
 	set_process(true)
 
@@ -307,15 +295,8 @@ func _ensure_preview_tile() -> void:
 func _hide_preview() -> void:
 	if _preview_tile != null:
 		_preview_tile.visible = false
-	if _controls != null:
-		_controls.visible = false
-	if _rotate_button != null:
-		_rotate_button.visible = true
-		_rotate_button.disabled = false
-	if _prompt_label != null:
-		_prompt_label.visible = false
-	if _confirm_button != null:
-		_confirm_button.disabled = true
+	if _controls_layer != null:
+		_controls_layer.hide_all()
 	set_process(false)
 
 
@@ -325,44 +306,24 @@ func _ensure_controls() -> void:
 		_controls_layer = controls_scene.instantiate() as CanvasLayer
 		add_child(_controls_layer)
 
-	_prompt_label = _controls_layer.get_node("PromptLabel") as Label
-	_controls = _controls_layer.get_node("Buttons") as HBoxContainer
-	_rotate_button = _controls_layer.get_node("Buttons/RotateButton") as Button
-	_confirm_button = _controls_layer.get_node("Buttons/ConfirmButton") as Button
-	_cancel_button = _controls_layer.get_node("Buttons/CancelButton") as Button
-
-	if not _rotate_button.pressed.is_connected(rotate_preview):
-		_rotate_button.pressed.connect(rotate_preview)
-	if not _confirm_button.pressed.is_connected(confirm_placement):
-		_confirm_button.pressed.connect(confirm_placement)
-	if not _cancel_button.pressed.is_connected(cancel_placement):
-		_cancel_button.pressed.connect(cancel_placement)
+	_controls_layer.bind_actions(rotate_preview, confirm_placement, cancel_placement)
 
 
 func _show_prompt() -> void:
 	if active_mode == MODE_DESTROY_TARGETING:
-		_prompt_label.text = "Choose tile"
+		_controls_layer.show_prompt("Choose tile", _hand)
 	else:
-		_prompt_label.text = "Place tile"
-	_prompt_label.visible = true
-	_position_prompt()
+		_controls_layer.show_prompt("Place tile", _hand)
 	set_process(true)
 
 
 func _show_idle_placement_controls() -> void:
-	_rotate_button.visible = true
-	_rotate_button.disabled = true
-	_confirm_button.disabled = true
-	_controls.visible = true
-	_position_controls()
+	_controls_layer.show_idle_placement(_hand)
 	set_process(true)
 
 
 func _show_destroy_controls() -> void:
-	_rotate_button.visible = false
-	_confirm_button.disabled = true
-	_controls.visible = true
-	_position_controls()
+	_controls_layer.show_destroy_targeting(_hand)
 	set_process(true)
 
 
@@ -435,61 +396,3 @@ func get_placement_hint_positions() -> Array[Vector2i]:
 	for grid_position in _placement_hints:
 		positions.append(grid_position)
 	return positions
-
-
-func _position_prompt() -> void:
-	if _prompt_label == null or not _prompt_label.visible or not is_inside_tree():
-		return
-
-	var prompt_size := _prompt_label.custom_minimum_size
-	var viewport_width := get_viewport_rect().size.x
-	var strip_top := _get_map_screen_height()
-	var strip_bottom := _get_hand_card_top_screen_y()
-	var strip_height := maxf(0.0, strip_bottom - strip_top)
-	var prompt_y := strip_top + maxf(8.0, (strip_height - prompt_size.y) * 0.5)
-	_prompt_label.size = prompt_size
-	_prompt_label.position = Vector2((viewport_width - prompt_size.x) * 0.5, prompt_y)
-
-
-func _position_controls() -> void:
-	_position_prompt()
-	if _controls == null or not _controls.visible or _map == null:
-		return
-	if not is_inside_tree():
-		return
-
-	var controls_size := _controls.size
-	var minimum_size := _controls.get_combined_minimum_size()
-	if controls_size.x < minimum_size.x or controls_size.y < minimum_size.y:
-		_controls.size = minimum_size
-		controls_size = minimum_size
-
-	var viewport_size := Vector2(get_viewport_rect().size.x, _get_map_screen_height())
-	var preferred_position := Vector2.ZERO
-	if preview_position.x >= 0:
-		var preview_world := _map.grid_to_world(preview_position)
-		var canvas_position: Vector2 = _map.get_global_transform_with_canvas() * preview_world
-		preferred_position = canvas_position + Vector2(-controls_size.x * 0.5, _map.tile_size * 0.56)
-	else:
-		preferred_position = Vector2((viewport_size.x - controls_size.x) * 0.5, viewport_size.y - controls_size.y - 8.0)
-
-	preferred_position.x = clampf(preferred_position.x, 8.0, maxf(8.0, viewport_size.x - controls_size.x - 8.0))
-	preferred_position.y = clampf(preferred_position.y, 8.0, maxf(8.0, viewport_size.y - controls_size.y - 8.0))
-	_controls.position = preferred_position
-
-
-func _get_map_screen_height() -> float:
-	var viewport_height := get_viewport_rect().size.y
-	if _hand == null:
-		return viewport_height
-	return clampf(_hand.get_global_rect().position.y, 1.0, viewport_height)
-
-
-func _get_hand_card_top_screen_y() -> float:
-	var viewport_height := get_viewport_rect().size.y
-	if _hand == null:
-		return viewport_height
-
-	var hand_rect := _hand.get_global_rect()
-	var card_top := hand_rect.position.y + maxf(0.0, _hand.size.y - _hand.card_size.y - _hand.bottom_margin)
-	return clampf(card_top, hand_rect.position.y, viewport_height)

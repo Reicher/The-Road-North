@@ -54,7 +54,7 @@ func _ready() -> void:
 	if current_size.x <= 0.0 or current_size.y <= 0.0:
 		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	resized.connect(_layout_inventory)
-	_build_inventory()
+	_bind_scene_nodes()
 	_refresh_slots()
 	_layout_inventory()
 	set_process_input(true)
@@ -173,77 +173,36 @@ func set_outside_close_enabled(enabled: bool) -> void:
 	_outside_close_enabled = enabled
 
 
-func _build_inventory() -> void:
-	_backpack_button = Button.new()
-	_backpack_button.name = "BackpackButton"
-	_backpack_button.text = "Bag"
-	_backpack_button.focus_mode = Control.FOCUS_NONE
+func _bind_scene_nodes() -> void:
+	_backpack_button = get_node("BackpackButton") as Button
+	_overlay = get_node("InventoryOverlay") as PanelContainer
+	_slot_row = get_node("InventoryOverlay/ContentMargin/Slots") as HBoxContainer
+	_tooltip = get_node("ItemTooltip") as PanelContainer
+	_tooltip_name = get_node("ItemTooltip/ContentMargin/Text/ItemName") as Label
+	_tooltip_effect = get_node("ItemTooltip/ContentMargin/Text/ItemEffect") as Label
+
 	_backpack_button.custom_minimum_size = button_size
 	_backpack_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_backpack_button.add_theme_font_size_override("font_size", 18)
-	_backpack_button.pressed.connect(toggle_inventory)
-	add_child(_backpack_button)
-
-	_overlay = PanelContainer.new()
-	_overlay.name = "InventoryOverlay"
+	if not _backpack_button.pressed.is_connected(toggle_inventory):
+		_backpack_button.pressed.connect(toggle_inventory)
 	_overlay.visible = false
 	_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(_overlay)
-
-	var overlay_margin := MarginContainer.new()
-	overlay_margin.name = "ContentMargin"
-	overlay_margin.add_theme_constant_override("margin_left", 10)
-	overlay_margin.add_theme_constant_override("margin_top", 10)
-	overlay_margin.add_theme_constant_override("margin_right", 10)
-	overlay_margin.add_theme_constant_override("margin_bottom", 10)
-	_overlay.add_child(overlay_margin)
-
-	_slot_row = HBoxContainer.new()
-	_slot_row.name = "Slots"
 	_slot_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_slot_row.add_theme_constant_override("separation", int(slot_spacing))
-	overlay_margin.add_child(_slot_row)
-
-	_tooltip = PanelContainer.new()
-	_tooltip.name = "ItemTooltip"
 	_tooltip.visible = false
 	_tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_tooltip)
-
-	var tooltip_margin := MarginContainer.new()
-	tooltip_margin.name = "ContentMargin"
-	tooltip_margin.add_theme_constant_override("margin_left", 8)
-	tooltip_margin.add_theme_constant_override("margin_top", 6)
-	tooltip_margin.add_theme_constant_override("margin_right", 8)
-	tooltip_margin.add_theme_constant_override("margin_bottom", 6)
-	_tooltip.add_child(tooltip_margin)
-
-	var tooltip_stack := VBoxContainer.new()
-	tooltip_stack.name = "Text"
-	tooltip_stack.add_theme_constant_override("separation", 2)
-	tooltip_margin.add_child(tooltip_stack)
-
-	_tooltip_name = Label.new()
-	_tooltip_name.name = "ItemName"
 	_tooltip_name.add_theme_font_size_override("font_size", 13)
 	_tooltip_name.add_theme_color_override("font_color", UIStyle.text(self))
-	tooltip_stack.add_child(_tooltip_name)
-
-	_tooltip_effect = Label.new()
-	_tooltip_effect.name = "ItemEffect"
 	_tooltip_effect.add_theme_font_size_override("font_size", 12)
 	_tooltip_effect.add_theme_color_override("font_color", UIStyle.muted_text(self))
-	tooltip_stack.add_child(_tooltip_effect)
 
 
 func _refresh_slots() -> void:
-	for child in _slot_row.get_children():
-		_slot_row.remove_child(child)
-		child.free()
-
 	for slot_index in SLOT_COUNT:
-		var slot_button := Button.new()
-		slot_button.name = "Slot%d" % (slot_index + 1)
+		var slot_button := _slot_row.get_child(slot_index) as Button
+		if slot_button == null:
+			continue
 		slot_button.focus_mode = Control.FOCUS_NONE
 		slot_button.custom_minimum_size = slot_size
 		slot_button.size = slot_size
@@ -254,12 +213,13 @@ func _refresh_slots() -> void:
 			slot_button.text = str(item.get("name", "Item"))
 			slot_button.disabled = false
 			slot_button.self_modulate = EQUIPPED_SLOT_TINT if _is_equipped_slot(slot_index) else NORMAL_SLOT_TINT
-			slot_button.gui_input.connect(_on_item_gui_input.bind(slot_index, slot_button))
+			var input_callback := _on_item_gui_input.bind(slot_index, slot_button)
+			if not slot_button.gui_input.is_connected(input_callback):
+				slot_button.gui_input.connect(input_callback)
 		else:
 			slot_button.text = ""
 			slot_button.disabled = true
 			slot_button.self_modulate = NORMAL_SLOT_TINT
-		_slot_row.add_child(slot_button)
 
 
 func _handle_drag_input(event: InputEvent) -> void:
@@ -414,6 +374,9 @@ func _layout_inventory() -> void:
 func _get_layout_size() -> Vector2:
 	if size.x > 0.0 and size.y > 0.0:
 		return size
+	var parent_control := get_parent() as Control
+	if parent_control != null and parent_control.size.x > 0.0 and parent_control.size.y > 0.0:
+		return parent_control.size
 	if is_inside_tree():
 		return get_viewport_rect().size
 	return Vector2.ZERO

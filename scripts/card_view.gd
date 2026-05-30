@@ -2,6 +2,7 @@ class_name CardView
 extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
+const CARD_DEFINITION_SCRIPT = preload("res://scripts/card_definition.gd")
 
 signal focus_requested(card: CardView)
 signal use_requested(card: CardView)
@@ -62,14 +63,9 @@ var _title_label: Label
 var _category_label: Label
 var _detail_label: Label
 var _use_button: Button
-var _children_built := false
 
 const TITLE_RECT := Rect2(14.0, 10.0, 104.0, 44.0)
 const ART_RECT := Rect2(18.0, 62.0, 96.0, 48.0)
-const CATEGORY_RECT := Rect2(16.0, 116.0, 100.0, 18.0)
-const DETAIL_RECT := Rect2(14.0, 132.0, 104.0, 18.0)
-const USE_BUTTON_BOTTOM_MARGIN := 8.0
-const USE_BUTTON_HEIGHT := 28.0
 
 
 func _ready() -> void:
@@ -79,7 +75,7 @@ func _ready() -> void:
 		size = custom_minimum_size
 	pivot_offset = size * 0.5
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	_ensure_children()
+	_bind_scene_nodes()
 	_refresh_text()
 	_refresh_focus()
 
@@ -110,7 +106,10 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func configure(card_data: Dictionary) -> void:
-	_ensure_children()
+	_bind_scene_nodes()
+	var definition = card_data.get("card_definition")
+	if definition is CARD_DEFINITION_SCRIPT:
+		card_data = definition.to_card_data().merged(card_data, true)
 	tile_definition = card_data.get("tile_definition")
 	title = str(card_data.get("title", _title_from_definition()))
 	category = str(card_data.get("category", "Road"))
@@ -129,65 +128,18 @@ func set_focused(value: bool) -> void:
 	focused = value
 
 
-func _ensure_children() -> void:
-	if _children_built:
+func _bind_scene_nodes() -> void:
+	if _title_label != null:
 		return
-	_children_built = true
-
-	_title_label = Label.new()
-	_title_label.name = "Title"
-	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_title_label.clip_text = true
-	_title_label.add_theme_font_size_override("font_size", 15)
-	_title_label.add_theme_constant_override("line_spacing", -3)
+	_title_label = get_node("Title") as Label
+	_category_label = get_node("Category") as Label
+	_detail_label = get_node("Detail") as Label
+	_use_button = get_node("UseButton") as Button
 	_title_label.add_theme_color_override("font_color", UIStyle.text(self))
-	_title_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_title_label.offset_left = TITLE_RECT.position.x
-	_title_label.offset_top = TITLE_RECT.position.y
-	_title_label.offset_right = -TITLE_RECT.position.x
-	_title_label.offset_bottom = TITLE_RECT.position.y + TITLE_RECT.size.y
-	add_child(_title_label)
-
-	_category_label = Label.new()
-	_category_label.name = "Category"
-	_category_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_category_label.add_theme_font_size_override("font_size", 12)
 	_category_label.add_theme_color_override("font_color", UIStyle.muted_text(self))
-	_category_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_category_label.offset_left = CATEGORY_RECT.position.x
-	_category_label.offset_top = CATEGORY_RECT.position.y
-	_category_label.offset_right = -CATEGORY_RECT.position.x
-	_category_label.offset_bottom = CATEGORY_RECT.position.y + CATEGORY_RECT.size.y
-	add_child(_category_label)
-
-	_detail_label = Label.new()
-	_detail_label.name = "Detail"
-	_detail_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_detail_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_detail_label.clip_text = true
-	_detail_label.add_theme_font_size_override("font_size", 11)
 	_detail_label.add_theme_color_override("font_color", UIStyle.text(self))
-	_detail_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_detail_label.offset_left = DETAIL_RECT.position.x
-	_detail_label.offset_top = DETAIL_RECT.position.y
-	_detail_label.offset_right = -DETAIL_RECT.position.x
-	_detail_label.offset_bottom = DETAIL_RECT.position.y + DETAIL_RECT.size.y
-	add_child(_detail_label)
-
-	_use_button = Button.new()
-	_use_button.name = "UseButton"
-	_use_button.text = "Use"
-	_use_button.focus_mode = Control.FOCUS_NONE
-	_use_button.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	_use_button.offset_left = 22.0
-	_use_button.offset_top = -(USE_BUTTON_HEIGHT + USE_BUTTON_BOTTOM_MARGIN)
-	_use_button.offset_right = -22.0
-	_use_button.offset_bottom = -USE_BUTTON_BOTTOM_MARGIN
-	_use_button.pressed.connect(_on_use_button_pressed)
-	add_child(_use_button)
+	if not _use_button.pressed.is_connected(_on_use_button_pressed):
+		_use_button.pressed.connect(_on_use_button_pressed)
 
 
 func _refresh_text() -> void:

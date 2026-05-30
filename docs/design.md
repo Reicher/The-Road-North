@@ -2,11 +2,11 @@
 
 ## Overview
 
-The goal of version 1 is to build a small mobile-first technical demo focused entirely on one question:
+The goal of version 1 is to build a small mobile-first technical demo focused on one question:
 
 > Is it fun to build roads, manage a hand of cards, and navigate through a map using limited movement resources?
 
-The game is a calm, tactical, singleplayer experience played on a square grid. The player travels from the bottom of the map to the top by placing road tiles using cards drawn from a deck.
+The game is a calm, tactical, singleplayer experience played on a square grid. The player travels from the bottom of the map to the top by placing road tiles using cards drawn from a deck, managing food, and dealing with simple encounters placed on some roads.
 
 The game should feel readable, tactile, strategic, and pleasant to interact with on a phone.
 
@@ -184,6 +184,8 @@ Version 1 contains two categories of cards:
 - Road Cards
 - Event Cards
 
+Some road cards may also contain encounters. Encounter data modifies the road tile being placed, but the card is still a road card and follows the normal road placement rules.
+
 ---
 
 # Road Cards
@@ -207,6 +209,22 @@ Suggested distribution within road cards:
 - Dead End: 10%
 
 Road cards can be rotated before placement.
+
+Some road cards contain a hidden enemy or reward encounter.
+
+Suggested encounter distribution within road cards:
+- Enemy encounter: 20%
+- Reward encounter: 15%
+
+Encounter road cards:
+- still place normal road tiles
+- still use the same road connection and rotation rules
+- show enough card text to communicate that an encounter is attached
+- attach the encounter to the placed tile
+
+Enemy encounters are revealed when placed so the player can see the threat on the map.
+
+Reward encounters may grant food, gold, or an item when the player reaches the tile.
 
 When the player selects a road card from their hand, the game enters placement mode.
 
@@ -275,6 +293,51 @@ The second event draws two extra cards immediately. If fewer than two cards rema
 
 ---
 
+# Combat, Loot, and Inventory
+
+Version 1 includes a simple encounter layer on top of road placement.
+
+The goal of encounters is to add risk and reward to route planning without changing the core road-building loop.
+
+Enemy encounters:
+- are attached to some placed road tiles
+- have simple attack and armor values
+- trigger when the player moves onto the tile
+- cost the normal 1 food movement cost before combat resolves
+- damage the player based on enemy attack reduced by the player's armor
+- are removed from the tile after combat resolves
+- may open a loot screen after defeat
+
+The player has:
+- food
+- health
+- gold
+- attack
+- armor
+
+Food remains the primary movement resource.
+
+Health is lost through combat. Reaching 0 health ends the run.
+
+Gold is a simple collected resource for the prototype.
+
+Attack and armor come from the player's base values plus equipped inventory bonuses.
+
+Loot may contain:
+- food
+- gold
+- items
+
+Food and gold loot are collected directly.
+
+Items go into the inventory if there is space.
+
+The inventory is a small fixed-size backpack. Items may provide attack or armor. For version 1, only the strongest attack item and strongest armor item contribute to the player's stats.
+
+The loot and inventory UI should stay simple and touch-friendly. They should support direct collection and basic drag/drop backpack interaction, but should not grow into a full equipment or economy system in version 1.
+
+---
+
 # Win Condition
 
 The run is won immediately when the player moves onto the goal tile at the top of the map.
@@ -289,7 +352,9 @@ Movement consumes food.
 
 Every movement action costs 1 food.
 
-The run ends when the player has no valid movement available.
+The run ends when the player has no food remaining or health reaches 0.
+
+Soft-lock detection, such as ending the run because no valid movement is available, is intentionally deferred.
 
 Food should feel like a constant pressure that discourages unnecessary movement and backtracking.
 

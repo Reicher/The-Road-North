@@ -1,7 +1,7 @@
 extends SceneTree
 
-const INVENTORY_SCRIPT := preload("res://scripts/inventory_ui.gd")
-const LOOT_SCRIPT := preload("res://scripts/loot_ui.gd")
+const INVENTORY_SCENE := preload("res://ui/inventory.tscn")
+const LOOT_SCENE := preload("res://ui/loot.tscn")
 const MAP_SCRIPT := preload("res://scripts/map.gd")
 const PLAYER_SCRIPT := preload("res://scripts/player.gd")
 
@@ -23,15 +23,13 @@ func _initialize() -> void:
 	root.add_child(player)
 	player._ready()
 
-	var inventory = INVENTORY_SCRIPT.new()
+	var inventory = INVENTORY_SCENE.instantiate() as InventoryUI
 	inventory.name = "Inventory"
-	inventory.size = root.size
 	root.add_child(inventory)
 	inventory._ready()
 
-	var loot_ui = LOOT_SCRIPT.new()
+	var loot_ui = LOOT_SCENE.instantiate() as LootUI
 	loot_ui.name = "Loot"
-	loot_ui.size = root.size
 	loot_ui.player_path = NodePath("../Player")
 	loot_ui.inventory_path = NodePath("../Inventory")
 	root.add_child(loot_ui)

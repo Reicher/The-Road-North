@@ -23,3 +23,15 @@ func get_enemy_data(target_position: Vector2i) -> Dictionary:
 
 func get_damage_from(enemy_data: Dictionary) -> int:
 	return maxi(0, int(enemy_data.get("attack", 0)) - _player.get_total_armor())
+
+
+func reveal_enemy_at(target_position: Vector2i, enemy_data: Dictionary) -> void:
+	if _map == null:
+		return
+	enemy_data["revealed"] = true
+	_map.update_encounter_data(target_position, enemy_data)
+
+
+func clear_enemy_at(target_position: Vector2i) -> void:
+	if _map != null:
+		_map.clear_encounter(target_position)
