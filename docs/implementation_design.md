@@ -385,13 +385,13 @@ They should stay layered on top of the road-card loop:
 - PlayerRewards handles resource/item collection.
 - PlayerCombat handles simple enemy damage calculations.
 - LootUI presents loot and collection interaction.
-- InventoryUI stores a small fixed backpack and computes attack/armor bonuses.
+- InventoryUI stores a small fixed backpack and computes the strongest weapon power bonus.
 
 The structure should remain simple:
 - no generic effect engine
 - no economy system
 - no persistent item progression
-- no equipment slot framework beyond strongest attack and strongest armor bonuses
+- no equipment slot framework beyond the strongest weapon power bonus
 - no separate encounter scene hierarchy unless the current tile drawing becomes unmanageable
 
 The Level scene may include Loot and Inventory under UI, but those systems should not own map, deck, or placement rules.

@@ -37,7 +37,7 @@ func _make_road_cards(count: int, rng: RandomNumberGenerator, config: Dictionary
 		var card_count: int = counts[subtype]
 		for _index in card_count:
 			cards.append(_make_road_card(definitions[subtype]))
-	_add_enemy_encounters_to_road_cards(cards, rng, float(config.get("enemy_road_card_ratio", 0.0)))
+	_add_enemy_encounters_to_road_cards(cards, rng, float(config.get("enemy_road_card_ratio", 0.0)), int(config.get("enemy_level", 1)))
 	_add_reward_encounters_to_road_cards(cards, rng, float(config.get("reward_road_card_ratio", 0.0)))
 	return cards
 
@@ -104,26 +104,25 @@ func _counts_from_distribution(total: int, distribution: Dictionary) -> Dictiona
 	return counts
 
 
-func _add_enemy_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, enemy_ratio: float) -> void:
+func _add_enemy_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, enemy_ratio: float, enemy_level: int) -> void:
 	var enemy_count := roundi(float(cards.size()) * enemy_ratio)
 	_shuffle_cards(cards, rng)
 
 	for index in mini(enemy_count, cards.size()):
 		var card: Dictionary = cards[index]
-		_set_card_encounter(card, _make_enemy_encounter(rng))
+		_set_card_encounter(card, _make_enemy_encounter(rng, enemy_level))
 		card["title"] = _encounter_title_for_card(card)
 		card["detail"] = "Enemy waits on this road."
 		cards[index] = card
 
 
-func _make_enemy_encounter(rng: RandomNumberGenerator) -> Dictionary:
+func _make_enemy_encounter(rng: RandomNumberGenerator, enemy_level: int) -> Dictionary:
 	return {
 		"type": ENCOUNTER_ENEMY,
 		"revealed": false,
 		"health": 1,
 		"max_health": 1,
-		"attack": rng.randi_range(1, 3),
-		"armor": rng.randi_range(1, 3),
+		"power": maxi(1, enemy_level) * rng.randi_range(1, 3),
 	}
 
 
@@ -152,27 +151,21 @@ func _set_card_encounter(card: Dictionary, encounter: Dictionary) -> void:
 
 
 func _make_reward_encounter(index: int) -> Dictionary:
-	var reward_types: Array[String] = [GameMap.ENCOUNTER_BERRY_BUSH, GameMap.ENCOUNTER_RUINS, GameMap.ENCOUNTER_CACHE]
+	var reward_types: Array[String] = [GameMap.ENCOUNTER_BERRY_BUSH, GameMap.ENCOUNTER_CACHE]
 	var kind: String = reward_types[index % reward_types.size()]
 	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		return {
 			"type": kind,
 			"loot": [{"kind": "food", "amount": 3}],
 		}
-	if kind == GameMap.ENCOUNTER_RUINS:
-		return {
-			"type": kind,
-			"loot": [{"kind": "gold", "amount": 4}],
-		}
 	return {
 		"type": kind,
 		"loot": [{
 			"kind": "item",
 			"item": {
-				"name": "Sword",
-				"effect": "+1 Attack",
-				"attack": 1,
-				"armor": 0,
+				"name": "Knife",
+				"effect": "+1 Power",
+				"power": 1,
 			},
 		}],
 	}
@@ -186,8 +179,6 @@ func _encounter_title_for_card(card: Dictionary) -> String:
 		prefix = "Enemy"
 	elif kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		prefix = "Berry Bush"
-	elif kind == GameMap.ENCOUNTER_RUINS:
-		prefix = "Ruins"
 	elif kind == GameMap.ENCOUNTER_CACHE:
 		prefix = "Cache"
 	var definition: Resource = card.get("tile_definition")
@@ -200,8 +191,6 @@ func _encounter_detail(encounter: Dictionary) -> String:
 	var kind := str(encounter.get("type", ""))
 	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		return "Grants food when reached."
-	if kind == GameMap.ENCOUNTER_RUINS:
-		return "Grants gold when reached."
 	if kind == GameMap.ENCOUNTER_CACHE:
 		return "Contains an item when reached."
 	return "Reward waits on this road."

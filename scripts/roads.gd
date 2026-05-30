@@ -98,7 +98,7 @@ func make_tile_data(definition: Resource, rotation_steps: int = 0, encounter_dat
 	}
 	if not encounter_data.is_empty():
 		var revealed_encounter := encounter_data.duplicate(true)
-		if not revealed_encounter.has("type") and (revealed_encounter.has("attack") or revealed_encounter.has("armor")):
+		if not revealed_encounter.has("type") and revealed_encounter.has("power"):
 			revealed_encounter["type"] = GameMap.ENCOUNTER_ENEMY
 		if str(revealed_encounter.get("type", "")) == GameMap.ENCOUNTER_ENEMY:
 			revealed_encounter["revealed"] = true

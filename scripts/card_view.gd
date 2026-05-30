@@ -187,8 +187,6 @@ func _road_modifier_title() -> String:
 		return "Enemy"
 	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		return "Berry"
-	if kind == GameMap.ENCOUNTER_RUINS:
-		return "Ruins"
 	if kind == GameMap.ENCOUNTER_CACHE:
 		return "Treasure"
 	return "Reward"
@@ -260,9 +258,6 @@ func _draw_reward_encounter_marker(art_rect: Rect2) -> void:
 	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		draw_circle(center, radius, Color(0.18, 0.44, 0.22))
 		draw_circle(center + Vector2(radius * 0.35, -radius * 0.2), radius * 0.22, Color(0.67, 0.10, 0.18))
-	elif kind == GameMap.ENCOUNTER_RUINS:
-		draw_rect(Rect2(center - Vector2(radius * 0.8, radius * 0.5), Vector2(radius * 0.45, radius)), Color(0.48, 0.49, 0.45), true)
-		draw_rect(Rect2(center + Vector2(radius * 0.2, -radius * 0.3), Vector2(radius * 0.45, radius * 0.8)), Color(0.56, 0.56, 0.51), true)
 	elif kind == GameMap.ENCOUNTER_CACHE:
 		var box_rect := Rect2(center - Vector2(radius, radius * 0.55), Vector2(radius * 2.0, radius * 1.15))
 		draw_rect(box_rect, Color(0.48, 0.27, 0.12), true)

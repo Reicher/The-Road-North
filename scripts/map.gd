@@ -19,7 +19,6 @@ const OPPOSITE_DIRECTIONS: Dictionary = {
 
 const ENCOUNTER_ENEMY := "enemy"
 const ENCOUNTER_BERRY_BUSH := "berry_bush"
-const ENCOUNTER_RUINS := "ruins"
 const ENCOUNTER_CACHE := "cache"
 const FEATURE_MOUNTAIN := "mountain"
 const FEATURE_RIVER := "river"

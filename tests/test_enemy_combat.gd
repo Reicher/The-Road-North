@@ -33,21 +33,19 @@ func run() -> void:
 		"revealed": false,
 		"health": 2,
 		"max_health": 2,
-		"attack": 1,
-		"armor": 1,
+		"power": 1,
 	}
-	var armored_enemy_data := {
+	var strong_enemy_data := {
 		"type": GameMap.ENCOUNTER_ENEMY,
 		"revealed": false,
 		"health": 1,
 		"max_health": 1,
-		"attack": 10,
-		"armor": 3,
+		"power": 10,
 	}
 
 	roads.force_place_tile(Vector2i(4, 8), T_JUNCTION, 0)
 	_assert(roads.place_tile(Vector2i(4, 7), STRAIGHT, 0, enemy_data), "Expected enemy road card placement to succeed")
-	_assert(roads.place_tile(Vector2i(3, 8), STRAIGHT, 1, armored_enemy_data), "Expected armored enemy road card placement to succeed")
+	_assert(roads.place_tile(Vector2i(3, 8), STRAIGHT, 1, strong_enemy_data), "Expected strong enemy road card placement to succeed")
 	var enemy_tile: Dictionary = map.get_tile(Vector2i(4, 7))["encounter"]
 	_assert(enemy_tile["revealed"] == true, "Expected placing an enemy road card to reveal the enemy")
 	_assert(enemy_tile["health"] == 1, "Expected placed enemies to have one life")
@@ -78,8 +76,7 @@ func run() -> void:
 	player.start_position = Vector2i(4, 8)
 	player.starting_food = 3
 	player.starting_health = 5
-	player.attack = 0
-	player.armor = 1
+	player.power = 0
 	player.move_duration = 0.0
 	player.combat_bump_duration = 0.0
 	player.post_combat_loot_delay = 0.05
@@ -94,8 +91,7 @@ func run() -> void:
 	lethal_player.start_position = Vector2i(4, 8)
 	lethal_player.starting_food = 3
 	lethal_player.starting_health = 1
-	lethal_player.attack = 0
-	lethal_player.armor = 0
+	lethal_player.power = 0
 	lethal_player.move_duration = 0.0
 	lethal_player.combat_bump_duration = 0.0
 	root.add_child(lethal_player)
@@ -115,7 +111,7 @@ func run() -> void:
 	while player.is_in_combat():
 		await process_frame
 
-	_assert(player.health == 5, "Expected armor to prevent enemy damage in this combat")
+	_assert(player.health == 5, "Expected player power to prevent enemy damage in this combat")
 	_assert(not map.get_tile(Vector2i(4, 7)).has("encounter"), "Expected defeated enemy to be removed from tile data")
 	_assert(roads.get_visual_tile(Vector2i(4, 7)).enemy_data.is_empty(), "Expected defeated enemy to disappear from visual tile")
 	_assert(loot_ui.is_open(), "Expected defeated enemies to open the loot screen")
@@ -123,7 +119,7 @@ func run() -> void:
 	loot_ui.take_all()
 	_assert(player.food == 3, "Expected enemy food loot to add a small amount after movement food is spent")
 	_assert(player.gold == 1, "Expected enemy gold loot to add a small amount to the gold counter")
-	_assert(inventory.get_active_items().size() == 3, "Expected enemy item loot to move into one backpack slot")
+	_assert(inventory.get_active_items().size() == 2, "Expected enemy item loot to move into one backpack slot")
 
 	quit()
 

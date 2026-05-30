@@ -38,19 +38,12 @@ func _draw() -> void:
 	var font_size: int = maxi(14, roundi(tile_size * 0.15))
 	var icon_size := tile_size * 0.18
 	var row_y := -tile_size * 0.31
-	var stat_spacing := tile_size * 0.27
 	var text_bias := icon_size * 0.28
-	_draw_enemy_stat(font, Vector2(-stat_spacing * 0.5 - text_bias, row_y), "attack", int(enemy_data.get("attack", 0)), icon_size, font_size)
-	_draw_enemy_stat(font, Vector2(stat_spacing * 0.5 - text_bias, row_y), "armor", int(enemy_data.get("armor", 0)), icon_size, font_size)
+	_draw_enemy_stat(font, Vector2(-text_bias, row_y), int(enemy_data.get("power", 0)), icon_size, font_size)
 
 
-func _draw_enemy_stat(font: Font, icon_center: Vector2, stat_name: String, value: int, icon_size: float, font_size: int) -> void:
-	if stat_name == "health":
-		StatIconPainter.draw_heart(self, icon_center, icon_size)
-	elif stat_name == "attack":
-		StatIconPainter.draw_sword(self, icon_center, icon_size)
-	elif stat_name == "armor":
-		StatIconPainter.draw_shield(self, icon_center, icon_size)
+func _draw_enemy_stat(font: Font, icon_center: Vector2, value: int, icon_size: float, font_size: int) -> void:
+	StatIconPainter.draw_sword(self, icon_center, icon_size)
 	var text_position := icon_center + Vector2(icon_size * 0.48, font_size * 0.42)
 	draw_string(font, text_position + Vector2(1.5, 1.5), str(value), HORIZONTAL_ALIGNMENT_LEFT, icon_size, font_size, Color(0.08, 0.04, 0.03, 0.90))
 	draw_string(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, icon_size, font_size, Color(1.0, 0.94, 0.78))

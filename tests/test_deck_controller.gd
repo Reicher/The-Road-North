@@ -42,6 +42,7 @@ func _initialize() -> void:
 	var typed_definition_count := 0
 	var enemy_road_count := 0
 	var enemy_road_has_clear_label := false
+	var enemy_power_values_are_level_scaled := true
 	var reward_road_count := 0
 	var reward_road_has_clear_label := false
 	var event_types := {}
@@ -49,6 +50,8 @@ func _initialize() -> void:
 		category_counts[card.category] += 1
 		if card.category == "Road" and card.encounter_data.get("type", "") == GameMap.ENCOUNTER_ENEMY:
 			enemy_road_count += 1
+			var hand_enemy_power := int(card.encounter_data.get("power", 0))
+			enemy_power_values_are_level_scaled = enemy_power_values_are_level_scaled and hand_enemy_power >= 1 and hand_enemy_power <= 3
 			enemy_road_has_clear_label = enemy_road_has_clear_label or (card.title.begins_with("Enemy ") and card.detail == "Enemy waits on this road.")
 		elif card.category == "Road" and not card.encounter_data.is_empty():
 			reward_road_count += 1
@@ -62,6 +65,8 @@ func _initialize() -> void:
 		var encounter: Dictionary = card_data.get("encounter", {})
 		if card_data["category"] == "Road" and encounter.get("type", "") == GameMap.ENCOUNTER_ENEMY:
 			enemy_road_count += 1
+			var deck_enemy_power := int(encounter.get("power", 0))
+			enemy_power_values_are_level_scaled = enemy_power_values_are_level_scaled and deck_enemy_power >= 1 and deck_enemy_power <= 3
 			enemy_road_has_clear_label = enemy_road_has_clear_label or (str(card_data.get("title", "")).begins_with("Enemy ") and str(card_data.get("detail", "")) == "Enemy waits on this road.")
 		elif card_data["category"] == "Road" and not encounter.is_empty():
 			reward_road_count += 1
@@ -77,6 +82,7 @@ func _initialize() -> void:
 	_assert(event_types.has(DeckController.EVENT_LUCKY_FIND), "Expected event deck to include Lucky Find")
 	_assert(typed_definition_count == deck_controller.deck.size(), "Expected generated draw pile cards to keep typed card definitions")
 	_assert(enemy_road_count == 12, "Expected one fifth of road cards to carry hidden enemies")
+	_assert(enemy_power_values_are_level_scaled, "Expected level one enemy power to stay between one and three")
 	_assert(enemy_road_has_clear_label, "Expected enemy road cards to be clearly named and described")
 	_assert(reward_road_count == 9, "Expected fifteen percent of road cards to carry reward encounters")
 	_assert(reward_road_has_clear_label, "Expected reward encounter road cards to be clearly described")

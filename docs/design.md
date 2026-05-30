@@ -224,7 +224,7 @@ Encounter road cards:
 
 Enemy encounters are revealed when placed so the player can see the threat on the map.
 
-Reward encounters may grant food, gold, or an item when the player reaches the tile.
+Reward encounters may grant food or an item when the player reaches the tile.
 
 When the player selects a road card from their hand, the game enters placement mode.
 
@@ -301,10 +301,11 @@ The goal of encounters is to add risk and reward to route planning without chang
 
 Enemy encounters:
 - are attached to some placed road tiles
-- have simple attack and armor values
+- have a simple power value
+- set power to enemy level multiplied by a random value from 1 to 3
 - trigger when the player moves onto the tile
 - cost the normal 1 food movement cost before combat resolves
-- damage the player based on enemy attack reduced by the player's armor
+- damage the player by max(0, enemy power - player power)
 - are removed from the tile after combat resolves
 - may open a loot screen after defeat
 
@@ -312,8 +313,7 @@ The player has:
 - food
 - health
 - gold
-- attack
-- armor
+- power
 
 Food remains the primary movement resource.
 
@@ -321,7 +321,7 @@ Health is lost through combat. Reaching 0 health ends the run.
 
 Gold is a simple collected resource for the prototype.
 
-Attack and armor come from the player's base values plus equipped inventory bonuses.
+Power comes from the player's base value plus the strongest equipped weapon bonus.
 
 Loot may contain:
 - food
@@ -332,7 +332,7 @@ Food and gold loot are collected directly.
 
 Items go into the inventory if there is space.
 
-The inventory is a small fixed-size backpack. Items may provide attack or armor. For version 1, only the strongest attack item and strongest armor item contribute to the player's stats.
+The inventory is a small fixed-size backpack. Weapons may provide power. For version 1, only the strongest weapon contributes to the player's power. Weapons range from +1 power for a knife to +4 power for a katana.
 
 The loot and inventory UI should stay simple and touch-friendly. They should support direct collection and basic drag/drop backpack interaction, but should not grow into a full equipment or economy system in version 1.
 

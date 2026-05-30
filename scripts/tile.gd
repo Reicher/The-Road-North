@@ -156,8 +156,6 @@ func _draw_reward_encounter(encounter: Dictionary, tile_rect: Rect2) -> void:
 	var center := tile_rect.get_center()
 	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		_draw_berry_bush(center)
-	elif kind == GameMap.ENCOUNTER_RUINS:
-		_draw_ruins(center)
 	elif kind == GameMap.ENCOUNTER_CACHE:
 		_draw_cache(center)
 
@@ -168,15 +166,6 @@ func _draw_berry_bush(center: Vector2) -> void:
 		draw_circle(center + offset * tile_size, tile_size * 0.105, leaf_color)
 	for offset in [Vector2(-0.05, 0.00), Vector2(0.06, -0.03), Vector2(0.08, 0.08)]:
 		draw_circle(center + offset * tile_size, tile_size * 0.022, Color(0.67, 0.10, 0.18))
-
-
-func _draw_ruins(center: Vector2) -> void:
-	var stone := Color(0.48, 0.49, 0.45)
-	var shadow := Color(0.24, 0.25, 0.23, 0.5)
-	draw_rect(Rect2(center + Vector2(-0.22, -0.03) * tile_size, Vector2(0.44, 0.09) * tile_size), shadow, true)
-	draw_rect(Rect2(center + Vector2(-0.20, -0.22) * tile_size, Vector2(0.10, 0.30) * tile_size), stone, true)
-	draw_rect(Rect2(center + Vector2(0.09, -0.17) * tile_size, Vector2(0.10, 0.25) * tile_size), stone.lightened(0.08), true)
-	draw_rect(Rect2(center + Vector2(-0.22, 0.07) * tile_size, Vector2(0.46, 0.08) * tile_size), stone.darkened(0.10), true)
 
 
 func _draw_cache(center: Vector2) -> void:

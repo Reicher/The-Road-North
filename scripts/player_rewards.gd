@@ -16,16 +16,10 @@ func setup(player: GamePlayer, inventory: InventoryUI, loot_ui: Node, map: GameM
 	_loot_rng.randomize()
 
 
-func get_attack_bonus() -> int:
+func get_power_bonus() -> int:
 	if _inventory == null:
 		return 0
-	return _inventory.get_attack_bonus()
-
-
-func get_armor_bonus() -> int:
-	if _inventory == null:
-		return 0
-	return _inventory.get_armor_bonus()
+	return _inventory.get_power_bonus()
 
 
 func open_enemy_loot(enemy_data: Dictionary) -> void:
@@ -89,19 +83,16 @@ func _make_enemy_loot(enemy_data: Dictionary) -> Array[Dictionary]:
 
 
 func _make_enemy_item(enemy_data: Dictionary) -> Dictionary:
-	var value := _loot_rng.randi_range(1, 5)
-	var enemy_attack := int(enemy_data.get("attack", 0))
-	var enemy_armor := int(enemy_data.get("armor", 0))
-	if enemy_attack >= enemy_armor:
-		return {
-			"name": "Sword",
-			"effect": "+%d Attack" % value,
-			"attack": value,
-			"armor": 0,
-		}
+	var enemy_power := int(enemy_data.get("power", 1))
+	var value: int = clampi(enemy_power, 1, 4)
+	var names := {
+		1: "Knife",
+		2: "Machete",
+		3: "Sword",
+		4: "Katana",
+	}
 	return {
-		"name": "Armor",
-		"effect": "+%d Armor" % value,
-		"attack": 0,
-		"armor": value,
+		"name": str(names[value]),
+		"effect": "+%d Power" % value,
+		"power": value,
 	}

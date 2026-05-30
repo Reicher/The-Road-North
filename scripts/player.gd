@@ -25,8 +25,7 @@ signal run_won
 @export var starting_food := -1
 @export var starting_gold := 0
 @export var starting_health := 3
-@export var attack := 0
-@export var armor := 0
+@export var power := 0
 @export_range(0.0, 1.0, 0.01) var move_duration := 0.16
 @export_range(0.0, 3.0, 0.01) var combat_bump_duration := 0.72
 @export_range(0.0, 2.0, 0.01) var post_combat_loot_delay := 0.45
@@ -220,12 +219,8 @@ func _update_health_label() -> void:
 		_health_label.text = "Health: %d" % health
 
 
-func get_total_attack() -> int:
-	return attack + _rewards.get_attack_bonus()
-
-
-func get_total_armor() -> int:
-	return armor + _rewards.get_armor_bonus()
+func get_total_power() -> int:
+	return power + _rewards.get_power_bonus()
 
 
 func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary) -> void:

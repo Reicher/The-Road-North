@@ -22,7 +22,7 @@ func get_enemy_data(target_position: Vector2i) -> Dictionary:
 
 
 func get_damage_from(enemy_data: Dictionary) -> int:
-	return maxi(0, int(enemy_data.get("attack", 0)) - _player.get_total_armor())
+	return maxi(0, int(enemy_data.get("power", 0)) - _player.get_total_power())
 
 
 func reveal_enemy_at(target_position: Vector2i, enemy_data: Dictionary) -> void:

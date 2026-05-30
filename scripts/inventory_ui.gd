@@ -6,12 +6,13 @@ const UIStyle = preload("res://scripts/ui_style.gd")
 signal item_drag_started(slot_index: int, item: Dictionary, source_button: Button, canvas_position: Vector2)
 signal item_drag_moved(canvas_position: Vector2)
 signal item_drag_finished(slot_index: int, item: Dictionary, source_button: Button, canvas_position: Vector2)
+signal stats_changed
 
 const SLOT_COUNT := 5
 const EQUIPPED_SLOT_TINT := Color(1.0, 0.86, 0.45)
 const NORMAL_SLOT_TINT := Color.WHITE
 
-@export var button_size := Vector2(78.0, 58.0)
+@export var button_size := Vector2(130.0, 130.0)
 @export var slot_size := Vector2(82.0, 82.0)
 @export var top_margin := 18.0
 @export var right_margin := 18.0
@@ -19,16 +20,9 @@ const NORMAL_SLOT_TINT := Color.WHITE
 
 var items: Array[Dictionary] = [
 	{
-		"name": "Sword",
-		"effect": "+2 Attack",
-		"attack": 2,
-		"armor": 0,
-	},
-	{
-		"name": "Shield",
-		"effect": "+2 Armor",
-		"attack": 0,
-		"armor": 2,
+		"name": "Knife",
+		"effect": "+1 Power",
+		"power": 1,
 	},
 ]
 
@@ -92,17 +86,10 @@ func is_open() -> bool:
 	return _overlay != null and _overlay.visible
 
 
-func get_attack_bonus() -> int:
+func get_power_bonus() -> int:
 	var highest := 0
 	for item in items:
-		highest = maxi(highest, int(item.get("attack", 0)))
-	return highest
-
-
-func get_armor_bonus() -> int:
-	var highest := 0
-	for item in items:
-		highest = maxi(highest, int(item.get("armor", 0)))
+		highest = maxi(highest, int(item.get("power", 0)))
 	return highest
 
 
@@ -131,6 +118,7 @@ func add_item(item: Dictionary) -> bool:
 		return false
 	items.append(item.duplicate(true))
 	_refresh_slots()
+	stats_changed.emit()
 	return true
 
 
@@ -144,6 +132,7 @@ func replace_item_at_slot(slot_index: int, item: Dictionary) -> Dictionary:
 	elif has_space():
 		items.append(item.duplicate(true))
 	_refresh_slots()
+	stats_changed.emit()
 	return previous
 
 
@@ -183,7 +172,12 @@ func _bind_scene_nodes() -> void:
 
 	_backpack_button.custom_minimum_size = button_size
 	_backpack_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	_backpack_button.add_theme_font_size_override("font_size", 18)
+	_backpack_button.text = ""
+	_backpack_button.add_theme_stylebox_override("normal", UIStyle.rounded_box(self, UIStyle.panel_fill(self), UIStyle.panel_border(self), 10, 3))
+	_backpack_button.add_theme_stylebox_override("hover", UIStyle.rounded_box(self, UIStyle.panel_fill(self).lightened(0.04), UIStyle.focus(self), 10, 3))
+	_backpack_button.add_theme_stylebox_override("pressed", UIStyle.rounded_box(self, UIStyle.panel_fill(self).darkened(0.06), UIStyle.focus(self), 10, 3))
+	if not _backpack_button.draw.is_connected(_draw_backpack_button):
+		_backpack_button.draw.connect(_draw_backpack_button)
 	if not _backpack_button.pressed.is_connected(toggle_inventory):
 		_backpack_button.pressed.connect(toggle_inventory)
 	_overlay.visible = false
@@ -220,6 +214,12 @@ func _refresh_slots() -> void:
 			slot_button.text = ""
 			slot_button.disabled = true
 			slot_button.self_modulate = NORMAL_SLOT_TINT
+
+
+func _draw_backpack_button() -> void:
+	if _backpack_button == null:
+		return
+	StatIconPainter.draw_bag(_backpack_button, _backpack_button.size * 0.5, minf(_backpack_button.size.x, _backpack_button.size.y) * 0.72)
 
 
 func _handle_drag_input(event: InputEvent) -> void:
@@ -319,25 +319,14 @@ func _hide_tooltip() -> void:
 func _is_equipped_slot(slot_index: int) -> bool:
 	if slot_index < 0 or slot_index >= items.size():
 		return false
-	return slot_index == _get_equipped_attack_slot_index() or slot_index == _get_equipped_armor_slot_index()
+	return slot_index == _get_equipped_power_slot_index()
 
 
-func _get_equipped_attack_slot_index() -> int:
+func _get_equipped_power_slot_index() -> int:
 	var equipped_index := -1
 	var highest := 0
 	for index in items.size():
-		var value := int(items[index].get("attack", 0))
-		if value > highest:
-			highest = value
-			equipped_index = index
-	return equipped_index
-
-
-func _get_equipped_armor_slot_index() -> int:
-	var equipped_index := -1
-	var highest := 0
-	for index in items.size():
-		var value := int(items[index].get("armor", 0))
+		var value := int(items[index].get("power", 0))
 		if value > highest:
 			highest = value
 			equipped_index = index

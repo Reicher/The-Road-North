@@ -41,6 +41,7 @@ func run() -> void:
 	_assert(deck_controller.hand_size == 4, "Expected level 001 to configure a four-card hand")
 	_assert(is_equal_approx(deck_controller.road_card_ratio, 0.75), "Expected level 001 to configure road card ratio")
 	_assert(is_equal_approx(deck_controller.enemy_road_card_ratio, 0.20), "Expected level 001 to configure enemy road card ratio")
+	_assert(deck_controller.enemy_level == 1, "Expected level 001 enemies to use level one power")
 	_assert(is_equal_approx(deck_controller.reward_road_card_ratio, 0.15), "Expected level 001 to configure reward road card ratio")
 	_assert(deck_controller.road_distribution["straight"] == 30.0, "Expected level 001 to configure road distribution")
 	_assert(typed_level.state == Level.RunState.IDLE, "Expected level to start idle")
@@ -62,6 +63,7 @@ func run() -> void:
 	_assert(not second_map.can_place_tile(Vector2i(3, 5), {}), "Expected bridge fixed features to already provide a road crossing")
 	_assert(second_map.get_fixed_feature_connections(Vector2i(3, 5))["north"] == true, "Expected level 002 bridges to connect across the river")
 	_assert(second_deck_controller.hand_size == 4, "Expected level 002 to configure a four-card hand")
+	_assert(second_deck_controller.enemy_level == 2, "Expected level 002 enemies to use level two power")
 
 	quit()
 

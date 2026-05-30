@@ -19,13 +19,16 @@ func _initialize() -> void:
 	var tooltip := inventory.get_node("ItemTooltip") as PanelContainer
 
 	_assert(backpack_button != null, "Expected inventory to create a backpack button")
-	_assert(backpack_button.size == Vector2(78.0, 58.0), "Expected backpack button to be large enough for touch")
-	_assert(backpack_button.get_theme_font_size("font_size") == 18, "Expected backpack label to be more readable")
-	_assert(backpack_button.position.x > 250.0, "Expected backpack button to sit near the top-right corner")
+	_assert(backpack_button.size == Vector2(130.0, 130.0), "Expected backpack button to use the requested icon size")
+	_assert(backpack_button.text == "", "Expected backpack button to use the painted bag icon instead of text")
+	_assert(is_equal_approx(backpack_button.position.x + backpack_button.size.x, 342.0), "Expected backpack button to keep its right margin")
 	_assert(not overlay.visible, "Expected inventory overlay to start closed")
-	_assert(inventory.get_active_items().size() == 2, "Expected player inventory to start with two visible items")
-	_assert(inventory.get_attack_bonus() == 2, "Expected Sword to add two attack")
-	_assert(inventory.get_armor_bonus() == 2, "Expected Shield to add two armor")
+	_assert(inventory.get_active_items().size() == 1, "Expected player inventory to start with one visible weapon")
+	_assert(inventory.get_power_bonus() == 1, "Expected Knife to add one power")
+	var stats_signal_result := {"count": 0}
+	inventory.stats_changed.connect(func() -> void:
+		stats_signal_result["count"] += 1
+	)
 
 	inventory.toggle_inventory()
 	_assert(overlay.visible, "Expected backpack button to open the inventory overlay")
@@ -34,18 +37,17 @@ func _initialize() -> void:
 	var first_slot := slots.get_child(0) as Button
 	var second_slot := slots.get_child(1) as Button
 	var empty_slot := slots.get_child(2) as Button
-	_assert(first_slot.text == "Sword", "Expected first slot to contain Sword")
-	_assert(second_slot.text == "Shield", "Expected second slot to contain Shield")
+	_assert(first_slot.text == "Knife", "Expected first slot to contain Knife")
+	_assert(second_slot.disabled, "Expected second slot to be empty")
 	_assert(empty_slot.disabled, "Expected empty inventory slots to be disabled")
-	_assert(first_slot.self_modulate == InventoryUI.EQUIPPED_SLOT_TINT, "Expected strongest sword slot to be tinted")
-	_assert(second_slot.self_modulate == InventoryUI.EQUIPPED_SLOT_TINT, "Expected strongest shield slot to be tinted")
+	_assert(first_slot.self_modulate == InventoryUI.EQUIPPED_SLOT_TINT, "Expected strongest weapon slot to be tinted")
 
 	inventory._on_item_pressed(0, first_slot)
 	_assert(tooltip.visible, "Expected pressing an item to show a tooltip")
 	var tooltip_name := tooltip.get_node("ContentMargin/Text/ItemName") as Label
 	var tooltip_effect := tooltip.get_node("ContentMargin/Text/ItemEffect") as Label
-	_assert(tooltip_name.text == "Sword", "Expected tooltip to show the item name")
-	_assert(tooltip_effect.text == "+2 Attack", "Expected tooltip to show the item effect")
+	_assert(tooltip_name.text == "Knife", "Expected tooltip to show the item name")
+	_assert(tooltip_effect.text == "+1 Power", "Expected tooltip to show the item effect")
 	_assert(tooltip_name.get_theme_color("font_color") == UIStyle.text(inventory), "Expected tooltip name text to use the shared UI text color")
 	_assert(tooltip_effect.get_theme_color("font_color") == UIStyle.muted_text(inventory), "Expected tooltip effect text to use the shared UI muted text color")
 
@@ -75,6 +77,13 @@ func _initialize() -> void:
 	inventory.set_inventory_open(false)
 	_assert(not overlay.visible, "Expected inventory overlay to close")
 	_assert(not tooltip.visible, "Expected closing inventory to hide the tooltip")
+
+	_assert(inventory.add_item({
+		"name": "Dagger",
+		"effect": "+1 Power",
+		"power": 1,
+	}), "Expected adding a test item to succeed")
+	_assert(stats_signal_result["count"] == 1, "Expected adding items to notify stat listeners")
 
 	quit()
 
