@@ -3,6 +3,7 @@ extends Node2D
 
 const PLAYER_REWARDS_SCRIPT := preload("res://scripts/player_rewards.gd")
 const PLAYER_COMBAT_SCRIPT := preload("res://scripts/player_combat.gd")
+const DEFAULT_FOOD_MAP_AREA_DIVISOR := 4.0
 
 signal food_changed(food: int)
 signal gold_changed(gold: int)
@@ -72,7 +73,7 @@ func _ready() -> void:
 
 	grid_position = start_position
 	position = _map.grid_to_world(grid_position)
-	food = starting_food if starting_food >= 0 else _map.playable_width * 2
+	food = starting_food if starting_food >= 0 else _get_default_starting_food()
 	gold = starting_gold
 	health = starting_health
 	_update_food_label()
@@ -181,6 +182,10 @@ func add_gold(amount: int) -> void:
 		return
 	gold += amount
 	gold_changed.emit(gold)
+
+
+func _get_default_starting_food() -> int:
+	return maxi(1, roundi(float(_map.playable_width * _map.playable_height) / DEFAULT_FOOD_MAP_AREA_DIVISOR))
 
 
 func _on_tile_pressed(target_position: Vector2i) -> void:

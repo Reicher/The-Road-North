@@ -78,7 +78,7 @@ func _initialize() -> void:
 	default_food_player.map_path = NodePath("../Map")
 	root.add_child(default_food_player)
 	default_food_player._ready()
-	_assert(default_food_player.food == map.playable_width * 2, "Expected default starting food to be twice the map width")
+	_assert(default_food_player.food == 20, "Expected default starting food to be about a quarter of the 9x9 map area")
 
 	quit()
 
