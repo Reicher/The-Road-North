@@ -22,6 +22,9 @@ func _load_level(level_index: int) -> void:
 	_current_level = LEVEL_SCENES[_current_level_index].instantiate()
 	_current_level.name = "Level"
 	add_child(_current_level)
+	var level := _current_level as Level
+	if level != null and not level.restart_requested.is_connected(_on_restart_level_requested):
+		level.restart_requested.connect(_on_restart_level_requested)
 	_configure_level_end_screen()
 
 

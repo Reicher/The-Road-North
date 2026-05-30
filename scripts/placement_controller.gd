@@ -5,6 +5,7 @@ signal placement_started(card: CardView)
 signal placement_cancelled(card: CardView)
 signal placement_confirmed(grid_position: Vector2i, card: CardView)
 signal tile_destroyed(grid_position: Vector2i, card: CardView)
+signal tile_rotated(grid_position: Vector2i, card: CardView)
 
 const VALID_COLOR := Color(0.20, 0.90, 0.32, 0.46)
 const INVALID_COLOR := Color(0.95, 0.18, 0.14, 0.50)
@@ -13,6 +14,7 @@ const PLACEMENT_HINT_COLOR := Color(0.24, 0.88, 0.38, 0.58)
 const MODE_NONE := ""
 const MODE_ROAD_PLACEMENT := "road_placement"
 const MODE_DESTROY_TARGETING := "destroy_targeting"
+const MODE_ROTATE_TARGETING := "rotate_targeting"
 
 
 class PlacementHint extends Node2D:
@@ -131,20 +133,31 @@ func begin_placement(card: CardView) -> bool:
 
 
 func begin_destroy_targeting(card: CardView) -> bool:
-	if card == null or card.category != DeckController.EVENT_CATEGORY or card.event_type != DeckController.EVENT_DESTROY_NEIGHBOR:
+	if card == null or card.category != DeckController.EVENT_CATEGORY or card.event_type != DeckController.EVENT_DESTROY_TILE:
 		return false
 
+	return _begin_tile_targeting(card, MODE_DESTROY_TARGETING)
+
+
+func begin_rotate_targeting(card: CardView) -> bool:
+	if card == null or card.category != DeckController.EVENT_CATEGORY or card.event_type != DeckController.EVENT_ROTATE_TILE:
+		return false
+
+	return _begin_tile_targeting(card, MODE_ROTATE_TARGETING)
+
+
+func _begin_tile_targeting(card: CardView, mode: String) -> bool:
 	active_card = card
 	active_definition = null
-	active_mode = MODE_DESTROY_TARGETING
+	active_mode = mode
 	preview_position = Vector2i(-1, -1)
 	rotation_steps = 0
 	_placement_valid = false
 	_player.input_enabled = false
 	_hand.clear_focus()
 	_hide_preview()
-	_highlight_destroy_targets()
-	_show_destroy_controls()
+	_highlight_tile_targets()
+	_show_targeting_controls()
 	_show_prompt()
 	placement_started.emit(card)
 	return true
@@ -162,6 +175,8 @@ func confirm_placement() -> bool:
 		return false
 	if active_mode == MODE_DESTROY_TARGETING:
 		return _confirm_destroy_target()
+	if active_mode == MODE_ROTATE_TARGETING:
+		return _confirm_rotate_target()
 	if active_mode != MODE_ROAD_PLACEMENT:
 		return false
 
@@ -196,8 +211,10 @@ func has_valid_preview() -> bool:
 func _on_card_use_requested(card: CardView) -> void:
 	if card.category == DeckController.ROAD_CATEGORY:
 		begin_placement(card)
-	elif card.event_type == DeckController.EVENT_DESTROY_NEIGHBOR:
+	elif card.event_type == DeckController.EVENT_DESTROY_TILE:
 		begin_destroy_targeting(card)
+	elif card.event_type == DeckController.EVENT_ROTATE_TILE:
+		begin_rotate_targeting(card)
 
 
 func _on_tile_pressed(grid_position: Vector2i) -> void:
@@ -211,8 +228,8 @@ func _refresh_preview() -> void:
 	if active_card == null or preview_position.x < 0:
 		_hide_preview()
 		return
-	if active_mode == MODE_DESTROY_TARGETING:
-		_refresh_destroy_target()
+	if active_mode == MODE_DESTROY_TARGETING or active_mode == MODE_ROTATE_TARGETING:
+		_refresh_tile_target()
 		return
 
 	_ensure_preview_tile()
@@ -247,6 +264,13 @@ func _is_valid_destroy_target(grid_position: Vector2i) -> bool:
 	return true
 
 
+func _is_valid_rotate_target(grid_position: Vector2i) -> bool:
+	if not _is_valid_destroy_target(grid_position):
+		return false
+	var tile_data: Variant = _map.get_tile(grid_position)
+	return tile_data is Dictionary and tile_data.get("definition") != null
+
+
 func _confirm_destroy_target() -> bool:
 	var destroyed_card := active_card
 	var destroyed_position := preview_position
@@ -260,8 +284,23 @@ func _confirm_destroy_target() -> bool:
 	return true
 
 
-func _refresh_destroy_target() -> void:
-	_placement_valid = _is_valid_destroy_target(preview_position)
+func _confirm_rotate_target() -> bool:
+	var rotated_card := active_card
+	var rotated_position := preview_position
+	if not _roads.rotate_tile(rotated_position):
+		_refresh_tile_target()
+		return false
+	if _deck_controller != null:
+		_deck_controller.consume_card(rotated_card)
+	else:
+		_hand.remove_card(rotated_card)
+	_end_placement(false)
+	tile_rotated.emit(rotated_position, rotated_card)
+	return true
+
+
+func _refresh_tile_target() -> void:
+	_placement_valid = _is_valid_tile_target(preview_position)
 	_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, false)
 	_refresh_target_highlights()
 	set_process(true)
@@ -312,6 +351,8 @@ func _ensure_controls() -> void:
 func _show_prompt() -> void:
 	if active_mode == MODE_DESTROY_TARGETING:
 		_controls_layer.show_prompt("Choose tile", _hand)
+	elif active_mode == MODE_ROTATE_TARGETING:
+		_controls_layer.show_prompt("Choose tile", _hand)
 	else:
 		_controls_layer.show_prompt("Place tile", _hand)
 	set_process(true)
@@ -322,12 +363,12 @@ func _show_idle_placement_controls() -> void:
 	set_process(true)
 
 
-func _show_destroy_controls() -> void:
+func _show_targeting_controls() -> void:
 	_controls_layer.show_destroy_targeting(_hand)
 	set_process(true)
 
 
-func _highlight_destroy_targets() -> void:
+func _highlight_tile_targets() -> void:
 	_targeted_tiles.clear()
 	for grid_position in _map.tiles:
 		if grid_position is Vector2i:
@@ -340,7 +381,7 @@ func _refresh_target_highlights() -> void:
 		var visual_tile := _roads.get_visual_tile(grid_position)
 		if visual_tile == null:
 			continue
-		var valid := _is_valid_destroy_target(grid_position)
+		var valid := _is_valid_tile_target(grid_position)
 		var color := VALID_COLOR if valid else INVALID_COLOR
 		if grid_position == preview_position:
 			color = VALID_COLOR if valid else INVALID_COLOR
@@ -355,6 +396,12 @@ func _clear_target_highlights() -> void:
 		if visual_tile != null:
 			visual_tile.set_highlight(false)
 	_targeted_tiles.clear()
+
+
+func _is_valid_tile_target(grid_position: Vector2i) -> bool:
+	if active_mode == MODE_ROTATE_TARGETING:
+		return _is_valid_rotate_target(grid_position)
+	return _is_valid_destroy_target(grid_position)
 
 
 func _refresh_placement_hints() -> void:

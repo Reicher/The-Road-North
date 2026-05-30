@@ -61,3 +61,4 @@ player_path = NodePath("../../Player")
 [node name="DeckController" parent="." instance=ExtResource("6_wxmfr")]
 map_path = NodePath("../Map")
 hand_path = NodePath("../UI/Hand")
+player_path = NodePath("../Player")

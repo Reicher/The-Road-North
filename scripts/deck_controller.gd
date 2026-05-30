@@ -1,12 +1,17 @@
 class_name DeckController
 extends Node
 
+signal restart_map_requested
+
 const DECK_BUILDER_SCRIPT := preload("res://scripts/deck_builder.gd")
 
 const ROAD_CATEGORY := "Road"
 const EVENT_CATEGORY := "Event"
-const EVENT_DESTROY_NEIGHBOR := "destroy_neighbor"
+const EVENT_RESTART_MAP := "restart_map"
+const EVENT_DESTROY_TILE := "destroy_tile"
 const EVENT_DRAW_TWO := "draw_two"
+const EVENT_ROTATE_TILE := "rotate_tile"
+const EVENT_LUCKY_FIND := "lucky_find"
 
 const ROAD_CARD_RATIO := 0.75
 const ENEMY_ROAD_CARD_RATIO := 0.20
@@ -23,6 +28,7 @@ const ROAD_DISTRIBUTION := {
 
 @export var map_path: NodePath
 @export var hand_path: NodePath
+@export var player_path: NodePath
 @export var deck_builder_path: NodePath = NodePath("DeckBuilder")
 @export var hand_size := HAND_SIZE
 @export var shuffle_seed := 0
@@ -42,6 +48,7 @@ var drawn_count := 0
 
 var _map: GameMap
 var _hand: HandUI
+var _player: GamePlayer
 var _deck_builder: Node
 var _rng := RandomNumberGenerator.new()
 
@@ -49,6 +56,7 @@ var _rng := RandomNumberGenerator.new()
 func _ready() -> void:
 	_map = get_node_or_null(map_path) as GameMap
 	_hand = get_node_or_null(hand_path) as HandUI
+	_player = get_node_or_null(player_path) as GamePlayer
 	_deck_builder = _get_or_create_deck_builder()
 	if _map == null:
 		push_warning("DeckController needs a GameMap at map_path.")
@@ -145,6 +153,21 @@ func _on_card_use_requested(card: CardView) -> void:
 	if card.event_type == EVENT_DRAW_TWO:
 		if consume_card(card):
 			draw_extra_cards(2)
+	elif card.event_type == EVENT_LUCKY_FIND:
+		if consume_card(card):
+			_apply_lucky_find()
+	elif card.event_type == EVENT_RESTART_MAP:
+		if consume_card(card):
+			restart_map_requested.emit()
+
+
+func _apply_lucky_find() -> void:
+	if _player == null:
+		return
+	if _rng.randi_range(0, 1) == 0:
+		_player.add_food(3)
+	else:
+		_player.add_gold(4)
 
 
 func _get_deck_size() -> int:

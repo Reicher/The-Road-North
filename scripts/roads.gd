@@ -66,6 +66,25 @@ func remove_tile(grid_position: Vector2i) -> void:
 	_map.clear_tile(grid_position)
 
 
+func rotate_tile(grid_position: Vector2i) -> bool:
+	var tile_data: Variant = _map.get_tile(grid_position)
+	if not (tile_data is Dictionary):
+		return false
+	var definition: Resource = tile_data.get("definition")
+	if definition == null or not definition.has_method("get_rotated_openings"):
+		return false
+
+	var next_rotation := posmod(int(tile_data.get("rotation_steps", 0)) + 1, 4)
+	tile_data["rotation_steps"] = next_rotation
+	tile_data["connections"] = definition.get_rotated_openings(next_rotation)
+	_map.set_tile(grid_position, tile_data)
+
+	var visual_tile := get_visual_tile(grid_position)
+	if visual_tile != null:
+		visual_tile.rotation_steps = next_rotation
+	return true
+
+
 func get_visual_tile(grid_position: Vector2i) -> RoadTile:
 	return _visual_tiles.get(grid_position) as RoadTile
 

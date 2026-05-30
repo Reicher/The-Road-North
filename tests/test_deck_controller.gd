@@ -44,6 +44,7 @@ func _initialize() -> void:
 	var enemy_road_has_clear_label := false
 	var reward_road_count := 0
 	var reward_road_has_clear_label := false
+	var event_types := {}
 	for card in hand.cards:
 		category_counts[card.category] += 1
 		if card.category == "Road" and card.encounter_data.get("type", "") == GameMap.ENCOUNTER_ENEMY:
@@ -52,6 +53,8 @@ func _initialize() -> void:
 		elif card.category == "Road" and not card.encounter_data.is_empty():
 			reward_road_count += 1
 			reward_road_has_clear_label = reward_road_has_clear_label or card.detail.ends_with("when reached.")
+		elif card.category == "Event":
+			event_types[card.event_type] = true
 	for card_data in deck_controller.deck:
 		category_counts[card_data["category"]] += 1
 		if card_data.get("card_definition") is CARD_DEFINITION_SCRIPT:
@@ -63,8 +66,15 @@ func _initialize() -> void:
 		elif card_data["category"] == "Road" and not encounter.is_empty():
 			reward_road_count += 1
 			reward_road_has_clear_label = reward_road_has_clear_label or str(card_data.get("detail", "")).ends_with("when reached.")
+		elif card_data["category"] == "Event":
+			event_types[str(card_data.get("event_type", ""))] = true
 	_assert(category_counts["Road"] == 61, "Expected 75 percent of an 81 card deck to round to 61 road cards")
 	_assert(category_counts["Event"] == 20, "Expected the remaining deck cards to be events")
+	_assert(event_types.has(DeckController.EVENT_RESTART_MAP), "Expected event deck to include It Was All a Dream")
+	_assert(event_types.has(DeckController.EVENT_DESTROY_TILE), "Expected event deck to include Mirage")
+	_assert(event_types.has(DeckController.EVENT_DRAW_TWO), "Expected event deck to include Idea")
+	_assert(event_types.has(DeckController.EVENT_ROTATE_TILE), "Expected event deck to include Doubt")
+	_assert(event_types.has(DeckController.EVENT_LUCKY_FIND), "Expected event deck to include Lucky Find")
 	_assert(typed_definition_count == deck_controller.deck.size(), "Expected generated draw pile cards to keep typed card definitions")
 	_assert(enemy_road_count == 12, "Expected one fifth of road cards to carry hidden enemies")
 	_assert(enemy_road_has_clear_label, "Expected enemy road cards to be clearly named and described")

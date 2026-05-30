@@ -5,8 +5,11 @@ const CARD_DEFINITION_SCRIPT := preload("res://scripts/card_definition.gd")
 
 const ROAD_CATEGORY := "Road"
 const EVENT_CATEGORY := "Event"
-const EVENT_DESTROY_NEIGHBOR := "destroy_neighbor"
+const EVENT_RESTART_MAP := "restart_map"
+const EVENT_DESTROY_TILE := "destroy_tile"
 const EVENT_DRAW_TWO := "draw_two"
+const EVENT_ROTATE_TILE := "rotate_tile"
+const EVENT_LUCKY_FIND := "lucky_find"
 const ENCOUNTER_ENEMY := "enemy"
 
 
@@ -40,12 +43,17 @@ func _make_road_cards(count: int, rng: RandomNumberGenerator, config: Dictionary
 
 
 func _make_event_cards(count: int) -> Array[Dictionary]:
+	var event_templates: Array[Dictionary] = [
+		{"title": "It Was All a Dream", "detail": "Restart the map.", "event_type": EVENT_RESTART_MAP},
+		{"title": "Mirage", "detail": "Destroy a placed tile.", "event_type": EVENT_DESTROY_TILE},
+		{"title": "Idea", "detail": "Draw two extra cards.", "event_type": EVENT_DRAW_TWO},
+		{"title": "Doubt", "detail": "Rotate a placed tile.", "event_type": EVENT_ROTATE_TILE},
+		{"title": "Lucky Find", "detail": "Gain food or gold.", "event_type": EVENT_LUCKY_FIND},
+	]
 	var cards: Array[Dictionary] = []
 	for index in count:
-		if index % 2 == 0:
-			cards.append(_make_event_card("Clear Road", "Destroy a placed tile.", EVENT_DESTROY_NEIGHBOR))
-		else:
-			cards.append(_make_event_card("Supplies", "Draw two extra cards.", EVENT_DRAW_TWO))
+		var template: Dictionary = event_templates[index % event_templates.size()]
+		cards.append(_make_event_card(template["title"], template["detail"], template["event_type"]))
 	return cards
 
 
