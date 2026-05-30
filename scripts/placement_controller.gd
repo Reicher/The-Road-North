@@ -7,8 +7,8 @@ signal placement_confirmed(grid_position: Vector2i, card: CardView)
 signal tile_destroyed(grid_position: Vector2i, card: CardView)
 signal tile_rotated(grid_position: Vector2i, card: CardView)
 
-const VALID_COLOR := Color(0.20, 0.90, 0.32, 0.46)
-const INVALID_COLOR := Color(0.95, 0.18, 0.14, 0.50)
+const VALID_COLOR := Color(0.10, 0.95, 0.28, 0.34)
+const INVALID_COLOR := Color(1.00, 0.10, 0.08, 0.38)
 const TARGET_COLOR := Color(0.98, 0.83, 0.24, 0.62)
 const PLACEMENT_HINT_COLOR := Color(0.24, 0.88, 0.38, 0.58)
 const MODE_NONE := ""
@@ -254,12 +254,13 @@ func _refresh_preview() -> void:
 	_preview_tile.definition = active_definition
 	_preview_tile.rotation_steps = rotation_steps
 	_preview_tile.tile_size = _map.tile_size
-	_preview_tile.position = _map.grid_to_world(preview_position)
+	_preview_tile.position = _map.grid_to_world(preview_position) + Vector3(0.0, _map.tile_size * 0.04, 0.0)
+	_preview_tile.scale = Vector3(1.03, 1.0, 1.03)
 	_preview_tile.visible = true
 
 	var tile_data := _roads.make_tile_data(active_definition, rotation_steps)
 	_placement_valid = _is_valid_placement(preview_position, tile_data.get("connections", {}))
-	_preview_tile.tile_tint = Color(1.0, 1.0, 1.0, 0.72)
+	_preview_tile.tile_tint = Color(1.08, 1.08, 1.04, 0.98)
 	_preview_tile.set_highlight(true, VALID_COLOR if _placement_valid else INVALID_COLOR)
 	_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid)
 	set_process(true)

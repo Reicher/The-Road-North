@@ -42,7 +42,9 @@ The 3D presentation must not change any placement, movement, deck, encounter, or
 
 The playable map is a square grid, initially 9x9.
 
-The playable area has no surrounding visual padding border.
+The playable area has no surrounding gameplay padding border.
+
+The 3D world should show dense forest outside all four edges of the playable grid so angled camera views never reveal an empty void beyond small maps. This surrounding forest is visual only and does not add playable tiles.
 
 The camera must never show outside the playable map area.
 

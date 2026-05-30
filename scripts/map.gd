@@ -25,6 +25,10 @@ const FEATURE_RIVER := "river"
 const FEATURE_BRIDGE := "bridge"
 
 const GROUND_HEIGHT := 0.08
+const FOREST_PADDING_TILES := 4
+const GROUND_LIGHT_COLOR := Color(0.69, 0.76, 0.57)
+const GROUND_DARK_COLOR := Color(0.64, 0.72, 0.53)
+const GRID_LINE_COLOR := Color(0.36, 0.46, 0.31, 0.58)
 
 @export_range(1, 64, 1) var playable_width := 9:
 	set(value):
@@ -52,6 +56,7 @@ const GROUND_HEIGHT := 0.08
 var tiles: Dictionary = {}
 var _fixed_features_by_position: Dictionary = {}
 var _cell_nodes: Dictionary = {}
+var _forest_nodes: Array[Node] = []
 
 
 func _ready() -> void:
@@ -325,9 +330,47 @@ func _rebuild_visuals() -> void:
 		if node is Node:
 			node.queue_free()
 	_cell_nodes.clear()
+	for node in _forest_nodes:
+		if node != null:
+			node.queue_free()
+	_forest_nodes.clear()
+	_rebuild_border_forest()
 	for y in playable_height:
 		for x in playable_width:
 			_rebuild_cell_visual(Vector2i(x, y))
+
+
+func _rebuild_border_forest() -> void:
+	for y in range(-FOREST_PADDING_TILES, playable_height + FOREST_PADDING_TILES):
+		for x in range(-FOREST_PADDING_TILES, playable_width + FOREST_PADDING_TILES):
+			var grid_position := Vector2i(x, y)
+			if is_inside_playable_area(grid_position):
+				continue
+			_add_border_forest_cell(grid_position)
+
+
+func _add_border_forest_cell(grid_position: Vector2i) -> void:
+	var cell := Node3D.new()
+	cell.name = "Forest_%d_%d" % [grid_position.x, grid_position.y]
+	cell.position = grid_to_world(grid_position)
+	add_child(cell)
+	_forest_nodes.append(cell)
+
+	_add_box(cell, "ForestGround", Vector3(tile_size * 1.08, GROUND_HEIGHT, tile_size * 1.08), Vector3(0.0, -GROUND_HEIGHT * 0.65, 0.0), GROUND_LIGHT_COLOR)
+	_add_border_forest_trees(cell, grid_position)
+
+
+func _add_border_forest_trees(parent: Node3D, grid_position: Vector2i) -> void:
+	var slots := [
+		Vector2(-0.28, -0.28),
+		Vector2(0.30, -0.18),
+		Vector2(-0.18, 0.26),
+		Vector2(0.24, 0.30),
+	]
+	var count := 2 + posmod(grid_position.x * 11 + grid_position.y * 7, 2)
+	for index in count:
+		var offset: Vector2 = slots[posmod(index + grid_position.x + grid_position.y, slots.size())]
+		_add_tree(parent, Vector3(offset.x * tile_size, 0.0, offset.y * tile_size), 0.72 + float(index) * 0.08)
 
 
 func _rebuild_cell_visual(grid_position: Vector2i) -> void:
@@ -344,13 +387,25 @@ func _rebuild_cell_visual(grid_position: Vector2i) -> void:
 	_cell_nodes[grid_position] = cell
 
 	var feature := get_fixed_feature(grid_position)
-	var terrain_color := Color(0.69, 0.76, 0.57) if (grid_position.x + grid_position.y) % 2 == 0 else Color(0.64, 0.72, 0.53)
+	var terrain_color := GROUND_LIGHT_COLOR if (grid_position.x + grid_position.y) % 2 == 0 else GROUND_DARK_COLOR
 	_add_box(cell, "Ground", Vector3(tile_size * 0.96, GROUND_HEIGHT, tile_size * 0.96), Vector3(0.0, -GROUND_HEIGHT * 0.5, 0.0), terrain_color)
+	_add_grid_lines(cell, grid_position)
 
 	if not feature.is_empty():
 		_add_fixed_feature_visual(cell, feature)
 	elif not tiles.has(grid_position):
 		_add_empty_tile_trees(cell, grid_position)
+
+
+func _add_grid_lines(parent: Node3D, grid_position: Vector2i) -> void:
+	var line_width := maxf(2.0, tile_size * 0.018)
+	var y := GROUND_HEIGHT * 0.20
+	_add_box(parent, "GridNorth", Vector3(tile_size * 0.98, line_width, line_width), Vector3(0.0, y, -tile_size * 0.49), GRID_LINE_COLOR)
+	_add_box(parent, "GridWest", Vector3(line_width, line_width, tile_size * 0.98), Vector3(-tile_size * 0.49, y, 0.0), GRID_LINE_COLOR)
+	if grid_position.y == playable_height - 1:
+		_add_box(parent, "GridSouth", Vector3(tile_size * 0.98, line_width, line_width), Vector3(0.0, y, tile_size * 0.49), GRID_LINE_COLOR)
+	if grid_position.x == playable_width - 1:
+		_add_box(parent, "GridEast", Vector3(line_width, line_width, tile_size * 0.98), Vector3(tile_size * 0.49, y, 0.0), GRID_LINE_COLOR)
 
 
 func _add_fixed_feature_visual(parent: Node3D, feature: Dictionary) -> void:
@@ -427,4 +482,6 @@ func _make_material(color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
 	material.roughness = 0.9
+	if color.a < 1.0:
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	return material

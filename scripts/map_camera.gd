@@ -9,7 +9,9 @@ extends Camera3D
 @export_range(0.0, 5.0, 0.05) var start_zoom_duration := 0.85
 @export_range(0.0, 2.0, 0.01) var move_focus_duration := 0.18
 @export var zoom_step := 0.10
-@export_range(20.0, 80.0, 1.0) var camera_angle_degrees := 52.0
+@export_range(20.0, 80.0, 1.0) var camera_angle_degrees := 55.0
+@export_range(0.0, 3.0, 0.05) var pan_margin_x_tiles := 0.0
+@export_range(0.0, 3.0, 0.05) var pan_margin_z_tiles := 0.0
 
 var _map: GameMap
 var _player: Node3D
@@ -158,18 +160,15 @@ func _pan_by_screen_delta(delta: Vector2) -> void:
 func _clamp_target() -> void:
 	if _map == null:
 		return
-	var rect := _map.get_padded_world_rect()
-	var viewport_size := _get_map_viewport_size()
-	var aspect := viewport_size.x / maxf(viewport_size.y, 1.0)
-	var half_height := size * 0.5
-	var half_width := half_height * aspect
-	var min_x := rect.position.x + half_width
-	var max_x := rect.end.x - half_width
-	var min_z := rect.position.y + half_height
-	var max_z := rect.end.y - half_height
+	var map_rect := _map.get_padded_world_rect()
+	var rect := _get_camera_movement_rect()
+	var visible_ground_size := _get_visible_ground_size()
+	_target_xz.x = clampf(_target_xz.x, rect.position.x, rect.end.x)
 
-	_target_xz.x = rect.get_center().x if min_x > max_x else clampf(_target_xz.x, min_x, max_x)
-	_target_xz.y = rect.get_center().y if min_z > max_z else clampf(_target_xz.y, min_z, max_z)
+	if visible_ground_size.y >= map_rect.size.y:
+		_target_xz.y = map_rect.get_center().y
+	else:
+		_target_xz.y = clampf(_target_xz.y, rect.position.y, rect.end.y)
 
 
 func _apply_camera_transform() -> void:
@@ -178,7 +177,7 @@ func _apply_camera_transform() -> void:
 	var target := Vector3(_target_xz.x, 0.0, _target_xz.y)
 	var offset := Vector3(0.0, sin(angle) * distance, cos(angle) * distance)
 	global_position = target + offset
-	look_at(target, Vector3.UP)
+	rotation_degrees = Vector3(-camera_angle_degrees, 0.0, 0.0)
 
 
 func _get_zoom_out_limit() -> float:
@@ -187,7 +186,7 @@ func _get_zoom_out_limit() -> float:
 	var viewport_size := _get_map_viewport_size()
 	var aspect := viewport_size.x / maxf(viewport_size.y, 1.0)
 	var padded_size := _map.get_padded_world_rect().size
-	return maxf(padded_size.y, padded_size.x / maxf(aspect, 0.01))
+	return maxf(_get_ground_size_for_vertical_map_span(padded_size.y), padded_size.x / maxf(aspect, 0.01))
 
 
 func _get_zoom_in_limit() -> float:
@@ -203,7 +202,40 @@ func _get_initial_zoom_target() -> float:
 		return size
 	var viewport_size := _get_map_viewport_size()
 	var aspect := viewport_size.x / maxf(viewport_size.y, 1.0)
-	return clampf(_map.tile_size * initial_visible_tile_width / maxf(aspect, 0.01), _get_zoom_in_limit(), _get_zoom_out_limit())
+	var wanted_size := _map.tile_size * initial_visible_tile_width / maxf(aspect, 0.01)
+	return clampf(wanted_size, _get_zoom_in_limit(), _get_zoom_out_limit())
+
+
+func _get_camera_movement_rect() -> Rect2:
+	var map_rect := _map.get_padded_world_rect()
+	var margin := Vector2(_map.tile_size * pan_margin_x_tiles, _map.tile_size * pan_margin_z_tiles)
+	var min_position := map_rect.position - margin
+	var max_position := map_rect.end + margin
+	if is_zero_approx(pan_margin_x_tiles):
+		min_position.x = map_rect.position.x + _map.tile_size * 0.5
+		max_position.x = map_rect.end.x - _map.tile_size * 0.5
+		if min_position.x > max_position.x:
+			min_position.x = map_rect.get_center().x
+			max_position.x = map_rect.get_center().x
+	if is_zero_approx(pan_margin_z_tiles):
+		min_position.y = map_rect.position.y + _map.tile_size * 0.5
+		max_position.y = map_rect.end.y - _map.tile_size * 0.5
+		if min_position.y > max_position.y:
+			min_position.y = map_rect.get_center().y
+			max_position.y = map_rect.get_center().y
+	return Rect2(min_position, max_position - min_position)
+
+
+func _get_ground_size_for_vertical_map_span(map_depth: float) -> float:
+	var angle := deg_to_rad(camera_angle_degrees)
+	return map_depth * maxf(sin(angle), 0.25)
+
+
+func _get_visible_ground_size() -> Vector2:
+	var viewport_size := _get_map_viewport_size()
+	var aspect := viewport_size.x / maxf(viewport_size.y, 1.0)
+	var angle := deg_to_rad(camera_angle_degrees)
+	return Vector2(size * aspect, size / maxf(sin(angle), 0.25))
 
 
 func _get_full_map_position() -> Vector3:

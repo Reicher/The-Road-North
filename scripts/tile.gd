@@ -150,8 +150,18 @@ func _draw_visual_identity(identity: String) -> void:
 func _add_house() -> void:
 	var base_size := Vector3(tile_size * 0.26, tile_size * 0.20, tile_size * 0.24)
 	var base_y := GROUND_HEIGHT + base_size.y * 0.5
-	_add_box("HouseBase", base_size, Vector3(0.0, base_y, tile_size * 0.08), Color(0.70, 0.58, 0.42))
-	_add_cone("HouseRoof", tile_size * 0.20, tile_size * 0.18, Vector3(0.0, base_y + tile_size * 0.18, tile_size * 0.08), Color(0.42, 0.20, 0.18), 4)
+	var z_offset := _get_house_z_offset()
+	_add_box("HouseBase", base_size, Vector3(0.0, base_y, z_offset), Color(0.70, 0.58, 0.42))
+	_add_cone("HouseRoof", tile_size * 0.20, tile_size * 0.18, Vector3(0.0, base_y + tile_size * 0.18, z_offset), Color(0.42, 0.20, 0.18), 4)
+
+
+func _get_house_z_offset() -> float:
+	var openings := get_openings()
+	if openings.get("north", false) == true and openings.get("south", false) != true:
+		return tile_size * 0.28
+	if openings.get("south", false) == true and openings.get("north", false) != true:
+		return -tile_size * 0.28
+	return tile_size * 0.08
 
 
 func _draw_reward_encounter(encounter: Dictionary) -> void:
@@ -185,6 +195,14 @@ func _add_road_tile_trees() -> void:
 func _slot_touches_road(slot: Vector2, openings: Dictionary) -> bool:
 	if absf(slot.x) < ROAD_TREE_CLEARANCE and absf(slot.y) < ROAD_TREE_CLEARANCE:
 		return true
+	if openings.get("north", false) == true and openings.get("east", false) == true and slot.x > 0.16 and slot.y < -0.16:
+		return true
+	if openings.get("east", false) == true and openings.get("south", false) == true and slot.x > 0.16 and slot.y > 0.16:
+		return true
+	if openings.get("south", false) == true and openings.get("west", false) == true and slot.x < -0.16 and slot.y > 0.16:
+		return true
+	if openings.get("north", false) == true and openings.get("west", false) == true and slot.x < -0.16 and slot.y < -0.16:
+		return true
 	if openings.get("north", false) == true and slot.y < ROAD_TREE_CLEARANCE and absf(slot.x) < ROAD_TREE_CLEARANCE:
 		return true
 	if openings.get("south", false) == true and slot.y > -ROAD_TREE_CLEARANCE and absf(slot.x) < ROAD_TREE_CLEARANCE:
@@ -209,7 +227,17 @@ func _add_bush(offset: Vector3, berries := false) -> void:
 
 
 func _add_highlight() -> void:
-	_add_box("Highlight", Vector3(tile_size * 0.98, 0.035, tile_size * 0.98), Vector3(0.0, GROUND_HEIGHT + ROAD_HEIGHT + 0.05, 0.0), highlight_color)
+	var fill_y := GROUND_HEIGHT * 0.55
+	_add_box("HighlightFill", Vector3(tile_size * 1.08, 0.018, tile_size * 1.08), Vector3(0.0, fill_y, 0.0), highlight_color)
+	var border_color := highlight_color.lightened(0.35)
+	border_color.a = minf(1.0, highlight_color.a + 0.18)
+	var line_width := tile_size * 0.055
+	var line_length := tile_size * 1.12
+	var border_y := GROUND_HEIGHT + ROAD_HEIGHT + 0.12
+	_add_box("HighlightNorth", Vector3(line_length, line_width, line_width), Vector3(0.0, border_y, -tile_size * 0.56), border_color)
+	_add_box("HighlightEast", Vector3(line_width, line_width, line_length), Vector3(tile_size * 0.56, border_y, 0.0), border_color)
+	_add_box("HighlightSouth", Vector3(line_length, line_width, line_width), Vector3(0.0, border_y, tile_size * 0.56), border_color)
+	_add_box("HighlightWest", Vector3(line_width, line_width, line_length), Vector3(-tile_size * 0.56, border_y, 0.0), border_color)
 
 
 func _refresh_enemy_view() -> void:
@@ -231,6 +259,39 @@ func _encounter_type() -> String:
 func _add_box(node_name: String, size: Vector3, local_position: Vector3, color: Color) -> MeshInstance3D:
 	var mesh := BoxMesh.new()
 	mesh.size = size
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	instance.mesh = mesh
+	instance.position = local_position
+	instance.material_override = _make_material(color)
+	_visual_root.add_child(instance)
+	return instance
+
+
+func _add_mesh(node_name: String, vertices: PackedVector3Array, normals: PackedVector3Array, indices: PackedInt32Array, color: Color) -> MeshInstance3D:
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	instance.mesh = mesh
+	var material := _make_material(color)
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	instance.material_override = material
+	_visual_root.add_child(instance)
+	return instance
+
+
+func _add_cylinder(node_name: String, radius: float, height: float, local_position: Vector3, color: Color, segments := 20) -> MeshInstance3D:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = height
+	mesh.radial_segments = segments
 	var instance := MeshInstance3D.new()
 	instance.name = node_name
 	instance.mesh = mesh
@@ -274,6 +335,7 @@ func _make_material(color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
 	material.roughness = 0.9
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	if color.a < 1.0:
 		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	return material
