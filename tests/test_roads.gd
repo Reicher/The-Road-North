@@ -43,8 +43,11 @@ func _initialize() -> void:
 	_assert(not roads.place_tile(Vector2i(6, 4), STRAIGHT, 0), "Expected mountain fixed features to block road placement")
 	_assert(not roads.place_tile(Vector2i(5, 4), STRAIGHT, 1), "Expected roads pointing into mountains to be rejected")
 	_assert(not roads.place_tile(Vector2i(5, 5), STRAIGHT, 1), "Expected roads pointing into rivers to be rejected")
-	_assert(roads.place_tile(Vector2i(5, 6), STRAIGHT, 1), "Expected roads pointing into bridges to be allowed")
-	_assert(roads.place_tile(Vector2i(8, 6), STRAIGHT, 0), "Expected bridge fixed features to allow road placement")
+	_assert(not roads.place_tile(Vector2i(6, 6), STRAIGHT, 0), "Expected bridge fixed features to already occupy their tile")
+	_assert(roads.place_tile(Vector2i(6, 7), STRAIGHT, 0), "Expected roads pointing into bridge openings to be allowed")
+	_assert(not roads.place_tile(Vector2i(5, 6), STRAIGHT, 1), "Expected roads pointing into closed bridge sides to be rejected")
+	_assert(map.can_move_between(Vector2i(6, 7), Vector2i(6, 6)), "Expected bridge fixed features to behave like straight roads")
+	_assert(map.get_tile(Vector2i(6, 6)) == null, "Expected bridge traversal not to require a placed road tile")
 
 	roads.force_place_tile(Vector2i(4, 8), T_JUNCTION, 0)
 	roads.force_place_tile(Vector2i(4, 0), T_JUNCTION, 2)

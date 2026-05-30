@@ -111,10 +111,7 @@ func get_fixed_feature(grid_position: Vector2i) -> Dictionary:
 
 
 func can_build_on_fixed_feature(grid_position: Vector2i) -> bool:
-	var feature := get_fixed_feature(grid_position)
-	if feature.is_empty():
-		return true
-	return str(feature.get("type", "")) == FEATURE_BRIDGE
+	return get_fixed_feature(grid_position).is_empty()
 
 
 func get_encounter(grid_position: Vector2i) -> Dictionary:
@@ -165,6 +162,14 @@ func can_place_tile(grid_position: Vector2i, connections: Dictionary = {}) -> bo
 		if not is_inside_playable_area(neighbor_position):
 			continue
 
+		var neighbor_feature_connections := get_fixed_feature_connections(neighbor_position)
+		if not neighbor_feature_connections.is_empty():
+			var opposite_direction: String = OPPOSITE_DIRECTIONS[direction_name]
+			var feature_opens_back: bool = neighbor_feature_connections.get(opposite_direction, false) == true
+			if opens_to_neighbor != feature_opens_back:
+				return false
+			continue
+
 		if opens_to_neighbor and not can_build_on_fixed_feature(neighbor_position):
 			return false
 
@@ -191,12 +196,10 @@ func can_move_between(from_position: Vector2i, to_position: Vector2i) -> bool:
 	if direction_name.is_empty():
 		return false
 
-	var from_tile: Variant = get_tile(from_position)
-	var to_tile: Variant = get_tile(to_position)
-	if not _tile_has_opening(from_tile, direction_name):
+	if not _position_has_opening(from_position, direction_name):
 		return false
 
-	return _tile_has_opening(to_tile, OPPOSITE_DIRECTIONS[direction_name])
+	return _position_has_opening(to_position, OPPOSITE_DIRECTIONS[direction_name])
 
 
 func update_encounter_data(grid_position: Vector2i, encounter_data: Dictionary) -> void:
@@ -259,6 +262,39 @@ func _tile_has_opening(tile_data: Variant, direction_name: String) -> bool:
 		var connections: Dictionary = tile_data.get("connections", tile_data)
 		return connections.get(direction_name, false) == true
 	return false
+
+
+func _position_has_opening(grid_position: Vector2i, direction_name: String) -> bool:
+	var tile_data: Variant = get_tile(grid_position)
+	if tile_data != null:
+		return _tile_has_opening(tile_data, direction_name)
+
+	var feature_connections := get_fixed_feature_connections(grid_position)
+	return feature_connections.get(direction_name, false) == true
+
+
+func get_fixed_feature_connections(grid_position: Vector2i) -> Dictionary:
+	var feature := get_fixed_feature(grid_position)
+	if feature.is_empty() or str(feature.get("type", "")) != FEATURE_BRIDGE:
+		return {}
+	var custom_connections: Variant = feature.get("connections", null)
+	if custom_connections is Dictionary:
+		return custom_connections
+
+	var horizontal_river := posmod(int(feature.get("rotation_steps", 0)), 2) == 0
+	if horizontal_river:
+		return {
+			"north": true,
+			"east": false,
+			"south": true,
+			"west": false,
+		}
+	return {
+		"north": false,
+		"east": true,
+		"south": false,
+		"west": true,
+	}
 
 
 func _rebuild_fixed_feature_lookup() -> void:

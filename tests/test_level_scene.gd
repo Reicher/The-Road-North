@@ -59,7 +59,8 @@ func run() -> void:
 	_assert(second_map.get_fixed_feature(Vector2i(5, 5))["type"] == GameMap.FEATURE_RIVER, "Expected level 002 to include a horizontal river")
 	_assert(second_map.get_fixed_feature(Vector2i(3, 5))["type"] == GameMap.FEATURE_BRIDGE, "Expected level 002 river to include bridge crossings")
 	_assert(not second_map.can_place_tile(Vector2i(5, 5), {}), "Expected river fixed features to block road placement")
-	_assert(second_map.can_place_tile(Vector2i(3, 5), {}), "Expected bridge fixed features to allow road placement")
+	_assert(not second_map.can_place_tile(Vector2i(3, 5), {}), "Expected bridge fixed features to already provide a road crossing")
+	_assert(second_map.get_fixed_feature_connections(Vector2i(3, 5))["north"] == true, "Expected level 002 bridges to connect across the river")
 	_assert(second_deck_controller.hand_size == 4, "Expected level 002 to configure a four-card hand")
 
 	quit()
