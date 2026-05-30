@@ -21,15 +21,20 @@ const ENCOUNTER_ENEMY := "enemy"
 const ENCOUNTER_BERRY_BUSH := "berry_bush"
 const ENCOUNTER_RUINS := "ruins"
 const ENCOUNTER_CACHE := "cache"
+const FEATURE_MOUNTAIN := "mountain"
+const FEATURE_RIVER := "river"
+const FEATURE_BRIDGE := "bridge"
 
 @export_range(1, 64, 1) var playable_width := 9:
 	set(value):
 		playable_width = value
+		_rebuild_fixed_feature_lookup()
 		queue_redraw()
 
 @export_range(1, 64, 1) var playable_height := 9:
 	set(value):
 		playable_height = value
+		_rebuild_fixed_feature_lookup()
 		queue_redraw()
 
 @export_range(16.0, 256.0, 1.0) var tile_size := 96.0:
@@ -37,11 +42,19 @@ const ENCOUNTER_CACHE := "cache"
 		tile_size = value
 		queue_redraw()
 
+@export var fixed_features: Array[Dictionary] = []:
+	set(value):
+		fixed_features = value
+		_rebuild_fixed_feature_lookup()
+		queue_redraw()
+
 var tiles: Dictionary = {}
+var _fixed_features_by_position: Dictionary = {}
 
 
 func _ready() -> void:
 	set_process_unhandled_input(true)
+	_rebuild_fixed_feature_lookup()
 	queue_redraw()
 
 
@@ -57,6 +70,9 @@ func _draw() -> void:
 			if (x + y) % 2 == 1:
 				tint = Color(0.64, 0.72, 0.53)
 			draw_rect(tile_rect, tint, true)
+
+	for feature in fixed_features:
+		_draw_fixed_feature(feature)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -85,6 +101,20 @@ func set_tile(grid_position: Vector2i, tile_data: Variant) -> bool:
 
 func clear_tile(grid_position: Vector2i) -> void:
 	tiles.erase(grid_position)
+
+
+func get_fixed_feature(grid_position: Vector2i) -> Dictionary:
+	var feature: Variant = _fixed_features_by_position.get(grid_position, {})
+	if feature is Dictionary:
+		return feature
+	return {}
+
+
+func can_build_on_fixed_feature(grid_position: Vector2i) -> bool:
+	var feature := get_fixed_feature(grid_position)
+	if feature.is_empty():
+		return true
+	return str(feature.get("type", "")) == FEATURE_BRIDGE
 
 
 func get_encounter(grid_position: Vector2i) -> Dictionary:
@@ -121,6 +151,8 @@ func can_place_tile(grid_position: Vector2i, connections: Dictionary = {}) -> bo
 		return false
 	if tiles.has(grid_position):
 		return false
+	if not can_build_on_fixed_feature(grid_position):
+		return false
 
 	for direction_name in DIRECTIONS:
 		var direction: Vector2i = DIRECTIONS.get(direction_name, Vector2i.ZERO) as Vector2i
@@ -132,6 +164,9 @@ func can_place_tile(grid_position: Vector2i, connections: Dictionary = {}) -> bo
 
 		if not is_inside_playable_area(neighbor_position):
 			continue
+
+		if opens_to_neighbor and not can_build_on_fixed_feature(neighbor_position):
+			return false
 
 		var neighbor_tile: Variant = get_tile(neighbor_position)
 		if neighbor_tile == null:
@@ -224,3 +259,72 @@ func _tile_has_opening(tile_data: Variant, direction_name: String) -> bool:
 		var connections: Dictionary = tile_data.get("connections", tile_data)
 		return connections.get(direction_name, false) == true
 	return false
+
+
+func _rebuild_fixed_feature_lookup() -> void:
+	_fixed_features_by_position.clear()
+	for feature in fixed_features:
+		var grid_position: Vector2i = feature.get("position", Vector2i(-1, -1))
+		if is_inside_playable_area(grid_position):
+			_fixed_features_by_position[grid_position] = feature
+
+
+func _draw_fixed_feature(feature: Dictionary) -> void:
+	var grid_position: Vector2i = feature.get("position", Vector2i(-1, -1))
+	if not is_inside_playable_area(grid_position):
+		return
+
+	var feature_type := str(feature.get("type", ""))
+	var tile_rect := Rect2(grid_to_world(grid_position) - Vector2.ONE * tile_size * 0.5, Vector2.ONE * tile_size).grow(-2.0)
+	if feature_type == FEATURE_MOUNTAIN:
+		_draw_mountain_feature(tile_rect)
+	elif feature_type == FEATURE_RIVER:
+		_draw_river_feature(tile_rect, int(feature.get("rotation_steps", 0)))
+	elif feature_type == FEATURE_BRIDGE:
+		_draw_river_feature(tile_rect, int(feature.get("rotation_steps", 0)))
+		_draw_bridge_feature(tile_rect, int(feature.get("rotation_steps", 0)))
+
+
+func _draw_mountain_feature(tile_rect: Rect2) -> void:
+	var base_y := tile_rect.position.y + tile_rect.size.y * 0.78
+	var peak := Vector2(tile_rect.get_center().x, tile_rect.position.y + tile_rect.size.y * 0.16)
+	var left := Vector2(tile_rect.position.x + tile_rect.size.x * 0.14, base_y)
+	var right := Vector2(tile_rect.end.x - tile_rect.size.x * 0.12, base_y)
+	draw_colored_polygon(PackedVector2Array([left, peak, right]), Color(0.42, 0.43, 0.39))
+	draw_colored_polygon(PackedVector2Array([
+		peak,
+		Vector2(tile_rect.get_center().x - tile_rect.size.x * 0.10, tile_rect.position.y + tile_rect.size.y * 0.38),
+		Vector2(tile_rect.get_center().x + tile_rect.size.x * 0.10, tile_rect.position.y + tile_rect.size.y * 0.38),
+	]), Color(0.82, 0.84, 0.78))
+	draw_line(left, peak, Color(0.25, 0.26, 0.24), 2.0)
+	draw_line(peak, right, Color(0.25, 0.26, 0.24), 2.0)
+
+
+func _draw_river_feature(tile_rect: Rect2, rotation_steps: int) -> void:
+	var horizontal := posmod(rotation_steps, 2) == 0
+	var water_color := Color(0.23, 0.48, 0.68)
+	var light_color := Color(0.52, 0.73, 0.83, 0.75)
+	if horizontal:
+		var river_rect := Rect2(Vector2(tile_rect.position.x, tile_rect.get_center().y - tile_rect.size.y * 0.18), Vector2(tile_rect.size.x, tile_rect.size.y * 0.36))
+		draw_rect(river_rect, water_color, true)
+		draw_line(river_rect.position + Vector2(0.0, river_rect.size.y * 0.32), river_rect.position + Vector2(river_rect.size.x, river_rect.size.y * 0.18), light_color, 2.0)
+	else:
+		var river_rect := Rect2(Vector2(tile_rect.get_center().x - tile_rect.size.x * 0.18, tile_rect.position.y), Vector2(tile_rect.size.x * 0.36, tile_rect.size.y))
+		draw_rect(river_rect, water_color, true)
+		draw_line(river_rect.position + Vector2(river_rect.size.x * 0.30, 0.0), river_rect.position + Vector2(river_rect.size.x * 0.18, river_rect.size.y), light_color, 2.0)
+
+
+func _draw_bridge_feature(tile_rect: Rect2, rotation_steps: int) -> void:
+	var horizontal_river := posmod(rotation_steps, 2) == 0
+	var plank_color := Color(0.55, 0.36, 0.18)
+	var edge_color := Color(0.27, 0.17, 0.08)
+	if horizontal_river:
+		var bridge_rect := Rect2(Vector2(tile_rect.get_center().x - tile_rect.size.x * 0.18, tile_rect.position.y + tile_rect.size.y * 0.12), Vector2(tile_rect.size.x * 0.36, tile_rect.size.y * 0.76))
+		draw_rect(bridge_rect, plank_color, true)
+		draw_rect(bridge_rect, edge_color, false, 2.0)
+		draw_line(Vector2(bridge_rect.position.x, bridge_rect.get_center().y), Vector2(bridge_rect.end.x, bridge_rect.get_center().y), edge_color, 1.5)
+	else:
+		var bridge_rect := Rect2(Vector2(tile_rect.position.x + tile_rect.size.x * 0.12, tile_rect.get_center().y - tile_rect.size.y * 0.18), Vector2(tile_rect.size.x * 0.76, tile_rect.size.y * 0.36))
+		draw_rect(bridge_rect, plank_color, true)
+		draw_rect(bridge_rect, edge_color, false, 2.0)
+		draw_line(Vector2(bridge_rect.get_center().x, bridge_rect.position.y), Vector2(bridge_rect.get_center().x, bridge_rect.end.y), edge_color, 1.5)

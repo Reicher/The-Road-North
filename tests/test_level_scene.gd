@@ -31,7 +31,10 @@ func run() -> void:
 	_assert(inventory != null, "Expected level scene to include InventoryUI")
 	_assert(inventory.get_index() > loot.get_index(), "Expected inventory to sit above loot for backpack interaction")
 	_assert(player.loot_ui_path == NodePath("../UI/Loot"), "Expected player to connect to LootUI")
-	_assert(map.playable_width == 9 and map.playable_height == 9, "Expected level 001 to configure a 9x9 map")
+	_assert(map.playable_width == 5 and map.playable_height == 5, "Expected level 001 to configure a 5x5 map")
+	_assert(map.fixed_features.size() == 1, "Expected level 001 to include one fixed mountain feature")
+	_assert(map.get_fixed_feature(Vector2i(2, 2))["type"] == GameMap.FEATURE_MOUNTAIN, "Expected level 001 mountain to sit in the map center")
+	_assert(not map.can_place_tile(Vector2i(2, 2), {}), "Expected level 001 fixed mountain to block road placement")
 	_assert(roads.seed_start_and_goal, "Expected level 001 to seed start and goal tiles")
 	_assert(roads.start_definition.get("visual_identity") == "house", "Expected start tile to use simple house visuals")
 	_assert(roads.goal_definition.get("visual_identity") == "house", "Expected goal tile to use simple house visuals")
@@ -53,6 +56,10 @@ func run() -> void:
 	var second_map := level_002.get_node("Map") as GameMap
 	var second_deck_controller := level_002.get_node("DeckController") as DeckController
 	_assert(second_map.playable_width == 11 and second_map.playable_height == 11, "Expected level 002 to configure an 11x11 map")
+	_assert(second_map.get_fixed_feature(Vector2i(5, 5))["type"] == GameMap.FEATURE_RIVER, "Expected level 002 to include a horizontal river")
+	_assert(second_map.get_fixed_feature(Vector2i(3, 5))["type"] == GameMap.FEATURE_BRIDGE, "Expected level 002 river to include bridge crossings")
+	_assert(not second_map.can_place_tile(Vector2i(5, 5), {}), "Expected river fixed features to block road placement")
+	_assert(second_map.can_place_tile(Vector2i(3, 5), {}), "Expected bridge fixed features to allow road placement")
 	_assert(second_deck_controller.hand_size == 4, "Expected level 002 to configure a four-card hand")
 
 	quit()

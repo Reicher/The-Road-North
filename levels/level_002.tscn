@@ -7,6 +7,40 @@
 [node name="Map" parent="." index="0"]
 playable_width = 11
 playable_height = 11
+fixed_features = [{
+"position": Vector2i(0, 5),
+"type": "river"
+}, {
+"position": Vector2i(1, 5),
+"type": "river"
+}, {
+"position": Vector2i(2, 5),
+"type": "river"
+}, {
+"position": Vector2i(3, 5),
+"type": "bridge"
+}, {
+"position": Vector2i(4, 5),
+"type": "river"
+}, {
+"position": Vector2i(5, 5),
+"type": "river"
+}, {
+"position": Vector2i(6, 5),
+"type": "river"
+}, {
+"position": Vector2i(7, 5),
+"type": "bridge"
+}, {
+"position": Vector2i(8, 5),
+"type": "river"
+}, {
+"position": Vector2i(9, 5),
+"type": "river"
+}, {
+"position": Vector2i(10, 5),
+"type": "river"
+}]
 
 [node name="Roads" parent="." index="1"]
 seed_start_and_goal = true

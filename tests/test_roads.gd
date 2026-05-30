@@ -32,6 +32,19 @@ func _initialize() -> void:
 	_assert(not roads.place_tile(Vector2i(5, 4), STRAIGHT, 1), "Expected invalid east/west mismatch to be rejected")
 	_assert(not roads.place_tile(Vector2i(0, 0), STRAIGHT, 0), "Expected road opening outside map to be rejected")
 	_assert(not roads.place_tile(Vector2i(4, 4), CORNER, 0), "Expected occupied tile placement to be rejected")
+	var fixed_features: Array[Dictionary] = [
+		{"position": Vector2i(6, 4), "type": GameMap.FEATURE_MOUNTAIN},
+		{"position": Vector2i(6, 5), "type": GameMap.FEATURE_RIVER},
+		{"position": Vector2i(6, 6), "type": GameMap.FEATURE_BRIDGE},
+		{"position": Vector2i(8, 6), "type": GameMap.FEATURE_BRIDGE},
+	]
+	map.fixed_features = fixed_features
+	_assert(map.get_fixed_feature(Vector2i(6, 4))["type"] == GameMap.FEATURE_MOUNTAIN, "Expected map to expose fixed world features by position")
+	_assert(not roads.place_tile(Vector2i(6, 4), STRAIGHT, 0), "Expected mountain fixed features to block road placement")
+	_assert(not roads.place_tile(Vector2i(5, 4), STRAIGHT, 1), "Expected roads pointing into mountains to be rejected")
+	_assert(not roads.place_tile(Vector2i(5, 5), STRAIGHT, 1), "Expected roads pointing into rivers to be rejected")
+	_assert(roads.place_tile(Vector2i(5, 6), STRAIGHT, 1), "Expected roads pointing into bridges to be allowed")
+	_assert(roads.place_tile(Vector2i(8, 6), STRAIGHT, 0), "Expected bridge fixed features to allow road placement")
 
 	roads.force_place_tile(Vector2i(4, 8), T_JUNCTION, 0)
 	roads.force_place_tile(Vector2i(4, 0), T_JUNCTION, 2)

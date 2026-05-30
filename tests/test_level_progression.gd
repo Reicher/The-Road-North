@@ -17,7 +17,7 @@ func run() -> void:
 	var first_player := first_level.get_node("Player") as GamePlayer
 	var first_screen := first_level.get_node("UI/GameOver") as GameOverUI
 	var first_hand := first_level.get_node("UI/Hand") as HandUI
-	_assert(first_map.playable_width == 9 and first_map.playable_height == 9, "Expected the game to start on the 9x9 level")
+	_assert(first_map.playable_width == 5 and first_map.playable_height == 5, "Expected the game to start on the 5x5 level")
 
 	first_player.grid_position = first_map.get_goal_position()
 	_assert(first_player.call("_check_run_won"), "Expected reaching the first goal to complete the level")
@@ -61,7 +61,7 @@ func run() -> void:
 	await process_frame
 
 	var restarted_map := main.get_node("Level/Map") as GameMap
-	_assert(restarted_map.playable_width == 9 and restarted_map.playable_height == 9, "Expected Restart game to return to the first level")
+	_assert(restarted_map.playable_width == 5 and restarted_map.playable_height == 5, "Expected Restart game to return to the first level")
 
 	quit()
 
