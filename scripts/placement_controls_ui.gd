@@ -76,8 +76,7 @@ func position_buttons(preview_position: Vector2i, map: GameMap, hand: HandUI) ->
 	var viewport_size := Vector2(_get_viewport_size().x, _get_map_screen_height(hand))
 	var preferred_position := Vector2.ZERO
 	if preview_position.x >= 0 and map != null:
-		var preview_world := map.grid_to_world(preview_position)
-		var canvas_position: Vector2 = map.get_global_transform_with_canvas() * preview_world
+		var canvas_position: Vector2 = map.grid_to_screen_position(preview_position)
 		preferred_position = canvas_position + Vector2(-controls_size.x * 0.5, map.tile_size * 0.56)
 	else:
 		preferred_position = Vector2((viewport_size.x - controls_size.x) * 0.5, viewport_size.y - controls_size.y - 8.0)

@@ -153,7 +153,7 @@ func _refresh_text() -> void:
 
 func _refresh_focus() -> void:
 	if _use_button != null:
-		_use_button.visible = focused
+		_use_button.visible = false
 	queue_redraw()
 
 

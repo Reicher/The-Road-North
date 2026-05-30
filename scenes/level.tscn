@@ -13,13 +13,13 @@
 [ext_resource type="PackedScene" path="res://ui/inventory.tscn" id="10_x63lj"]
 [ext_resource type="PackedScene" path="res://ui/loot.tscn" id="11_xw4gv"]
 
-[node name="Level" type="Node2D"]
+[node name="Level" type="Node"]
 script = ExtResource("1_y88x2")
 
-[node name="Map" type="Node2D" parent="."]
+[node name="Map" type="Node3D" parent="."]
 script = ExtResource("1_1fs71")
 
-[node name="Roads" type="Node2D" parent="."]
+[node name="Roads" type="Node3D" parent="."]
 script = ExtResource("5_6it63")
 map_path = NodePath("../Map")
 
@@ -35,12 +35,17 @@ player_path = NodePath("../Player")
 hand_path = NodePath("../UI/Hand")
 deck_controller_path = NodePath("../DeckController")
 
-[node name="Camera2D" type="Camera2D" parent="."]
-enabled = true
+[node name="Camera3D" type="Camera3D" parent="."]
+current = true
 script = ExtResource("4_tbxl1")
 map_path = NodePath("../Map")
 player_path = NodePath("../Player")
 reserved_bottom_path = NodePath("../UI/Hand")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707107, -0.353553, 0.612372, 0, 0.866025, 0.5, -0.707107, -0.353553, 0.612372, 0, 0, 0)
+light_energy = 1.6
+shadow_enabled = true
 
 [node name="UI" type="CanvasLayer" parent="."]
 

@@ -1,5 +1,5 @@
 class_name Roads
-extends Node2D
+extends Node3D
 
 @export var map_path: NodePath
 @export var tile_scene: PackedScene = preload("res://scenes/tile.tscn")

@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/tile.gd" id="1_5r51w"]
 [ext_resource type="PackedScene" path="res://scenes/enemy.tscn" id="2_wlsmy"]
 
-[node name="Tile" type="Node2D"]
+[node name="Tile" type="Node3D"]
 script = ExtResource("1_5r51w")
 
 [node name="Enemy" parent="." instance=ExtResource("2_wlsmy")]

@@ -14,7 +14,7 @@ The game should feel readable, tactile, strategic, and pleasant to interact with
 
 ## Visual Style and Perspective
 
-The game should be viewed from a slightly elevated angled perspective, roughly 45 degrees above the ground.
+The game map should be viewed from a slightly elevated angled 3D perspective, roughly 45 degrees above the ground.
 
 However, the gameplay grid itself should remain a normal square grid. Tiles should not use isometric diamonds or rotated coordinate systems. Movement and placement logic should still operate on a clean orthogonal grid with north/south/east/west adjacency.
 
@@ -22,11 +22,19 @@ Visually, this means:
 - square gameplay coordinates
 - square tile logic
 - non-isometric gameplay rules
-- but rendered from an angled camera perspective
+- but rendered with a simple angled 3D camera
 
 The overall feel should resemble a simple stylized tabletop adventure map viewed from slightly above and at an angle.
 
-The game is fully 2D. All rendering uses perfectly square 2D sprites and assets drawn to suggest this angled perspective.
+Menus, cards, stats, loot, inventory, and placement controls remain 2D UI.
+
+The map itself is rendered in simple real 3D using primitive low-detail shapes:
+- empty tiles are flat grass surfaces with a few small trees
+- road tiles are flat grass surfaces with raised road geometry and a few trees placed away from the road
+- player and enemies are simple readable 3D pawns
+- start and goal use simple 3D landmark shapes
+
+The 3D presentation must not change any placement, movement, deck, encounter, or win/loss rules.
 
 ---
 

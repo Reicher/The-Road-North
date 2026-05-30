@@ -1,4 +1,4 @@
-extends Camera2D
+extends Camera3D
 
 @export var map_path: NodePath
 @export var player_path: NodePath
@@ -8,23 +8,26 @@ extends Camera2D
 @export_range(0.0, 10.0, 0.1) var start_zoom_hold_duration := 2.0
 @export_range(0.0, 5.0, 0.05) var start_zoom_duration := 0.85
 @export_range(0.0, 2.0, 0.01) var move_focus_duration := 0.18
-@export var zoom_step := 0.1
+@export var zoom_step := 0.10
+@export_range(20.0, 80.0, 1.0) var camera_angle_degrees := 52.0
 
-var _map: Node
-var _player: Node2D
+var _map: GameMap
+var _player: Node3D
 var _reserved_bottom_control: Control
 var _touch_points: Dictionary = {}
 var _last_pinch_distance := 0.0
 var _last_pinch_center := Vector2.ZERO
+var _target_xz := Vector2.ZERO
 var _start_zoom_tween: Tween
 var _move_focus_tween: Tween
 
 
 func _ready() -> void:
-	_map = get_node_or_null(map_path)
-	_player = get_node_or_null(player_path) as Node2D
+	_map = get_node_or_null(map_path) as GameMap
+	_player = get_node_or_null(player_path) as Node3D
 	_reserved_bottom_control = get_node_or_null(reserved_bottom_path) as Control
-	anchor_mode = Camera2D.ANCHOR_MODE_DRAG_CENTER
+	projection = Camera3D.PROJECTION_ORTHOGONAL
+	current = true
 	get_viewport().size_changed.connect(_refresh_limits)
 	if _reserved_bottom_control != null:
 		_reserved_bottom_control.resized.connect(_refresh_limits)
@@ -32,9 +35,10 @@ func _ready() -> void:
 	if _player != null and _player.has_signal("moved") and not _player.is_connected("moved", moved_callback):
 		_player.connect("moved", moved_callback)
 	if _map != null:
-		zoom = Vector2.ONE * _get_zoom_out_limit()
-		position = _get_full_map_position()
-		_clamp_position()
+		size = _get_zoom_out_limit()
+		_target_xz = _world_to_xz(_get_full_map_position())
+		_clamp_target()
+		_apply_camera_transform()
 		_play_start_zoom_sequence()
 
 
@@ -52,8 +56,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE) != 0:
-		position -= event.relative / zoom
-		_clamp_position()
+		_pan_by_screen_delta(event.relative)
 	elif event is InputEventScreenTouch:
 		_handle_screen_touch(event)
 	elif event is InputEventScreenDrag:
@@ -67,29 +70,25 @@ func _handle_scroll_zoom(event: InputEvent) -> bool:
 		return false
 
 	if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-		_apply_zoom(zoom.x + zoom_step, get_global_mouse_position())
+		_apply_zoom(size * (1.0 - zoom_step), event.position)
 		return true
 	if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-		_apply_zoom(zoom.x - zoom_step, get_global_mouse_position())
+		_apply_zoom(size * (1.0 + zoom_step), event.position)
 		return true
-
 	return false
 
 
 func _handle_trackpad_zoom(event: InputEvent) -> bool:
 	if _map == null or not (event is InputEventMagnifyGesture):
 		return false
-
-	_apply_zoom(zoom.x * event.factor, get_global_mouse_position())
+	_apply_zoom(size / maxf(event.factor, 0.01), get_viewport().get_mouse_position())
 	return true
 
 
 func _handle_trackpad_pan(event: InputEvent) -> bool:
 	if _map == null or not (event is InputEventPanGesture):
 		return false
-
-	position -= event.delta / zoom
-	_clamp_position()
+	_pan_by_screen_delta(event.delta)
 	return true
 
 
@@ -114,139 +113,146 @@ func _handle_screen_drag(event: InputEventScreenDrag) -> void:
 
 	var center: Vector2 = _get_touch_center()
 	var distance: float = _get_touch_distance()
-	position -= (center - _last_pinch_center) / zoom
+	_pan_by_screen_delta(_last_pinch_center - center)
 
 	if _last_pinch_distance > 0.0 and distance > 0.0:
-		_apply_zoom(zoom.x * distance / _last_pinch_distance, get_screen_center_position())
+		_apply_zoom(size * _last_pinch_distance / distance, center)
 
 	_last_pinch_center = center
 	_last_pinch_distance = distance
-	_clamp_position()
 
 
 func _refresh_limits() -> void:
 	if _map == null:
 		return
-
-	var padded_rect: Rect2 = _map.get_padded_world_rect()
-	limit_left = floori(padded_rect.position.x)
-	limit_top = floori(padded_rect.position.y)
-	limit_right = ceili(padded_rect.end.x)
-	limit_bottom = ceili(padded_rect.end.y)
-	zoom = Vector2.ONE * clampf(zoom.x, _get_zoom_out_limit(), _get_zoom_in_limit())
-	_clamp_position()
+	size = clampf(size, _get_zoom_in_limit(), _get_zoom_out_limit())
+	_clamp_target()
+	_apply_camera_transform()
 
 
-func _apply_zoom(target_zoom: float, world_anchor: Vector2) -> void:
-	var previous_zoom: float = zoom.x
-	var next_zoom: float = clampf(target_zoom, _get_zoom_out_limit(), _get_zoom_in_limit())
-	if is_equal_approx(previous_zoom, next_zoom):
-		return
+func _apply_zoom(target_size: float, screen_anchor: Vector2) -> void:
+	var previous_world := _screen_to_ground(screen_anchor)
+	size = clampf(target_size, _get_zoom_in_limit(), _get_zoom_out_limit())
+	_apply_camera_transform()
+	var next_world := _screen_to_ground(screen_anchor)
+	if previous_world != Vector3.INF and next_world != Vector3.INF:
+		var delta := previous_world - next_world
+		_target_xz += Vector2(delta.x, delta.z)
+	_clamp_target()
+	_apply_camera_transform()
 
-	zoom = Vector2.ONE * next_zoom
-	position = world_anchor + (position - world_anchor) * previous_zoom / next_zoom
-	_clamp_position()
+
+func _pan_by_screen_delta(delta: Vector2) -> void:
+	var viewport_size := _get_map_viewport_size()
+	var world_per_pixel := size / maxf(viewport_size.y, 1.0)
+	var right := global_transform.basis.x
+	var up := global_transform.basis.y
+	var right_xz := Vector2(right.x, right.z).normalized()
+	var up_xz := Vector2(up.x, up.z).normalized()
+	_target_xz -= right_xz * delta.x * world_per_pixel
+	_target_xz += up_xz * delta.y * world_per_pixel
+	_clamp_target()
+	_apply_camera_transform()
 
 
-func _clamp_position() -> void:
+func _clamp_target() -> void:
 	if _map == null:
 		return
+	var rect := _map.get_padded_world_rect()
+	var viewport_size := _get_map_viewport_size()
+	var aspect := viewport_size.x / maxf(viewport_size.y, 1.0)
+	var half_height := size * 0.5
+	var half_width := half_height * aspect
+	var min_x := rect.position.x + half_width
+	var max_x := rect.end.x - half_width
+	var min_z := rect.position.y + half_height
+	var max_z := rect.end.y - half_height
 
-	var padded_rect: Rect2 = _map.get_padded_world_rect()
-	var visible_size: Vector2 = _get_map_viewport_size() / zoom
-	var half_visible_size: Vector2 = visible_size * 0.5
-	var min_position: Vector2 = padded_rect.position + half_visible_size
-	var max_position: Vector2 = padded_rect.end - half_visible_size
-	var map_area_center := position - _get_map_area_center_offset()
+	_target_xz.x = rect.get_center().x if min_x > max_x else clampf(_target_xz.x, min_x, max_x)
+	_target_xz.y = rect.get_center().y if min_z > max_z else clampf(_target_xz.y, min_z, max_z)
 
-	if min_position.x > max_position.x:
-		map_area_center.x = padded_rect.get_center().x
-	else:
-		map_area_center.x = clampf(map_area_center.x, min_position.x, max_position.x)
 
-	if min_position.y > max_position.y:
-		map_area_center.y = padded_rect.get_center().y
-	else:
-		map_area_center.y = clampf(map_area_center.y, min_position.y, max_position.y)
-
-	position = map_area_center + _get_map_area_center_offset()
+func _apply_camera_transform() -> void:
+	var angle := deg_to_rad(camera_angle_degrees)
+	var distance := maxf(_map.tile_size * 7.0 if _map != null else 700.0, size * 1.8)
+	var target := Vector3(_target_xz.x, 0.0, _target_xz.y)
+	var offset := Vector3(0.0, sin(angle) * distance, cos(angle) * distance)
+	global_position = target + offset
+	look_at(target, Vector3.UP)
 
 
 func _get_zoom_out_limit() -> float:
 	if _map == null:
-		return 1.0
-
-	var viewport_size: Vector2 = _get_map_viewport_size()
-	var padded_size: Vector2 = _map.get_padded_world_rect().size
-	return maxf(viewport_size.x / padded_size.x, viewport_size.y / padded_size.y)
+		return 640.0
+	var viewport_size := _get_map_viewport_size()
+	var aspect := viewport_size.x / maxf(viewport_size.y, 1.0)
+	var padded_size := _map.get_padded_world_rect().size
+	return maxf(padded_size.y, padded_size.x / maxf(aspect, 0.01))
 
 
 func _get_zoom_in_limit() -> float:
-	return maxf(_get_zoom_for_visible_tile_width(zoom_in_visible_tile_width), _get_zoom_out_limit())
+	if _map == null:
+		return 240.0
+	var viewport_size := _get_map_viewport_size()
+	var aspect := viewport_size.x / maxf(viewport_size.y, 1.0)
+	return maxf(_map.tile_size * zoom_in_visible_tile_width / maxf(aspect, 0.01), _map.tile_size * 1.2)
 
 
 func _get_initial_zoom_target() -> float:
-	return _get_zoom_for_visible_tile_width(initial_visible_tile_width)
-
-
-func _get_zoom_for_visible_tile_width(visible_tile_width: float) -> float:
 	if _map == null:
-		return 1.0
+		return size
+	var viewport_size := _get_map_viewport_size()
+	var aspect := viewport_size.x / maxf(viewport_size.y, 1.0)
+	return clampf(_map.tile_size * initial_visible_tile_width / maxf(aspect, 0.01), _get_zoom_in_limit(), _get_zoom_out_limit())
 
-	var viewport_width: float = _get_map_viewport_size().x
-	var tile_width: float = maxf(_map.tile_size * maxf(visible_tile_width, 1.0), 1.0)
-	return viewport_width / tile_width
 
-
-func _get_full_map_position() -> Vector2:
+func _get_full_map_position() -> Vector3:
 	if _map == null:
-		return Vector2.ZERO
+		return Vector3.ZERO
+	var center := _map.get_padded_world_rect().get_center()
+	return Vector3(center.x, 0.0, center.y)
 
-	return _map.get_padded_world_rect().get_center() + _get_map_area_center_offset()
 
-
-func _get_player_tile_position() -> Vector2:
+func _get_player_tile_position() -> Vector3:
 	if _map == null:
-		return Vector2.ZERO
+		return Vector3.ZERO
 	if _player != null:
 		var player_grid_position: Variant = _player.get("grid_position")
 		if player_grid_position is Vector2i:
 			return _map.grid_to_world(player_grid_position)
 		return _player.global_position
-	if _map.has_method("get_start_position"):
-		return _map.grid_to_world(_map.get_start_position())
-	return _map.get_padded_world_rect().get_center()
+	return _map.grid_to_world(_map.get_start_position())
 
 
 func _play_start_zoom_sequence() -> void:
 	if _start_zoom_tween != null:
 		_start_zoom_tween.kill()
 
-	zoom = Vector2.ONE * _get_zoom_out_limit()
-	position = _get_full_map_position()
-	_clamp_position()
+	size = _get_zoom_out_limit()
+	_target_xz = _world_to_xz(_get_full_map_position())
+	_clamp_target()
+	_apply_camera_transform()
 
 	await get_tree().create_timer(start_zoom_hold_duration).timeout
 	if _map == null or not is_inside_tree():
 		return
 
-	zoom = Vector2.ONE * _get_zoom_in_limit()
-	position = _get_player_tile_position()
-	_clamp_position()
-	var target_zoom := zoom
-	var target_position := position
-
-	zoom = Vector2.ONE * _get_zoom_out_limit()
-	position = _get_full_map_position()
-	_clamp_position()
+	var target_size := _get_initial_zoom_target()
+	var target_xz := _world_to_xz(_get_player_tile_position())
+	var start_size := size
+	var start_xz := _target_xz
+	var t := 0.0
 
 	_start_zoom_tween = create_tween()
 	_start_zoom_tween.set_trans(Tween.TRANS_SINE)
 	_start_zoom_tween.set_ease(Tween.EASE_IN_OUT)
-	_start_zoom_tween.set_parallel(true)
-	_start_zoom_tween.tween_property(self, "zoom", target_zoom, start_zoom_duration)
-	_start_zoom_tween.tween_property(self, "position", target_position, start_zoom_duration)
-	_start_zoom_tween.chain().tween_callback(_clamp_position)
+	_start_zoom_tween.tween_method(func(value: float) -> void:
+		t = value
+		size = lerpf(start_size, target_size, t)
+		_target_xz = start_xz.lerp(target_xz, t)
+		_clamp_target()
+		_apply_camera_transform()
+	, 0.0, 1.0, start_zoom_duration)
 
 
 func _on_player_moved(grid_position: Vector2i) -> void:
@@ -259,29 +265,49 @@ func _focus_on_grid_position(grid_position: Vector2i) -> void:
 	if _move_focus_tween != null:
 		_move_focus_tween.kill()
 
-	var target_position := _get_clamped_camera_position_for_world_position(_map.grid_to_world(grid_position))
+	var target_xz := _get_clamped_target_for_world_position(_map.grid_to_world(grid_position))
 	if move_focus_duration <= 0.0:
-		position = target_position
+		_target_xz = target_xz
+		_apply_camera_transform()
 		return
 
+	var start_xz := _target_xz
 	_move_focus_tween = create_tween()
 	_move_focus_tween.set_trans(Tween.TRANS_SINE)
 	_move_focus_tween.set_ease(Tween.EASE_OUT)
-	_move_focus_tween.tween_property(self, "position", target_position, move_focus_duration)
-	_move_focus_tween.tween_callback(_clamp_position)
+	_move_focus_tween.tween_method(func(value: float) -> void:
+		_target_xz = start_xz.lerp(target_xz, value)
+		_clamp_target()
+		_apply_camera_transform()
+	, 0.0, 1.0, move_focus_duration)
 
 
-func _get_clamped_camera_position_for_world_position(world_position: Vector2) -> Vector2:
-	var previous_position := position
-	position = world_position
-	_clamp_position()
-	var clamped_position := position
-	position = previous_position
-	return clamped_position
+func _get_clamped_target_for_world_position(world_position: Vector3) -> Vector2:
+	var previous := _target_xz
+	_target_xz = _world_to_xz(world_position)
+	_clamp_target()
+	var clamped := _target_xz
+	_target_xz = previous
+	return clamped
+
+
+func _screen_to_ground(screen_position: Vector2) -> Vector3:
+	var origin := project_ray_origin(screen_position)
+	var direction := project_ray_normal(screen_position)
+	if is_zero_approx(direction.y):
+		return Vector3.INF
+	var distance := -origin.y / direction.y
+	if distance < 0.0:
+		return Vector3.INF
+	return origin + direction * distance
+
+
+func _world_to_xz(world_position: Vector3) -> Vector2:
+	return Vector2(world_position.x, world_position.z)
 
 
 func _get_map_viewport_size() -> Vector2:
-	var viewport_size: Vector2 = get_viewport_rect().size
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	viewport_size.y = maxf(1.0, viewport_size.y - _get_reserved_bottom_height())
 	return viewport_size
 
@@ -290,10 +316,6 @@ func _get_reserved_bottom_height() -> float:
 	if _reserved_bottom_control == null:
 		return 0.0
 	return maxf(0.0, _reserved_bottom_control.size.y)
-
-
-func _get_map_area_center_offset() -> Vector2:
-	return Vector2(0.0, _get_reserved_bottom_height() * 0.5 / maxf(zoom.x, 0.001))
 
 
 func _is_in_map_screen_area(screen_position: Vector2) -> bool:

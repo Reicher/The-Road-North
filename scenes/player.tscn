@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://scripts/player_rewards.gd" id="2_bbaf7"]
 [ext_resource type="Script" path="res://scripts/player_combat.gd" id="3_t52em"]
 
-[node name="Player" type="Node2D"]
+[node name="Player" type="Node3D"]
 script = ExtResource("1_x4v0h")
 
 [node name="Rewards" type="Node" parent="."]

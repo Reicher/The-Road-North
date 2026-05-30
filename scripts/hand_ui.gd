@@ -19,6 +19,9 @@ signal card_use_requested(card: CardView)
 @export var minimum_spacing := 48.0
 @export var focused_side_shift := 30.0
 @export var layout_duration := 0.14
+@export var use_button_size := Vector2(88.0, 34.0)
+@export var use_button_gap := 8.0
+@export var use_button_bottom_margin := 8.0
 
 var cards: Array[CardView] = []
 var focused_index := -1
@@ -26,6 +29,7 @@ var focused_index := -1
 var _layout_tween: Tween
 var _ready_completed := false
 var _card_parent: Control
+var _use_button: Button
 
 
 func _ready() -> void:
@@ -34,6 +38,7 @@ func _ready() -> void:
 	_ready_completed = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_resolve_card_parent()
+	_resolve_use_button()
 	resized.connect(_on_resized)
 	if demo_cards_enabled and cards.is_empty():
 		set_cards(_make_demo_cards())
@@ -69,6 +74,7 @@ func set_cards(card_data_list: Array) -> void:
 
 func add_card(card_data: Dictionary, animate := true) -> CardView:
 	_resolve_card_parent()
+	_resolve_use_button()
 	var card := card_scene.instantiate() as CardView
 	card.custom_minimum_size = card_size
 	card.size = card_size
@@ -145,6 +151,7 @@ func _layout_cards(animated := true) -> void:
 		_layout_tween = null
 
 	if cards.is_empty():
+		_layout_use_button(false)
 		return
 
 	var spacing := get_card_spacing()
@@ -152,6 +159,8 @@ func _layout_cards(animated := true) -> void:
 	var hand_width := card_size.x + spacing * float(count - 1)
 	var start_x := (_available_width() - hand_width) * 0.5
 	var base_y := _available_height() - card_size.y - bottom_margin
+	var focused_card_position := Vector2.ZERO
+	var focused_card_scale := Vector2.ONE
 
 	if animated and layout_duration > 0.0:
 		_layout_tween = create_tween()
@@ -169,6 +178,8 @@ func _layout_cards(animated := true) -> void:
 			target_position += Vector2.UP.rotated(target_rotation) * card_size.y * focused_lift_ratio
 			target_scale = Vector2.ONE * focused_scale
 			target_z = 100
+			focused_card_position = target_position
+			focused_card_scale = target_scale
 		elif focused_index != -1:
 			var direction := signf(float(index - focused_index))
 			var distance_from_focus := absf(float(index - focused_index))
@@ -184,6 +195,8 @@ func _layout_cards(animated := true) -> void:
 			card.rotation = target_rotation
 			card.scale = target_scale
 
+	_layout_use_button(animated, focused_card_position, focused_card_scale)
+
 
 func _on_card_focus_requested(card: CardView) -> void:
 	if card == get_focused_card():
@@ -194,6 +207,13 @@ func _on_card_focus_requested(card: CardView) -> void:
 
 func _on_card_use_requested(card: CardView) -> void:
 	if card != get_focused_card():
+		return
+	card_use_requested.emit(card)
+
+
+func _on_use_button_pressed() -> void:
+	var card := get_focused_card()
+	if card == null:
 		return
 	card_use_requested.emit(card)
 
@@ -231,6 +251,50 @@ func _resolve_card_parent() -> void:
 	if _card_parent == null:
 		_card_parent = self
 		return
+
+
+func _resolve_use_button() -> void:
+	if _use_button != null:
+		return
+
+	_use_button = get_node_or_null("UseButton") as Button
+	if _use_button == null:
+		_use_button = Button.new()
+		_use_button.name = "UseButton"
+		add_child(_use_button)
+
+	_use_button.text = "Use"
+	_use_button.focus_mode = Control.FOCUS_NONE
+	_use_button.custom_minimum_size = use_button_size
+	_use_button.size = use_button_size
+	_use_button.visible = false
+	_use_button.z_index = 200
+	if not _use_button.pressed.is_connected(_on_use_button_pressed):
+		_use_button.pressed.connect(_on_use_button_pressed)
+
+
+func _layout_use_button(animated := true, focused_card_position := Vector2.ZERO, focused_card_scale := Vector2.ONE) -> void:
+	_resolve_use_button()
+	if focused_index == -1:
+		_use_button.visible = false
+		return
+
+	_use_button.visible = true
+	_use_button.size = use_button_size
+	var scaled_card_size := card_size * focused_card_scale
+	var card_center_x := focused_card_position.x + card_size.x * 0.5
+	var card_bottom_y := focused_card_position.y + card_size.y * 0.5 + scaled_card_size.y * 0.5
+	var target_position := Vector2(
+		card_center_x - use_button_size.x * 0.5,
+		card_bottom_y + use_button_gap
+	)
+	target_position.x = clampf(target_position.x, 0.0, maxf(0.0, _available_width() - use_button_size.x))
+	target_position.y = clampf(target_position.y, 0.0, maxf(0.0, _available_height() - use_button_bottom_margin - use_button_size.y))
+
+	if animated and layout_duration > 0.0 and _layout_tween != null:
+		_layout_tween.tween_property(_use_button, "position", target_position, layout_duration)
+	else:
+		_use_button.position = target_position
 
 
 func _make_demo_cards() -> Array[Dictionary]:

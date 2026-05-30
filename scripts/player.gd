@@ -1,5 +1,5 @@
 class_name GamePlayer
-extends Node2D
+extends Node3D
 
 const PLAYER_REWARDS_SCRIPT := preload("res://scripts/player_rewards.gd")
 const PLAYER_COMBAT_SCRIPT := preload("res://scripts/player_combat.gd")
@@ -50,6 +50,7 @@ var _move_target := Vector2i.ZERO
 var _combat_running := false
 var _game_over := false
 var _run_won := false
+var _visual_root: Node3D
 
 
 func _ready() -> void:
@@ -62,6 +63,7 @@ func _ready() -> void:
 	_rewards.setup(self, _inventory, _loot_ui, _map)
 	_combat = _get_or_create_combat()
 	_combat.setup(self, _map)
+	_ensure_visuals()
 
 	if _map == null:
 		push_warning("Player needs a GameMap at map_path.")
@@ -81,18 +83,7 @@ func _ready() -> void:
 	if not _map.tile_pressed.is_connected(_on_tile_pressed):
 		_map.tile_pressed.connect(_on_tile_pressed)
 
-	queue_redraw()
-
-
-func _draw() -> void:
-	var tile_size := 64.0
-	if _map != null:
-		tile_size = _map.tile_size
-
-	var radius := tile_size * 0.18
-	draw_circle(Vector2(0.0, radius * 0.55), radius * 0.9, pawn_shadow_color)
-	draw_circle(Vector2.ZERO, radius, pawn_color)
-	draw_circle(Vector2(0.0, -radius * 0.38), radius * 0.42, pawn_color.lightened(0.18))
+	_rebuild_visuals()
 
 
 func can_move_to(target_position: Vector2i) -> bool:
@@ -185,6 +176,64 @@ func add_gold(amount: int) -> void:
 
 func _get_default_starting_food() -> int:
 	return maxi(1, roundi(float(_map.playable_width * _map.playable_height) / DEFAULT_FOOD_MAP_AREA_DIVISOR))
+
+
+func _ensure_visuals() -> void:
+	if _visual_root != null:
+		return
+	_visual_root = Node3D.new()
+	_visual_root.name = "Visuals"
+	add_child(_visual_root)
+
+
+func _rebuild_visuals() -> void:
+	if _visual_root == null or _map == null:
+		return
+	for child in _visual_root.get_children():
+		child.queue_free()
+
+	var tile_size := _map.tile_size
+	var radius := tile_size * 0.16
+	_add_cylinder("Shadow", radius * 1.05, tile_size * 0.025, Vector3(0.0, tile_size * 0.012, 0.0), pawn_shadow_color)
+	_add_sphere("Body", radius, Vector3(0.0, tile_size * 0.20, 0.0), pawn_color)
+	_add_sphere("Head", radius * 0.62, Vector3(0.0, tile_size * 0.42, -tile_size * 0.02), pawn_color.lightened(0.18))
+
+
+func _add_cylinder(node_name: String, radius: float, height: float, local_position: Vector3, color: Color) -> void:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = height
+	mesh.radial_segments = 16
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	instance.mesh = mesh
+	instance.position = local_position
+	instance.material_override = _make_material(color)
+	_visual_root.add_child(instance)
+
+
+func _add_sphere(node_name: String, radius: float, local_position: Vector3, color: Color) -> void:
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	mesh.radial_segments = 16
+	mesh.rings = 8
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	instance.mesh = mesh
+	instance.position = local_position
+	instance.material_override = _make_material(color)
+	_visual_root.add_child(instance)
+
+
+func _make_material(color: Color) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = color
+	material.roughness = 0.82
+	if color.a < 1.0:
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	return material
 
 
 func _on_tile_pressed(target_position: Vector2i) -> void:
@@ -283,7 +332,7 @@ func _clear_visual_encounter_data(target_position: Vector2i) -> void:
 	var visual_tile := _find_visual_tile(target_position)
 	if visual_tile != null:
 		visual_tile.set_encounter_data({})
-		visual_tile.enemy_offset = Vector2.ZERO
+		visual_tile.enemy_offset = Vector3.ZERO
 
 
 func _find_visual_tile(target_position: Vector2i) -> RoadTile:

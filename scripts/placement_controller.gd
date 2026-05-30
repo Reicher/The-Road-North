@@ -1,5 +1,5 @@
 class_name PlacementController
-extends Node2D
+extends Node3D
 
 signal placement_started(card: CardView)
 signal placement_cancelled(card: CardView)
@@ -17,20 +17,39 @@ const MODE_DESTROY_TARGETING := "destroy_targeting"
 const MODE_ROTATE_TARGETING := "rotate_targeting"
 
 
-class PlacementHint extends Node2D:
+class PlacementHint extends Node3D:
 	var tile_size := 96.0:
 		set(value):
 			tile_size = value
-			queue_redraw()
+			_rebuild()
 	var hint_color := PLACEMENT_HINT_COLOR:
 		set(value):
 			hint_color = value
-			queue_redraw()
+			_rebuild()
+	var _visual: MeshInstance3D
 
-	func _draw() -> void:
-		var radius := tile_size * 0.17
-		draw_circle(Vector2.ZERO, radius, hint_color)
-		draw_arc(Vector2.ZERO, radius + 4.0, 0.0, TAU, 32, hint_color.lightened(0.35), 3.0)
+	func _ready() -> void:
+		_rebuild()
+
+	func _rebuild() -> void:
+		if not is_inside_tree():
+			return
+		if _visual != null:
+			_visual.queue_free()
+		var mesh := CylinderMesh.new()
+		mesh.top_radius = tile_size * 0.17
+		mesh.bottom_radius = tile_size * 0.17
+		mesh.height = tile_size * 0.025
+		mesh.radial_segments = 24
+		_visual = MeshInstance3D.new()
+		_visual.name = "Hint"
+		_visual.mesh = mesh
+		_visual.position = Vector3(0.0, tile_size * 0.05, 0.0)
+		var material := StandardMaterial3D.new()
+		material.albedo_color = hint_color
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_visual.material_override = material
+		add_child(_visual)
 
 @export var map_path: NodePath
 @export var roads_path: NodePath
@@ -100,11 +119,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and event.double_click:
-		if _map.world_to_grid(get_global_mouse_position()) == preview_position:
+		if _map.screen_to_grid(event.position) == preview_position:
 			rotate_preview()
 	elif event is InputEventScreenTouch and event.pressed and event.double_tap:
-		var world_position: Vector2 = _map.get_global_transform_with_canvas().affine_inverse() * event.position
-		if _map.world_to_grid(world_position) == preview_position:
+		if _map.screen_to_grid(event.position) == preview_position:
 			rotate_preview()
 
 
