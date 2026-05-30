@@ -82,6 +82,12 @@ func run() -> void:
 	player.post_combat_loot_delay = 0.05
 	root.add_child(player)
 	player._ready()
+	player.move_started.connect(func(_target_position: Vector2i) -> void:
+		player.input_enabled = false
+	)
+	player.moved.connect(func(_grid_position: Vector2i) -> void:
+		player.input_enabled = true
+	)
 
 	_assert(player.can_move_to(Vector2i(3, 8)), "Expected dangerous enemy road tiles to remain reachable")
 
@@ -120,6 +126,9 @@ func run() -> void:
 	_assert(player.food == 3, "Expected enemy food loot to add a small amount after movement food is spent")
 	_assert(player.gold == 1, "Expected enemy gold loot to add a small amount to the gold counter")
 	_assert(inventory.get_active_items().size() == 2, "Expected enemy item loot to move into one backpack slot")
+	_assert(player.input_enabled, "Expected player input to resume after enemy combat movement")
+	_assert(player.move_to(Vector2i(4, 8)), "Expected player to backtrack after enemy combat")
+	_assert(player.grid_position == Vector2i(4, 8), "Expected enemy combat backtracking to move onto the connected start road")
 
 	quit()
 

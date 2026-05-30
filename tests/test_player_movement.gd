@@ -32,7 +32,7 @@ func _initialize() -> void:
 	player.map_path = NodePath("../Map")
 	player.health_label_path = NodePath("../HealthLabel")
 	player.start_position = Vector2i(4, 8)
-	player.starting_food = 3
+	player.starting_food = 5
 	player.move_duration = 0.0
 	root.add_child(player)
 	player._ready()
@@ -41,14 +41,19 @@ func _initialize() -> void:
 	roads.force_place_tile(Vector2i(4, 7), STRAIGHT, 0)
 
 	_assert(player.grid_position == Vector2i(4, 8), "Expected player to start at the requested grid position")
-	_assert(player.food == 3, "Expected player to start with configured food")
+	_assert(player.food == 5, "Expected player to start with configured food")
 	_assert(player.health == 3, "Expected player to start with default health")
 	_assert(health_label.text == "Health: 3", "Expected health label to show default health")
 
 	_assert(player.move_to(Vector2i(4, 7)), "Expected player to move north onto connected road")
 	_assert(player.grid_position == Vector2i(4, 7), "Expected player grid position to update after movement")
-	_assert(player.food == 2, "Expected valid movement to consume one food")
+	_assert(player.food == 4, "Expected valid movement to consume one food")
 	_assert(player.health == 3, "Expected movement not to change health")
+	_assert(player.move_to(Vector2i(4, 8)), "Expected player to backtrack south onto the connected start road")
+	_assert(player.grid_position == Vector2i(4, 8), "Expected backtracking to update player grid position")
+	_assert(player.food == 3, "Expected backtracking to consume one food")
+	_assert(player.move_to(Vector2i(4, 7)), "Expected player to move north again after backtracking")
+	_assert(player.food == 2, "Expected repeated valid movement to keep consuming food")
 
 	_assert(roads.place_tile(Vector2i(4, 6), CORNER, 1, {
 		"type": GameMap.ENCOUNTER_BERRY_BUSH,

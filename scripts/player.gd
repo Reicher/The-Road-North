@@ -115,6 +115,7 @@ func move_to(target_position: Vector2i) -> bool:
 		move_blocked.emit(target_position, "invalid_road")
 		return false
 
+	var input_enabled_before_move := input_enabled
 	_moving = true
 	move_started.emit(target_position)
 	food -= 1
@@ -123,7 +124,7 @@ func move_to(target_position: Vector2i) -> bool:
 
 	var enemy_data: Dictionary = _combat.get_enemy_data(target_position)
 	if not enemy_data.is_empty() and int(enemy_data.get("health", 0)) > 0:
-		_move_into_enemy(target_position, enemy_data)
+		_move_into_enemy(target_position, enemy_data, input_enabled_before_move)
 		return true
 
 	var target_world_position := _map.grid_to_world(target_position)
@@ -272,9 +273,8 @@ func get_total_power() -> int:
 	return power + _rewards.get_power_bonus()
 
 
-func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary) -> void:
+func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previous_input_enabled: bool) -> void:
 	_combat_running = true
-	var previous_input_enabled := input_enabled
 	input_enabled = false
 
 	_combat.reveal_enemy_at(target_position, enemy_data)
