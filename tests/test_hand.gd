@@ -66,9 +66,11 @@ func _initialize() -> void:
 	var focused_card_bottom: float = focused_card.position.y + focused_card.size.y * 0.5 + focused_card.size.y * focused_card.scale.y * 0.5
 	_assert(plain_title_label.text == "Straight Road", "Expected plain road cards to show only the road type")
 	_assert(berry_title_label.text == "Berry\nCorner", "Expected berry road cards to show modifier above road type")
-	_assert(enemy_title_label.text == "Enemy\nFour-Way", "Expected enemy road cards to show modifier above road type")
+	_assert(enemy_title_label.text == "Danger\nFour-Way", "Expected enemy road cards to show modifier above road type")
 	_assert(title_label.offset_bottom < CardView.ART_RECT.position.y, "Expected two-line card titles to stay above the card art")
 	_assert(detail_label.offset_bottom < focused_card.size.y, "Expected focused card detail text to stay inside the card")
+	_assert(title_label.get_theme_font_size("font_size") <= CardView.TITLE_FONT_MAX, "Expected card titles to use the fitted title font size")
+	_assert(detail_label.get_theme_font_size("font_size") <= CardView.DETAIL_FONT_MAX, "Expected card details to use the fitted detail font size")
 	_assert(hand_use_button.position.y >= focused_card_bottom, "Expected focused Use button to sit below the card")
 	_assert(hand_use_button.position.y + hand_use_button.size.y <= hand.size.y, "Expected focused Use button to fit above the bottom of the screen")
 	_assert(focused_card.position.y < hand.cards[1].position.y, "Expected focused card to lift above surrounding cards")

@@ -1,13 +1,21 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/card_view.gd" id="1_h3x6f"]
 
+[sub_resource type="SystemFont" id="SystemFont_title"]
+font_names = PackedStringArray("Avenir Next Condensed", "Trebuchet MS", "Verdana")
+font_weight = 700
+
+[sub_resource type="SystemFont" id="SystemFont_label"]
+font_names = PackedStringArray("Avenir Next", "Trebuchet MS", "Verdana")
+font_weight = 600
+
 [node name="Card" type="Control"]
-custom_minimum_size = Vector2(132, 190)
+custom_minimum_size = Vector2(150, 216)
 layout_mode = 3
 anchors_preset = 0
-offset_right = 132.0
-offset_bottom = 190.0
+offset_right = 150.0
+offset_bottom = 216.0
 script = ExtResource("1_h3x6f")
 
 [node name="Title" type="Label" parent="."]
@@ -15,13 +23,14 @@ layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 14.0
-offset_top = 10.0
+offset_top = 12.0
 offset_right = -14.0
-offset_bottom = 54.0
+offset_bottom = 64.0
 grow_horizontal = 2
 theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
 theme_override_constants/line_spacing = -3
-theme_override_font_sizes/font_size = 15
+theme_override_fonts/font = SubResource("SystemFont_title")
+theme_override_font_sizes/font_size = 19
 text = "Card"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -32,27 +41,32 @@ clip_text = true
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 16.0
-offset_top = 116.0
-offset_right = -16.0
-offset_bottom = 134.0
+offset_left = 22.0
+offset_top = 141.0
+offset_right = -22.0
+offset_bottom = 163.0
 grow_horizontal = 2
 theme_override_colors/font_color = Color(0.45, 0.32, 0.2, 1)
+theme_override_constants/line_spacing = -2
+theme_override_fonts/font = SubResource("SystemFont_label")
 theme_override_font_sizes/font_size = 12
 text = "Road"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Detail" type="Label" parent="."]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 14.0
-offset_top = 132.0
+offset_top = 170.0
 offset_right = -14.0
-offset_bottom = 150.0
+offset_bottom = 200.0
 grow_horizontal = 2
 theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
-theme_override_font_sizes/font_size = 11
+theme_override_constants/line_spacing = -2
+theme_override_fonts/font = SubResource("SystemFont_label")
+theme_override_font_sizes/font_size = 13
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
@@ -65,9 +79,9 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 22.0
-offset_top = -36.0
-offset_right = -22.0
+offset_left = 24.0
+offset_top = -42.0
+offset_right = -24.0
 offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 0

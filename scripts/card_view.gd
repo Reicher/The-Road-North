@@ -64,13 +64,20 @@ var _category_label: Label
 var _detail_label: Label
 var _use_button: Button
 
-const TITLE_RECT := Rect2(14.0, 10.0, 104.0, 44.0)
-const ART_RECT := Rect2(18.0, 62.0, 96.0, 48.0)
+const TITLE_RECT := Rect2(14.0, 12.0, 122.0, 52.0)
+const ART_RECT := Rect2(18.0, 72.0, 114.0, 62.0)
+const CATEGORY_RECT := Rect2(22.0, 141.0, 106.0, 22.0)
+const DETAIL_RECT := Rect2(14.0, 170.0, 122.0, 30.0)
+const TITLE_FONT_MAX := 19
+const TITLE_FONT_MIN := 14
+const CATEGORY_FONT_SIZE := 12
+const DETAIL_FONT_MAX := 13
+const DETAIL_FONT_MIN := 11
 
 
 func _ready() -> void:
 	if custom_minimum_size == Vector2.ZERO:
-		custom_minimum_size = Vector2(132.0, 190.0)
+		custom_minimum_size = Vector2(150.0, 216.0)
 	if size == Vector2.ZERO:
 		size = custom_minimum_size
 	pivot_offset = size * 0.5
@@ -87,9 +94,18 @@ func _draw() -> void:
 	UIStyle.draw_panel(self, rect, border, border)
 	UIStyle.draw_panel(self, inner_rect, _resolved_card_color(), border)
 
+	var header_rect := Rect2(Vector2(14.0, 10.0), Vector2(size.x - 28.0, 56.0))
+	UIStyle.draw_panel(self, header_rect, _resolved_card_color().lightened(0.08), border.darkened(0.08))
+
 	var art_rect := Rect2(Vector2(ART_RECT.position.x, ART_RECT.position.y), Vector2(size.x - ART_RECT.position.x * 2.0, ART_RECT.size.y))
 	UIStyle.draw_panel(self, art_rect, UIStyle.card_art_fill(self), border.darkened(0.12))
 	_draw_card_symbol(art_rect)
+
+	var badge_rect := Rect2(Vector2(CATEGORY_RECT.position.x, CATEGORY_RECT.position.y), Vector2(size.x - CATEGORY_RECT.position.x * 2.0, CATEGORY_RECT.size.y))
+	UIStyle.draw_panel(self, badge_rect, _category_badge_fill(), border.darkened(0.1))
+
+	var detail_rule_y := DETAIL_RECT.position.y - 7.0
+	draw_line(Vector2(20.0, detail_rule_y), Vector2(size.x - 20.0, detail_rule_y), border.lightened(0.24), 1.0)
 
 	if focused:
 		var focus_box := UIStyle.rounded_box(self, Color.TRANSPARENT, UIStyle.focus(self), -1, 4)
@@ -138,6 +154,7 @@ func _bind_scene_nodes() -> void:
 	_title_label.add_theme_color_override("font_color", UIStyle.text(self))
 	_category_label.add_theme_color_override("font_color", UIStyle.muted_text(self))
 	_detail_label.add_theme_color_override("font_color", UIStyle.text(self))
+	_category_label.add_theme_font_size_override("font_size", CATEGORY_FONT_SIZE)
 	if not _use_button.pressed.is_connected(_on_use_button_pressed):
 		_use_button.pressed.connect(_on_use_button_pressed)
 
@@ -145,10 +162,12 @@ func _bind_scene_nodes() -> void:
 func _refresh_text() -> void:
 	if _title_label != null:
 		_title_label.text = _card_header_text()
+		_fit_label_font_size(_title_label, TITLE_FONT_MAX, TITLE_FONT_MIN)
 	if _category_label != null:
-		_category_label.text = category
+		_category_label.text = _category_badge_text()
 	if _detail_label != null:
-		_detail_label.text = detail
+		_detail_label.text = _compact_detail_text()
+		_fit_label_font_size(_detail_label, DETAIL_FONT_MAX, DETAIL_FONT_MIN)
 
 
 func _refresh_focus() -> void:
@@ -184,11 +203,11 @@ func _road_modifier_title() -> String:
 
 	var kind := _encounter_type()
 	if kind == GameMap.ENCOUNTER_ENEMY:
-		return "Enemy"
+		return "Danger"
 	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		return "Berry"
 	if kind == GameMap.ENCOUNTER_CACHE:
-		return "Treasure"
+		return "Cache"
 	return "Reward"
 
 
@@ -206,10 +225,10 @@ func _detail_from_definition() -> String:
 
 	var openings: Dictionary = tile_definition.get_base_openings()
 	var names: Array[String] = []
-	for direction_name in TileDefinition.DIRECTION_NAMES:
+	for direction_name: String in TileDefinition.DIRECTION_NAMES:
 		if openings.get(direction_name, false) == true:
-			names.append(direction_name.capitalize())
-	return "Open: %s" % ", ".join(names)
+			names.append(_short_direction_name(direction_name))
+	return "Open: %s" % " ".join(names)
 
 
 func _draw_card_symbol(art_rect: Rect2) -> void:
@@ -219,7 +238,7 @@ func _draw_card_symbol(art_rect: Rect2) -> void:
 
 	var openings: Dictionary = tile_definition.get_base_openings()
 	var center := art_rect.get_center()
-	var road_width := 12.0
+	var road_width := 14.0
 	var road_color := UIStyle.road_ink(self)
 
 	if openings.get("north", false) == true:
@@ -235,6 +254,71 @@ func _draw_card_symbol(art_rect: Rect2) -> void:
 		_draw_reward_encounter_marker(art_rect)
 	if _encounter_type() == GameMap.ENCOUNTER_ENEMY:
 		_draw_hidden_enemy_marker(art_rect)
+
+
+func _category_badge_text() -> String:
+	if category == DeckController.EVENT_CATEGORY:
+		return "EVENT"
+	if _encounter_type() == GameMap.ENCOUNTER_ENEMY:
+		return "ROAD + RISK"
+	if not encounter_data.is_empty():
+		return "ROAD + LOOT"
+	return "ROAD"
+
+
+func _compact_detail_text() -> String:
+	if detail == "Enemy waits on this road.":
+		return "Hidden fight on this road."
+	if detail == "Grants food when reached.":
+		return "+Food when reached."
+	if detail == "Contains an item when reached.":
+		return "Item when reached."
+	if detail == "Draw two extra cards.":
+		return "Draw 2 cards."
+	if detail == "Destroy a placed tile.":
+		return "Destroy placed tile."
+	return detail
+
+
+func _category_badge_fill() -> Color:
+	if category == DeckController.EVENT_CATEGORY:
+		return Color(0.66, 0.78, 0.86, 1.0)
+	if _encounter_type() == GameMap.ENCOUNTER_ENEMY:
+		return Color(0.88, 0.60, 0.48, 1.0)
+	if not encounter_data.is_empty():
+		return Color(0.74, 0.82, 0.54, 1.0)
+	return Color(0.86, 0.76, 0.52, 1.0)
+
+
+func _short_direction_name(direction_name: String) -> String:
+	match direction_name:
+		"north":
+			return "N"
+		"east":
+			return "E"
+		"south":
+			return "S"
+		"west":
+			return "W"
+	return direction_name.left(1).to_upper()
+
+
+func _fit_label_font_size(label: Label, max_size: int, min_size: int) -> void:
+	var text_value := label.text.strip_edges()
+	var line_count := maxi(1, text_value.count("\n") + 1)
+	var longest_line := 0
+	for line in text_value.split("\n"):
+		longest_line = maxi(longest_line, line.length())
+
+	var font_size := max_size
+	if line_count > 1:
+		font_size -= 1
+	if longest_line > 15:
+		font_size -= ceili(float(longest_line - 15) / 4.0)
+	if line_count > 2:
+		font_size -= line_count - 2
+
+	label.add_theme_font_size_override("font_size", clampi(font_size, min_size, max_size))
 
 
 func _draw_hidden_enemy_marker(art_rect: Rect2) -> void:

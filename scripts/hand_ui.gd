@@ -9,17 +9,17 @@ signal card_use_requested(card: CardView)
 
 @export var card_scene: PackedScene = preload("res://ui/card.tscn")
 @export var demo_cards_enabled := true
-@export var card_size := Vector2(132.0, 190.0)
-@export var bottom_margin := 24.0
+@export var card_size := Vector2(150.0, 216.0)
+@export var bottom_margin := 28.0
 @export var panel_color := Color.TRANSPARENT
 @export_range(0.0, 1.0, 0.01) var focused_lift_ratio := 0.28
-@export var focused_scale := 1.16
+@export var focused_scale := 1.12
 @export var arc_depth := 28.0
 @export var preferred_spacing := 94.0
 @export var minimum_spacing := 48.0
 @export var focused_side_shift := 30.0
 @export var layout_duration := 0.14
-@export var use_button_size := Vector2(88.0, 34.0)
+@export var use_button_size := Vector2(96.0, 40.0)
 @export var use_button_gap := 8.0
 @export var use_button_bottom_margin := 8.0
 
@@ -142,7 +142,7 @@ func get_card_spacing() -> float:
 
 	var available_width := _available_width()
 	var max_spacing := (available_width - card_size.x) / float(count - 1)
-	return clampf(max_spacing, minimum_spacing, preferred_spacing)
+	return minf(preferred_spacing, maxf(0.0, max_spacing))
 
 
 func _layout_cards(animated := true) -> void:
