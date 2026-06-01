@@ -35,6 +35,23 @@ func _rebuild() -> void:
 
 	if enemy_data.get("revealed", false) != true:
 		_add_box("QuestionMark", Vector3(tile_size * 0.035, tile_size * 0.20, tile_size * 0.035), Vector3(0.0, tile_size * 0.54, 0.0), eye_color)
+	else:
+		_add_power_label(int(enemy_data.get("power", 0)))
+
+
+func _add_power_label(power: int) -> void:
+	var label := Label3D.new()
+	label.name = "PowerLabel"
+	label.text = str(power)
+	label.font_size = maxi(24, roundi(tile_size * 0.34))
+	label.modulate = Color(1.0, 0.94, 0.76)
+	label.outline_modulate = Color(0.16, 0.05, 0.04)
+	label.outline_size = maxi(6, roundi(tile_size * 0.08))
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.fixed_size = true
+	label.position = Vector3(0.0, tile_size * 0.14, tile_size * 0.31)
+	add_child(label)
 
 
 func _add_sphere(node_name: String, radius: float, local_position: Vector3, color: Color) -> void:

@@ -43,6 +43,22 @@ func _initialize() -> void:
 	_assert(corner_openings["west"] == false, "Expected rotated corner to close west")
 	corner_tile.queue_free()
 
+	var enemy_tile := TILE_SCENE.instantiate() as RoadTile
+	get_root().add_child(enemy_tile)
+	enemy_tile.definition = straight
+	enemy_tile.tile_size = TILE_SIZE
+	enemy_tile.encounter_data = {
+		"type": GameMap.ENCOUNTER_ENEMY,
+		"revealed": true,
+		"power": 7,
+	}
+	await process_frame
+	var power_label := enemy_tile.get_node_or_null("Enemy/PowerLabel") as Label3D
+	_assert(power_label != null, "Expected revealed enemy tiles to show a power label")
+	_assert(power_label.text == "7", "Expected enemy power label to show the enemy power")
+	_assert(power_label.position.z > TILE_SIZE * 0.25, "Expected enemy power label to sit below the enemy model on the tile")
+	enemy_tile.queue_free()
+
 	var start_camp := load("res://data/start_camp.tres")
 	_assert(start_camp.get("visual_identity") == "house", "Expected start tile to use a simple house visual identity")
 	_assert(start_camp.get("road_visible") == false, "Expected start tile road art to be hidden")
