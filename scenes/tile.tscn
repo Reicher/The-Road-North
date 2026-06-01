@@ -1,9 +1,13 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/tile.gd" id="1_5r51w"]
+[ext_resource type="Script" path="res://scripts/road_tile_visuals.gd" id="2_0wc4m"]
 [ext_resource type="PackedScene" path="res://scenes/enemy.tscn" id="2_wlsmy"]
 
 [node name="Tile" type="Node3D"]
 script = ExtResource("1_5r51w")
+
+[node name="Visuals" type="Node3D" parent="."]
+script = ExtResource("2_0wc4m")
 
 [node name="Enemy" parent="." instance=ExtResource("2_wlsmy")]

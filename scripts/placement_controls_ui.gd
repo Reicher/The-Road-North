@@ -34,7 +34,7 @@ func show_idle_placement(hand: HandUI) -> void:
 	position_buttons(Vector2i(-1, -1), null, hand)
 
 
-func show_destroy_targeting(hand: HandUI) -> void:
+func show_tile_targeting(hand: HandUI) -> void:
 	_resolve_nodes()
 	rotate_button.visible = false
 	confirm_button.disabled = true

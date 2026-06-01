@@ -1,6 +1,13 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/placement_controller.gd" id="1_7mq67"]
+[ext_resource type="PackedScene" path="res://scenes/tile.tscn" id="2_1ladd"]
+[ext_resource type="PackedScene" path="res://ui/placement_controls.tscn" id="3_dpmpj"]
 
 [node name="PlacementController" type="Node3D"]
 script = ExtResource("1_7mq67")
+
+[node name="PreviewTile" parent="." instance=ExtResource("2_1ladd")]
+visible = false
+
+[node name="PlacementControls" parent="." instance=ExtResource("3_dpmpj")]

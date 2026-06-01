@@ -175,7 +175,7 @@ func _begin_tile_targeting(card: CardView, mode: String) -> bool:
 	_hand.clear_focus()
 	_hide_preview()
 	_highlight_tile_targets()
-	_show_targeting_controls()
+	_controls_layer.show_tile_targeting(_hand)
 	_show_prompt()
 	placement_started.emit(card)
 	return true
@@ -346,8 +346,11 @@ func _end_placement(keep_card_focused: bool) -> void:
 func _ensure_preview_tile() -> void:
 	if _preview_tile != null:
 		return
-	_preview_tile = tile_scene.instantiate() as RoadTile
-	add_child(_preview_tile)
+	_preview_tile = get_node_or_null("PreviewTile") as RoadTile
+	if _preview_tile == null:
+		_preview_tile = tile_scene.instantiate() as RoadTile
+		_preview_tile.name = "PreviewTile"
+		add_child(_preview_tile)
 
 
 func _hide_preview() -> void:
@@ -379,11 +382,6 @@ func _show_prompt() -> void:
 
 func _show_idle_placement_controls() -> void:
 	_controls_layer.show_idle_placement(_hand)
-	set_process(true)
-
-
-func _show_targeting_controls() -> void:
-	_controls_layer.show_destroy_targeting(_hand)
 	set_process(true)
 
 

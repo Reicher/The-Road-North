@@ -3,6 +3,8 @@ extends Node3D
 
 signal tile_pressed(grid_position: Vector2i)
 
+const MAP_VISUALS_SCRIPT := preload("res://scripts/map_visuals.gd")
+
 const DIRECTIONS: Dictionary = {
 	"north": Vector2i(0, -1),
 	"east": Vector2i(1, 0),
@@ -23,12 +25,6 @@ const ENCOUNTER_CACHE := "cache"
 const FEATURE_MOUNTAIN := "mountain"
 const FEATURE_RIVER := "river"
 const FEATURE_BRIDGE := "bridge"
-
-const GROUND_HEIGHT := 0.08
-const FOREST_PADDING_TILES := 4
-const GROUND_LIGHT_COLOR := Color(0.69, 0.76, 0.57)
-const GROUND_DARK_COLOR := Color(0.64, 0.72, 0.53)
-const GRID_LINE_COLOR := Color(0.36, 0.46, 0.31, 0.58)
 
 @export_range(1, 64, 1) var playable_width := 9:
 	set(value):
@@ -55,12 +51,12 @@ const GRID_LINE_COLOR := Color(0.36, 0.46, 0.31, 0.58)
 
 var tiles: Dictionary = {}
 var _fixed_features_by_position: Dictionary = {}
-var _cell_nodes: Dictionary = {}
-var _forest_nodes: Array[Node] = []
+var _visuals: Node
 
 
 func _ready() -> void:
 	set_process_unhandled_input(true)
+	_resolve_visuals()
 	_rebuild_fixed_feature_lookup()
 	_rebuild_visuals()
 
@@ -272,10 +268,6 @@ func get_padded_world_rect() -> Rect2:
 	return get_playable_world_rect()
 
 
-func get_world_bounds_3d() -> AABB:
-	return AABB(Vector3.ZERO, Vector3(playable_width * tile_size, 1.0, playable_height * tile_size))
-
-
 func get_fixed_feature_connections(grid_position: Vector2i) -> Dictionary:
 	var feature := get_fixed_feature(grid_position)
 	if feature.is_empty() or str(feature.get("type", "")) != FEATURE_BRIDGE:
@@ -326,162 +318,20 @@ func _rebuild_fixed_feature_lookup() -> void:
 func _rebuild_visuals() -> void:
 	if not is_inside_tree():
 		return
-	for node in _cell_nodes.values():
-		if node is Node:
-			node.queue_free()
-	_cell_nodes.clear()
-	for node in _forest_nodes:
-		if node != null:
-			node.queue_free()
-	_forest_nodes.clear()
-	_rebuild_border_forest()
-	for y in playable_height:
-		for x in playable_width:
-			_rebuild_cell_visual(Vector2i(x, y))
-
-
-func _rebuild_border_forest() -> void:
-	for y in range(-FOREST_PADDING_TILES, playable_height + FOREST_PADDING_TILES):
-		for x in range(-FOREST_PADDING_TILES, playable_width + FOREST_PADDING_TILES):
-			var grid_position := Vector2i(x, y)
-			if is_inside_playable_area(grid_position):
-				continue
-			_add_border_forest_cell(grid_position)
-
-
-func _add_border_forest_cell(grid_position: Vector2i) -> void:
-	var cell := Node3D.new()
-	cell.name = "Forest_%d_%d" % [grid_position.x, grid_position.y]
-	cell.position = grid_to_world(grid_position)
-	add_child(cell)
-	_forest_nodes.append(cell)
-
-	_add_box(cell, "ForestGround", Vector3(tile_size * 1.08, GROUND_HEIGHT, tile_size * 1.08), Vector3(0.0, -GROUND_HEIGHT * 0.65, 0.0), GROUND_LIGHT_COLOR)
-	_add_border_forest_trees(cell, grid_position)
-
-
-func _add_border_forest_trees(parent: Node3D, grid_position: Vector2i) -> void:
-	var slots := [
-		Vector2(-0.28, -0.28),
-		Vector2(0.30, -0.18),
-		Vector2(-0.18, 0.26),
-		Vector2(0.24, 0.30),
-	]
-	var count := 2 + posmod(grid_position.x * 11 + grid_position.y * 7, 2)
-	for index in count:
-		var offset: Vector2 = slots[posmod(index + grid_position.x + grid_position.y, slots.size())]
-		_add_tree(parent, Vector3(offset.x * tile_size, 0.0, offset.y * tile_size), 0.72 + float(index) * 0.08)
+	_resolve_visuals()
+	_visuals.rebuild_all(self)
 
 
 func _rebuild_cell_visual(grid_position: Vector2i) -> void:
-	if not is_inside_tree() or not is_inside_playable_area(grid_position):
+	if not is_inside_tree():
 		return
-	var old_node: Node = _cell_nodes.get(grid_position)
-	if old_node != null:
-		old_node.queue_free()
-
-	var cell := Node3D.new()
-	cell.name = "Cell_%d_%d" % [grid_position.x, grid_position.y]
-	cell.position = grid_to_world(grid_position)
-	add_child(cell)
-	_cell_nodes[grid_position] = cell
-
-	var feature := get_fixed_feature(grid_position)
-	var terrain_color := GROUND_LIGHT_COLOR if (grid_position.x + grid_position.y) % 2 == 0 else GROUND_DARK_COLOR
-	_add_box(cell, "Ground", Vector3(tile_size * 0.96, GROUND_HEIGHT, tile_size * 0.96), Vector3(0.0, -GROUND_HEIGHT * 0.5, 0.0), terrain_color)
-	_add_grid_lines(cell, grid_position)
-
-	if not feature.is_empty():
-		_add_fixed_feature_visual(cell, feature)
-	elif not tiles.has(grid_position):
-		_add_empty_tile_trees(cell, grid_position)
+	_resolve_visuals()
+	_visuals.rebuild_cell(self, grid_position)
 
 
-func _add_grid_lines(parent: Node3D, grid_position: Vector2i) -> void:
-	var line_width := maxf(2.0, tile_size * 0.018)
-	var y := GROUND_HEIGHT * 0.20
-	_add_box(parent, "GridNorth", Vector3(tile_size * 0.98, line_width, line_width), Vector3(0.0, y, -tile_size * 0.49), GRID_LINE_COLOR)
-	_add_box(parent, "GridWest", Vector3(line_width, line_width, tile_size * 0.98), Vector3(-tile_size * 0.49, y, 0.0), GRID_LINE_COLOR)
-	if grid_position.y == playable_height - 1:
-		_add_box(parent, "GridSouth", Vector3(tile_size * 0.98, line_width, line_width), Vector3(0.0, y, tile_size * 0.49), GRID_LINE_COLOR)
-	if grid_position.x == playable_width - 1:
-		_add_box(parent, "GridEast", Vector3(line_width, line_width, tile_size * 0.98), Vector3(tile_size * 0.49, y, 0.0), GRID_LINE_COLOR)
-
-
-func _add_fixed_feature_visual(parent: Node3D, feature: Dictionary) -> void:
-	var feature_type := str(feature.get("type", ""))
-	if feature_type == FEATURE_MOUNTAIN:
-		_add_cone(parent, "Mountain", tile_size * 0.58, tile_size * 0.64, Vector3(0.0, tile_size * 0.32, 0.0), Color(0.42, 0.43, 0.39))
-		_add_cone(parent, "SnowCap", tile_size * 0.24, tile_size * 0.20, Vector3(0.0, tile_size * 0.72, 0.0), Color(0.82, 0.84, 0.78))
-	elif feature_type == FEATURE_RIVER:
-		_add_river(parent, int(feature.get("rotation_steps", 0)))
-	elif feature_type == FEATURE_BRIDGE:
-		_add_river(parent, int(feature.get("rotation_steps", 0)))
-		_add_bridge(parent, int(feature.get("rotation_steps", 0)))
-
-
-func _add_river(parent: Node3D, rotation_steps: int) -> void:
-	var horizontal := posmod(rotation_steps, 2) == 0
-	var size := Vector3(tile_size * 0.96, 0.04, tile_size * 0.34) if horizontal else Vector3(tile_size * 0.34, 0.04, tile_size * 0.96)
-	_add_box(parent, "River", size, Vector3(0.0, 0.03, 0.0), Color(0.23, 0.48, 0.68))
-
-
-func _add_bridge(parent: Node3D, rotation_steps: int) -> void:
-	var horizontal_river := posmod(rotation_steps, 2) == 0
-	var size := Vector3(tile_size * 0.30, 0.08, tile_size * 0.78) if horizontal_river else Vector3(tile_size * 0.78, 0.08, tile_size * 0.30)
-	_add_box(parent, "Bridge", size, Vector3(0.0, 0.09, 0.0), Color(0.55, 0.36, 0.18))
-
-
-func _add_empty_tile_trees(parent: Node3D, grid_position: Vector2i) -> void:
-	var slots := [
-		Vector2(-0.28, -0.28),
-		Vector2(0.30, -0.18),
-		Vector2(-0.18, 0.26),
-		Vector2(0.24, 0.30),
-	]
-	var count := 2 + posmod(grid_position.x * 11 + grid_position.y * 7, 2)
-	for index in count:
-		var offset: Vector2 = slots[posmod(index + grid_position.x + grid_position.y, slots.size())]
-		_add_tree(parent, Vector3(offset.x * tile_size, 0.0, offset.y * tile_size), 0.72 + float(index) * 0.08)
-
-
-func _add_tree(parent: Node3D, offset: Vector3, scale_factor: float = 1.0) -> void:
-	var trunk_height := tile_size * 0.16 * scale_factor
-	_add_box(parent, "TreeTrunk", Vector3(tile_size * 0.045, trunk_height, tile_size * 0.045), offset + Vector3(0.0, trunk_height * 0.5, 0.0), Color(0.34, 0.20, 0.10))
-	_add_cone(parent, "TreeTop", tile_size * 0.16 * scale_factor, tile_size * 0.32 * scale_factor, offset + Vector3(0.0, trunk_height + tile_size * 0.15 * scale_factor, 0.0), Color(0.17, 0.39, 0.20))
-
-
-func _add_box(parent: Node3D, node_name: String, size: Vector3, local_position: Vector3, color: Color) -> MeshInstance3D:
-	var mesh := BoxMesh.new()
-	mesh.size = size
-	var instance := MeshInstance3D.new()
-	instance.name = node_name
-	instance.mesh = mesh
-	instance.position = local_position
-	instance.material_override = _make_material(color)
-	parent.add_child(instance)
-	return instance
-
-
-func _add_cone(parent: Node3D, node_name: String, bottom_radius: float, height: float, local_position: Vector3, color: Color) -> MeshInstance3D:
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = 0.0
-	mesh.bottom_radius = bottom_radius
-	mesh.height = height
-	mesh.radial_segments = 8
-	var instance := MeshInstance3D.new()
-	instance.name = node_name
-	instance.mesh = mesh
-	instance.position = local_position
-	instance.material_override = _make_material(color)
-	parent.add_child(instance)
-	return instance
-
-
-func _make_material(color: Color) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = 0.9
-	if color.a < 1.0:
-		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	return material
+func _resolve_visuals() -> void:
+	_visuals = get_node_or_null("MapVisuals")
+	if _visuals == null:
+		_visuals = MAP_VISUALS_SCRIPT.new()
+		_visuals.name = "MapVisuals"
+		add_child(_visuals)

@@ -182,9 +182,11 @@ func _get_default_starting_food() -> int:
 func _ensure_visuals() -> void:
 	if _visual_root != null:
 		return
-	_visual_root = Node3D.new()
-	_visual_root.name = "Visuals"
-	add_child(_visual_root)
+	_visual_root = get_node_or_null("Visuals") as Node3D
+	if _visual_root == null:
+		_visual_root = Node3D.new()
+		_visual_root.name = "Visuals"
+		add_child(_visual_root)
 
 
 func _rebuild_visuals() -> void:
@@ -316,7 +318,7 @@ func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previ
 
 	if post_combat_loot_delay > 0.0:
 		await get_tree().create_timer(post_combat_loot_delay).timeout
-	_show_enemy_loot(enemy_data)
+	_rewards.open_enemy_loot(enemy_data)
 	input_enabled = previous_input_enabled
 	_combat_running = false
 	_check_game_over()
@@ -343,10 +345,6 @@ func _find_visual_tile(target_position: Vector2i) -> RoadTile:
 	if roads == null:
 		return null
 	return roads.get_visual_tile(target_position)
-
-
-func _show_enemy_loot(enemy_data: Dictionary) -> void:
-	_rewards.open_enemy_loot(enemy_data)
 
 
 func _resolve_reward_encounter_at(target_position: Vector2i) -> void:

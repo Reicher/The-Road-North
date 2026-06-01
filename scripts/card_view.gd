@@ -42,12 +42,6 @@ signal use_requested(card: CardView)
 		queue_redraw()
 
 @export var event_type := ""
-@export var enemy_data := {}:
-	set(value):
-		enemy_data = value
-		_refresh_text()
-		queue_redraw()
-
 @export var encounter_data := {}:
 	set(value):
 		encounter_data = value
@@ -136,7 +130,6 @@ func configure(card_data: Dictionary) -> void:
 		raw_encounter = raw_encounter.duplicate(true)
 		raw_encounter["type"] = GameMap.ENCOUNTER_ENEMY
 	encounter_data = raw_encounter
-	enemy_data = encounter_data if _encounter_type() == GameMap.ENCOUNTER_ENEMY else {}
 	card_color = card_data.get("card_color", card_color)
 
 

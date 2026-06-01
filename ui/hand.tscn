@@ -21,3 +21,10 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="UseButton" type="Button" parent="."]
+visible = false
+custom_minimum_size = Vector2(96, 40)
+layout_mode = 1
+focus_mode = 0
+text = "Use"

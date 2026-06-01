@@ -1,7 +1,8 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/map.gd" id="1_1fs71"]
 [ext_resource type="Script" path="res://scripts/level.gd" id="1_y88x2"]
+[ext_resource type="Script" path="res://scripts/map_visuals.gd" id="2_0fwow"]
 [ext_resource type="PackedScene" path="res://ui/player_stats.tscn" id="2_f2udl"]
 [ext_resource type="PackedScene" path="res://ui/game_over.tscn" id="3_prl4n"]
 [ext_resource type="Script" path="res://scripts/map_camera.gd" id="4_tbxl1"]
@@ -18,6 +19,13 @@ script = ExtResource("1_y88x2")
 
 [node name="Map" type="Node3D" parent="."]
 script = ExtResource("1_1fs71")
+
+[node name="MapVisuals" type="Node3D" parent="Map"]
+script = ExtResource("2_0fwow")
+
+[node name="Cells" type="Node3D" parent="Map/MapVisuals"]
+
+[node name="Forest" type="Node3D" parent="Map/MapVisuals"]
 
 [node name="Roads" type="Node3D" parent="."]
 script = ExtResource("5_6it63")
