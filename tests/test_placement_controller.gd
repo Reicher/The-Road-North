@@ -42,6 +42,7 @@ func _initialize() -> void:
 	hand.name = "Hand"
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0
+	hand.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	hand.size = Vector2(360.0, 640.0)
 	ui.add_child(hand)
 	hand._ready()

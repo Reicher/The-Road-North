@@ -51,6 +51,7 @@ func _test_destroy_tile_event() -> void:
 	hand.name = "Hand"
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0
+	hand.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	hand.size = Vector2(360.0, 640.0)
 	ui.add_child(hand)
 	hand._ready()
@@ -134,6 +135,7 @@ func _test_rotate_tile_event() -> void:
 	hand.name = "Hand"
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0
+	hand.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	hand.size = Vector2(360.0, 640.0)
 	ui.add_child(hand)
 	hand._ready()
@@ -185,6 +187,7 @@ func _test_draw_two_event() -> void:
 	hand.name = "Hand"
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0
+	hand.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	hand.size = Vector2(360.0, 640.0)
 	ui.add_child(hand)
 	hand._ready()
@@ -240,6 +243,7 @@ func _test_lucky_find_event() -> void:
 	hand.name = "Hand"
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0
+	hand.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	hand.size = Vector2(360.0, 640.0)
 	ui.add_child(hand)
 	hand._ready()
@@ -280,6 +284,7 @@ func _test_restart_map_event() -> void:
 	hand.name = "Hand"
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0
+	hand.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	hand.size = Vector2(360.0, 640.0)
 	ui.add_child(hand)
 	hand._ready()

@@ -50,6 +50,7 @@ Shared level plumbing should live in a reusable base scene:
 Individual level scenes should inherit from the base scene and override level-specific data such as:
 - map size
 - initial seeded tiles
+- fixed terrain features
 - deck ratios and card distribution
 - hand size
 - starting player values
@@ -136,6 +137,12 @@ The Map should be the single owner of world/grid coordinate conversion.
 
 The Map should own all logical tile data.
 
+Authored levels may also define fixed terrain features owned by the Map:
+- mountains and rivers block road placement
+- bridges occupy their tile and expose fixed road connections
+
+These features should stay as lightweight map metadata rather than becoming a separate terrain system.
+
 ---
 
 # Roads Node
@@ -202,6 +209,8 @@ The Tile scene should not own gameplay rules.
 The Tile scene should read connection information from TileDefinition resources.
 
 Road visuals should remain perfectly square and aligned to the grid.
+
+The map should not draw internal debug grid lines. It should draw only a thin outline around the playable area's outer boundary.
 
 Preview tiles should use light tinting to indicate valid or invalid placement.
 
@@ -366,6 +375,9 @@ Examples:
 - road cards enter placement mode
 - destroy cards enter target selection mode
 - draw cards immediately draw cards
+- rotate cards enter target selection mode and rotate one placed tile
+- restart-map cards request a level reload
+- lucky-find cards grant a small food or gold reward
 
 Future event cards may use different targeting patterns.
 
@@ -404,12 +416,13 @@ The Camera node should:
 - support pinch zoom
 - support two-finger pan
 - clamp to playable map bounds
+- briefly focus on the player after movement resolves
 
-The camera should not automatically follow the player.
+The camera should not continuously follow the player while idle. Movement focus is a short recentering action after the player moves.
 
 Suggested structure:
 
-- Camera2D
+- Camera3D
 
 Prefer implementing touch handling in a dedicated camera controller script.
 

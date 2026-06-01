@@ -44,6 +44,15 @@ func _ready() -> void:
 		_play_start_zoom_sequence()
 
 
+func _exit_tree() -> void:
+	if _start_zoom_tween != null:
+		_start_zoom_tween.kill()
+		_start_zoom_tween = null
+	if _move_focus_tween != null:
+		_move_focus_tween.kill()
+		_move_focus_tween = null
+
+
 func _input(event: InputEvent) -> void:
 	if _handle_scroll_zoom(event):
 		get_viewport().set_input_as_handled()
@@ -265,10 +274,6 @@ func _play_start_zoom_sequence() -> void:
 	_clamp_target()
 	_apply_camera_transform()
 
-	await get_tree().create_timer(start_zoom_hold_duration).timeout
-	if _map == null or not is_inside_tree():
-		return
-
 	var target_size := _get_initial_zoom_target()
 	var target_xz := _world_to_xz(_get_player_tile_position())
 	var start_size := size
@@ -278,6 +283,8 @@ func _play_start_zoom_sequence() -> void:
 	_start_zoom_tween = create_tween()
 	_start_zoom_tween.set_trans(Tween.TRANS_SINE)
 	_start_zoom_tween.set_ease(Tween.EASE_IN_OUT)
+	if start_zoom_hold_duration > 0.0:
+		_start_zoom_tween.tween_interval(start_zoom_hold_duration)
 	_start_zoom_tween.tween_method(func(value: float) -> void:
 		t = value
 		size = lerpf(start_size, target_size, t)

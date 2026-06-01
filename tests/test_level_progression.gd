@@ -38,7 +38,7 @@ func run() -> void:
 	second_player.set_health(0)
 	_assert(second_screen.visible, "Expected loss screen to show on the current level")
 	_assert(not (second_level.get_node("UI/Hand") as HandUI).visible, "Expected the card hand to hide on the loss screen")
-	_assert(second_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "You loose", "Expected loss text")
+	_assert(second_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "You lose", "Expected loss text")
 	_assert(second_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Restart level", "Expected loss button to restart the current level")
 	second_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").pressed.emit()
 	await process_frame
@@ -63,6 +63,8 @@ func run() -> void:
 	var restarted_map := main.get_node("Level/Map") as GameMap
 	_assert(restarted_map.playable_width == 5 and restarted_map.playable_height == 5, "Expected Restart game to return to the first level")
 
+	main.queue_free()
+	await process_frame
 	quit()
 
 

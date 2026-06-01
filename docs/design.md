@@ -40,7 +40,7 @@ The 3D presentation must not change any placement, movement, deck, encounter, or
 
 # Map Structure
 
-The playable map is a square grid, initially 9x9.
+The prototype supports multiple square levels. The base run target remains a compact square grid, with the current level set including a small 5x5 introductory map and a larger 11x11 map.
 
 The playable area has no surrounding gameplay padding border.
 
@@ -48,7 +48,7 @@ The 3D world should show dense forest outside all four edges of the playable gri
 
 The camera must never show outside the playable map area.
 
-The grid itself should not be rendered visually as debug lines.
+The grid itself should not be rendered visually as debug lines. The playable area should have a thin visible outline around its outer edge so the player can read the boundary without seeing internal grid lines.
 
 The map starts with only the start and goal tiles placed. All other tiles are empty.
 
@@ -70,6 +70,13 @@ Road openings may never point outside the playable map.
 
 The start and goal tiles are permanent occupied tiles and may never be overwritten.
 
+Some authored levels may include fixed terrain features:
+- mountains block placement and movement
+- rivers block placement and movement
+- bridges are fixed road-like crossings over rivers
+
+Fixed terrain features are level content, not player-placed roads. They should remain simple obstacles or crossings that support the road-building puzzle without adding new systems.
+
 ---
 
 # Camera and Controls
@@ -82,7 +89,7 @@ The player can:
 
 Zoom is clamped between a minimum zoom level and a maximum that shows the full playable area.
 
-The camera does not automatically follow the player.
+The camera briefly focuses on the player after movement resolves so the pawn stays readable during play. It should not continuously follow the player while the player is idle or manually panning.
 
 The camera position must be clamped so the player can never pan outside the playable map boundaries.
 
@@ -127,7 +134,7 @@ Gameplay interaction should be temporarily disabled during movement tweening.
 
 Version 1 uses a single shared deck per run.
 
-There is no persistent personal deck and no progression between runs.
+There is no persistent personal deck or meta-progression between runs. The prototype may include a short sequence of authored levels during one play session; completing a level advances to the next level, while restarting the game returns to the first level.
 
 The deck contains one card per playable tile — on a 9x9 map that is 81 cards total.
 
@@ -273,7 +280,7 @@ A connection is only valid if both tiles connect toward each other.
 
 # Event Cards
 
-Version 1 contains two simple event cards.
+Version 1 contains a small set of simple event cards.
 
 One event destroys a placed tile.
 
@@ -299,7 +306,14 @@ Future event cards may use different targeting rules such as:
 - random tile targeting
 - unrestricted map targeting
 
-The second event draws two extra cards immediately. If fewer than two cards remain in the deck, it draws whatever is left.
+Another event draws two extra cards immediately. If fewer than two cards remain in the deck, it draws whatever is left.
+
+Additional prototype event cards may:
+- restart the current map
+- rotate a placed tile
+- grant a small random food or gold reward
+
+These events should stay small and explicit. They should not grow into a generic effect system for version 1.
 
 ---
 

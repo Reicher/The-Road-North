@@ -65,6 +65,9 @@ func run() -> void:
 	_assert(second_deck_controller.hand_size == 4, "Expected level 002 to configure a four-card hand")
 	_assert(second_deck_controller.enemy_level == 2, "Expected level 002 enemies to use level two power")
 
+	level.queue_free()
+	level_002.queue_free()
+	await process_frame
 	quit()
 
 

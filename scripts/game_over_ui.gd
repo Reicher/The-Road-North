@@ -56,7 +56,7 @@ func _bind_scene_nodes() -> void:
 		_action_button.pressed.connect(_on_action_button_pressed)
 
 func _on_game_over(_reason: String) -> void:
-	_show_end_screen("You loose", "Restart level", "restart_level")
+	_show_end_screen("You lose", "Restart level", "restart_level")
 
 
 func _on_run_won() -> void:

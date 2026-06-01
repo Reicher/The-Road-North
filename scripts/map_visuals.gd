@@ -5,7 +5,7 @@ const GROUND_HEIGHT := 0.08
 const FOREST_PADDING_TILES := 4
 const GROUND_LIGHT_COLOR := Color(0.69, 0.76, 0.57)
 const GROUND_DARK_COLOR := Color(0.64, 0.72, 0.53)
-const GRID_LINE_COLOR := Color(0.36, 0.46, 0.31, 0.58)
+const PLAYABLE_BORDER_COLOR := Color(0.30, 0.38, 0.26, 0.62)
 const TREE_SLOTS := [
 	Vector2(-0.28, -0.28),
 	Vector2(0.30, -0.18),
@@ -15,6 +15,7 @@ const TREE_SLOTS := [
 
 var _cell_nodes: Dictionary = {}
 var _forest_nodes: Array[Node] = []
+var _border_node: Node3D
 var _cells_root: Node3D
 var _forest_root: Node3D
 
@@ -31,6 +32,9 @@ func rebuild_all(map: GameMap) -> void:
 		if node != null:
 			node.queue_free()
 	_forest_nodes.clear()
+	if _border_node != null:
+		_border_node.queue_free()
+		_border_node = null
 
 	for y in range(-FOREST_PADDING_TILES, map.playable_height + FOREST_PADDING_TILES):
 		for x in range(-FOREST_PADDING_TILES, map.playable_width + FOREST_PADDING_TILES):
@@ -41,6 +45,7 @@ func rebuild_all(map: GameMap) -> void:
 	for y in map.playable_height:
 		for x in map.playable_width:
 			rebuild_cell(map, Vector2i(x, y))
+	_add_playable_area_border(map)
 
 
 func rebuild_cell(map: GameMap, grid_position: Vector2i) -> void:
@@ -60,7 +65,6 @@ func rebuild_cell(map: GameMap, grid_position: Vector2i) -> void:
 	var feature := map.get_fixed_feature(grid_position)
 	var terrain_color := GROUND_LIGHT_COLOR if (grid_position.x + grid_position.y) % 2 == 0 else GROUND_DARK_COLOR
 	_add_box(cell, "Ground", Vector3(map.tile_size * 0.96, GROUND_HEIGHT, map.tile_size * 0.96), Vector3(0.0, -GROUND_HEIGHT * 0.5, 0.0), terrain_color)
-	_add_grid_lines(map, cell, grid_position)
 
 	if not feature.is_empty():
 		_add_fixed_feature_visual(map, cell, feature)
@@ -79,15 +83,21 @@ func _add_border_forest_cell(map: GameMap, grid_position: Vector2i) -> void:
 	_add_cell_trees(map, cell, grid_position)
 
 
-func _add_grid_lines(map: GameMap, parent: Node3D, grid_position: Vector2i) -> void:
+func _add_playable_area_border(map: GameMap) -> void:
+	_border_node = Node3D.new()
+	_border_node.name = "PlayableAreaBorder"
+	add_child(_border_node)
+
 	var line_width := maxf(2.0, map.tile_size * 0.018)
 	var y := GROUND_HEIGHT * 0.20
-	_add_box(parent, "GridNorth", Vector3(map.tile_size * 0.98, line_width, line_width), Vector3(0.0, y, -map.tile_size * 0.49), GRID_LINE_COLOR)
-	_add_box(parent, "GridWest", Vector3(line_width, line_width, map.tile_size * 0.98), Vector3(-map.tile_size * 0.49, y, 0.0), GRID_LINE_COLOR)
-	if grid_position.y == map.playable_height - 1:
-		_add_box(parent, "GridSouth", Vector3(map.tile_size * 0.98, line_width, line_width), Vector3(0.0, y, map.tile_size * 0.49), GRID_LINE_COLOR)
-	if grid_position.x == map.playable_width - 1:
-		_add_box(parent, "GridEast", Vector3(line_width, line_width, map.tile_size * 0.98), Vector3(map.tile_size * 0.49, y, 0.0), GRID_LINE_COLOR)
+	var width := float(map.playable_width) * map.tile_size
+	var height := float(map.playable_height) * map.tile_size
+	var center_x := width * 0.5
+	var center_z := height * 0.5
+	_add_box(_border_node, "BorderNorth", Vector3(width, line_width, line_width), Vector3(center_x, y, 0.0), PLAYABLE_BORDER_COLOR)
+	_add_box(_border_node, "BorderSouth", Vector3(width, line_width, line_width), Vector3(center_x, y, height), PLAYABLE_BORDER_COLOR)
+	_add_box(_border_node, "BorderWest", Vector3(line_width, line_width, height), Vector3(0.0, y, center_z), PLAYABLE_BORDER_COLOR)
+	_add_box(_border_node, "BorderEast", Vector3(line_width, line_width, height), Vector3(width, y, center_z), PLAYABLE_BORDER_COLOR)
 
 
 func _add_fixed_feature_visual(map: GameMap, parent: Node3D, feature: Dictionary) -> void:

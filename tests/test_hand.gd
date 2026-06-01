@@ -16,6 +16,7 @@ func _initialize() -> void:
 	var hand = HAND_SCENE.instantiate() as HandUI
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0
+	hand.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	hand.size = root.size
 	root.add_child(hand)
 	hand.set_cards([
