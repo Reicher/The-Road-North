@@ -1,10 +1,10 @@
 extends SceneTree
 
-const MAP_SCRIPT := preload("res://scripts/map.gd")
+const MAP_SCENE := preload("res://scenes/map.tscn")
 const ROADS_SCRIPT := preload("res://scripts/roads.gd")
-const PLAYER_SCRIPT := preload("res://scripts/player.gd")
-const HAND_SCRIPT := preload("res://scripts/hand_ui.gd")
-const DECK_CONTROLLER_SCRIPT := preload("res://scripts/deck_controller.gd")
+const PLAYER_SCENE := preload("res://scenes/player.tscn")
+const HAND_SCENE := preload("res://ui/hand.tscn")
+const DECK_CONTROLLER_SCENE := preload("res://scenes/deck_controller.tscn")
 const PLACEMENT_SCRIPT := preload("res://scripts/placement_controller.gd")
 const STRAIGHT := preload("res://data/road_straight.tres")
 const T_JUNCTION := preload("res://data/road_t_junction.tres")
@@ -23,7 +23,7 @@ func _test_destroy_tile_event() -> void:
 	var root := Node2D.new()
 	get_root().add_child(root)
 
-	var map = MAP_SCRIPT.new()
+	var map = MAP_SCENE.instantiate() as GameMap
 	map.name = "Map"
 	root.add_child(map)
 
@@ -34,7 +34,7 @@ func _test_destroy_tile_event() -> void:
 	root.add_child(roads)
 	roads._ready()
 
-	var player = PLAYER_SCRIPT.new()
+	var player = PLAYER_SCENE.instantiate() as GamePlayer
 	player.name = "Player"
 	player.map_path = NodePath("../Map")
 	player.start_position = Vector2i(4, 8)
@@ -47,7 +47,7 @@ func _test_destroy_tile_event() -> void:
 	ui.name = "UI"
 	root.add_child(ui)
 
-	var hand = HAND_SCRIPT.new()
+	var hand = HAND_SCENE.instantiate() as HandUI
 	hand.name = "Hand"
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0
@@ -106,7 +106,7 @@ func _test_rotate_tile_event() -> void:
 	var root := Node2D.new()
 	get_root().add_child(root)
 
-	var map = MAP_SCRIPT.new()
+	var map = MAP_SCENE.instantiate() as GameMap
 	map.name = "Map"
 	root.add_child(map)
 
@@ -117,7 +117,7 @@ func _test_rotate_tile_event() -> void:
 	root.add_child(roads)
 	roads._ready()
 
-	var player = PLAYER_SCRIPT.new()
+	var player = PLAYER_SCENE.instantiate() as GamePlayer
 	player.name = "Player"
 	player.map_path = NodePath("../Map")
 	player.start_position = Vector2i(4, 8)
@@ -130,7 +130,7 @@ func _test_rotate_tile_event() -> void:
 	ui.name = "UI"
 	root.add_child(ui)
 
-	var hand = HAND_SCRIPT.new()
+	var hand = HAND_SCENE.instantiate() as HandUI
 	hand.name = "Hand"
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0
@@ -173,7 +173,7 @@ func _test_draw_two_event() -> void:
 	var root := Node2D.new()
 	get_root().add_child(root)
 
-	var map = MAP_SCRIPT.new()
+	var map = MAP_SCENE.instantiate() as GameMap
 	map.name = "Map"
 	root.add_child(map)
 
@@ -181,7 +181,7 @@ func _test_draw_two_event() -> void:
 	ui.name = "UI"
 	root.add_child(ui)
 
-	var hand = HAND_SCRIPT.new()
+	var hand = HAND_SCENE.instantiate() as HandUI
 	hand.name = "Hand"
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0
@@ -189,7 +189,7 @@ func _test_draw_two_event() -> void:
 	ui.add_child(hand)
 	hand._ready()
 
-	var deck_controller = DECK_CONTROLLER_SCRIPT.new()
+	var deck_controller = DECK_CONTROLLER_SCENE.instantiate() as DeckController
 	deck_controller.name = "DeckController"
 	deck_controller.map_path = NodePath("../Map")
 	deck_controller.hand_path = NodePath("../UI/Hand")
@@ -219,11 +219,11 @@ func _test_lucky_find_event() -> void:
 	var root := Node2D.new()
 	get_root().add_child(root)
 
-	var map = MAP_SCRIPT.new()
+	var map = MAP_SCENE.instantiate() as GameMap
 	map.name = "Map"
 	root.add_child(map)
 
-	var player = PLAYER_SCRIPT.new()
+	var player = PLAYER_SCENE.instantiate() as GamePlayer
 	player.name = "Player"
 	player.map_path = NodePath("../Map")
 	player.starting_food = 5
@@ -236,7 +236,7 @@ func _test_lucky_find_event() -> void:
 	ui.name = "UI"
 	root.add_child(ui)
 
-	var hand = HAND_SCRIPT.new()
+	var hand = HAND_SCENE.instantiate() as HandUI
 	hand.name = "Hand"
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0
@@ -244,7 +244,7 @@ func _test_lucky_find_event() -> void:
 	ui.add_child(hand)
 	hand._ready()
 
-	var deck_controller = DECK_CONTROLLER_SCRIPT.new()
+	var deck_controller = DECK_CONTROLLER_SCENE.instantiate() as DeckController
 	deck_controller.name = "DeckController"
 	deck_controller.map_path = NodePath("../Map")
 	deck_controller.hand_path = NodePath("../UI/Hand")
@@ -268,7 +268,7 @@ func _test_restart_map_event() -> void:
 	var root := Node2D.new()
 	get_root().add_child(root)
 
-	var map = MAP_SCRIPT.new()
+	var map = MAP_SCENE.instantiate() as GameMap
 	map.name = "Map"
 	root.add_child(map)
 
@@ -276,7 +276,7 @@ func _test_restart_map_event() -> void:
 	ui.name = "UI"
 	root.add_child(ui)
 
-	var hand = HAND_SCRIPT.new()
+	var hand = HAND_SCENE.instantiate() as HandUI
 	hand.name = "Hand"
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0
@@ -284,7 +284,7 @@ func _test_restart_map_event() -> void:
 	ui.add_child(hand)
 	hand._ready()
 
-	var deck_controller = DECK_CONTROLLER_SCRIPT.new()
+	var deck_controller = DECK_CONTROLLER_SCENE.instantiate() as DeckController
 	deck_controller.name = "DeckController"
 	deck_controller.map_path = NodePath("../Map")
 	deck_controller.hand_path = NodePath("../UI/Hand")

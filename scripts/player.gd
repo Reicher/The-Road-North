@@ -1,8 +1,6 @@
 class_name GamePlayer
 extends Node3D
 
-const PLAYER_REWARDS_SCRIPT := preload("res://scripts/player_rewards.gd")
-const PLAYER_COMBAT_SCRIPT := preload("res://scripts/player_combat.gd")
 const DEFAULT_FOOD_MAP_AREA_DIVISOR := 4.0
 
 signal food_changed(food: int)
@@ -59,9 +57,15 @@ func _ready() -> void:
 	_health_label = get_node_or_null(health_label_path) as Label
 	_inventory = get_node_or_null(inventory_path) as InventoryUI
 	_loot_ui = get_node_or_null(loot_ui_path)
-	_rewards = _get_or_create_rewards()
+	_rewards = get_node_or_null(rewards_path)
+	if _rewards == null:
+		push_warning("Player needs a Rewards child at rewards_path.")
+		return
 	_rewards.setup(self, _inventory, _loot_ui, _map)
-	_combat = _get_or_create_combat()
+	_combat = get_node_or_null(combat_path)
+	if _combat == null:
+		push_warning("Player needs a Combat child at combat_path.")
+		return
 	_combat.setup(self, _map)
 	_ensure_visuals()
 
@@ -184,9 +188,7 @@ func _ensure_visuals() -> void:
 		return
 	_visual_root = get_node_or_null("Visuals") as Node3D
 	if _visual_root == null:
-		_visual_root = Node3D.new()
-		_visual_root.name = "Visuals"
-		add_child(_visual_root)
+		push_warning("Player needs a Visuals child.")
 
 
 func _rebuild_visuals() -> void:
@@ -352,26 +354,6 @@ func _resolve_reward_encounter_at(target_position: Vector2i) -> void:
 		return
 	if _rewards.collect_reward_at(target_position):
 		_clear_visual_encounter_data(target_position)
-
-
-func _get_or_create_rewards() -> Node:
-	var rewards := get_node_or_null(rewards_path)
-	if rewards != null:
-		return rewards
-	rewards = PLAYER_REWARDS_SCRIPT.new()
-	rewards.name = "Rewards"
-	add_child(rewards)
-	return rewards
-
-
-func _get_or_create_combat() -> Node:
-	var combat := get_node_or_null(combat_path)
-	if combat != null:
-		return combat
-	combat = PLAYER_COMBAT_SCRIPT.new()
-	combat.name = "Combat"
-	add_child(combat)
-	return combat
 
 
 func _check_game_over() -> void:

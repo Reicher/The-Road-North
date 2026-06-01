@@ -75,6 +75,8 @@ func set_cards(card_data_list: Array) -> void:
 func add_card(card_data: Dictionary, animate := true) -> CardView:
 	_resolve_card_parent()
 	_resolve_use_button()
+	if _card_parent == null:
+		return null
 	var card := card_scene.instantiate() as CardView
 	card.custom_minimum_size = card_size
 	card.size = card_size
@@ -249,8 +251,7 @@ func _resolve_card_parent() -> void:
 
 	_card_parent = get_node_or_null("CardContainer") as Control
 	if _card_parent == null:
-		_card_parent = self
-		return
+		push_warning("HandUI needs a CardContainer child.")
 
 
 func _resolve_use_button() -> void:
@@ -259,9 +260,8 @@ func _resolve_use_button() -> void:
 
 	_use_button = get_node_or_null("UseButton") as Button
 	if _use_button == null:
-		_use_button = Button.new()
-		_use_button.name = "UseButton"
-		add_child(_use_button)
+		push_warning("HandUI needs a UseButton child.")
+		return
 
 	_use_button.text = "Use"
 	_use_button.focus_mode = Control.FOCUS_NONE
@@ -275,6 +275,8 @@ func _resolve_use_button() -> void:
 
 func _layout_use_button(animated := true, focused_card_position := Vector2.ZERO, focused_card_scale := Vector2.ONE) -> void:
 	_resolve_use_button()
+	if _use_button == null:
+		return
 	if focused_index == -1:
 		_use_button.visible = false
 		return

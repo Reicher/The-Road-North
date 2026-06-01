@@ -1,8 +1,8 @@
 extends SceneTree
 
-const MAP_SCRIPT := preload("res://scripts/map.gd")
+const MAP_SCENE := preload("res://scenes/map.tscn")
 const ROADS_SCRIPT := preload("res://scripts/roads.gd")
-const PLAYER_SCRIPT := preload("res://scripts/player.gd")
+const PLAYER_SCENE := preload("res://scenes/player.tscn")
 const GAME_OVER_SCENE := preload("res://ui/game_over.tscn")
 const STRAIGHT := preload("res://data/road_straight.tres")
 const T_JUNCTION := preload("res://data/road_t_junction.tres")
@@ -16,7 +16,7 @@ func run() -> void:
 	var root := Node2D.new()
 	get_root().add_child(root)
 
-	var map = MAP_SCRIPT.new()
+	var map = MAP_SCENE.instantiate() as GameMap
 	map.name = "Map"
 	root.add_child(map)
 
@@ -29,7 +29,7 @@ func run() -> void:
 	roads.force_place_tile(Vector2i(4, 8), T_JUNCTION, 0)
 	roads.force_place_tile(Vector2i(4, 7), STRAIGHT, 0)
 
-	var player = PLAYER_SCRIPT.new()
+	var player = PLAYER_SCENE.instantiate() as GamePlayer
 	player.name = "Player"
 	player.map_path = NodePath("../Map")
 	player.start_position = Vector2i(4, 8)
@@ -53,7 +53,7 @@ func run() -> void:
 	_assert(overlay.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Restart level", "Expected loss overlay to restart the level")
 	_assert(overlay.get_node("Prompt/ContentMargin/Stack/RestartButton") != null, "Expected restart button under game-over prompt")
 
-	var second_player = PLAYER_SCRIPT.new()
+	var second_player = PLAYER_SCENE.instantiate() as GamePlayer
 	second_player.name = "HealthPlayer"
 	second_player.map_path = NodePath("../Map")
 	second_player.starting_health = 1

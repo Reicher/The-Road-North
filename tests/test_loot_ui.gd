@@ -2,8 +2,8 @@ extends SceneTree
 
 const INVENTORY_SCENE := preload("res://ui/inventory.tscn")
 const LOOT_SCENE := preload("res://ui/loot.tscn")
-const MAP_SCRIPT := preload("res://scripts/map.gd")
-const PLAYER_SCRIPT := preload("res://scripts/player.gd")
+const MAP_SCENE := preload("res://scenes/map.tscn")
+const PLAYER_SCENE := preload("res://scenes/player.tscn")
 
 
 func _initialize() -> void:
@@ -11,11 +11,11 @@ func _initialize() -> void:
 	root.size = Vector2(360.0, 640.0)
 	get_root().add_child(root)
 
-	var map = MAP_SCRIPT.new()
+	var map = MAP_SCENE.instantiate() as GameMap
 	map.name = "Map"
 	root.add_child(map)
 
-	var player = PLAYER_SCRIPT.new()
+	var player = PLAYER_SCENE.instantiate() as GamePlayer
 	player.name = "Player"
 	player.map_path = NodePath("../Map")
 	player.starting_food = 2

@@ -1,8 +1,8 @@
 extends SceneTree
 
-const MAP_SCRIPT := preload("res://scripts/map.gd")
+const MAP_SCENE := preload("res://scenes/map.tscn")
 const ROADS_SCRIPT := preload("res://scripts/roads.gd")
-const PLAYER_SCRIPT := preload("res://scripts/player.gd")
+const PLAYER_SCENE := preload("res://scenes/player.tscn")
 const INVENTORY_SCENE := preload("res://ui/inventory.tscn")
 const LOOT_SCENE := preload("res://ui/loot.tscn")
 const STRAIGHT := preload("res://data/road_straight.tres")
@@ -17,7 +17,7 @@ func run() -> void:
 	var root := Node2D.new()
 	get_root().add_child(root)
 
-	var map = MAP_SCRIPT.new()
+	var map = MAP_SCENE.instantiate() as GameMap
 	map.name = "Map"
 	root.add_child(map)
 
@@ -67,7 +67,7 @@ func run() -> void:
 	root.add_child(loot_ui)
 	loot_ui._ready()
 
-	var player = PLAYER_SCRIPT.new()
+	var player = PLAYER_SCENE.instantiate() as GamePlayer
 	player.name = "Player"
 	player.map_path = NodePath("../Map")
 	player.health_label_path = NodePath("../HealthLabel")
@@ -91,7 +91,7 @@ func run() -> void:
 
 	_assert(player.can_move_to(Vector2i(3, 8)), "Expected dangerous enemy road tiles to remain reachable")
 
-	var lethal_player = PLAYER_SCRIPT.new()
+	var lethal_player = PLAYER_SCENE.instantiate() as GamePlayer
 	lethal_player.name = "LethalPlayer"
 	lethal_player.map_path = NodePath("../Map")
 	lethal_player.start_position = Vector2i(4, 8)

@@ -3,8 +3,6 @@ extends Node
 
 signal restart_map_requested
 
-const DECK_BUILDER_SCRIPT := preload("res://scripts/deck_builder.gd")
-
 const ROAD_CATEGORY := "Road"
 const EVENT_CATEGORY := "Event"
 const EVENT_RESTART_MAP := "restart_map"
@@ -58,12 +56,15 @@ func _ready() -> void:
 	_map = get_node_or_null(map_path) as GameMap
 	_hand = get_node_or_null(hand_path) as HandUI
 	_player = get_node_or_null(player_path) as GamePlayer
-	_deck_builder = _get_or_create_deck_builder()
+	_deck_builder = get_node_or_null(deck_builder_path)
 	if _map == null:
 		push_warning("DeckController needs a GameMap at map_path.")
 		return
 	if _hand == null:
 		push_warning("DeckController needs a HandUI at hand_path.")
+		return
+	if _deck_builder == null:
+		push_warning("DeckController needs a DeckBuilder child at deck_builder_path.")
 		return
 
 	start_run()
@@ -200,12 +201,3 @@ func _deck_config() -> Dictionary:
 		},
 	}
 
-
-func _get_or_create_deck_builder() -> Node:
-	var builder := get_node_or_null(deck_builder_path)
-	if builder != null:
-		return builder
-	builder = DECK_BUILDER_SCRIPT.new()
-	builder.name = "DeckBuilder"
-	add_child(builder)
-	return builder

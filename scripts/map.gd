@@ -3,8 +3,6 @@ extends Node3D
 
 signal tile_pressed(grid_position: Vector2i)
 
-const MAP_VISUALS_SCRIPT := preload("res://scripts/map_visuals.gd")
-
 const DIRECTIONS: Dictionary = {
 	"north": Vector2i(0, -1),
 	"east": Vector2i(1, 0),
@@ -97,8 +95,7 @@ func grid_to_screen_position(grid_position: Vector2i) -> Vector2:
 		return grid_to_world_2d(grid_position)
 	var camera := viewport.get_camera_3d()
 	if camera == null:
-		var fallback := grid_to_world_2d(grid_position)
-		return fallback
+		return grid_to_world_2d(grid_position)
 	return camera.unproject_position(grid_to_world(grid_position))
 
 
@@ -318,20 +315,22 @@ func _rebuild_fixed_feature_lookup() -> void:
 func _rebuild_visuals() -> void:
 	if not is_inside_tree():
 		return
-	_resolve_visuals()
+	if not _resolve_visuals():
+		return
 	_visuals.rebuild_all(self)
 
 
 func _rebuild_cell_visual(grid_position: Vector2i) -> void:
 	if not is_inside_tree():
 		return
-	_resolve_visuals()
+	if not _resolve_visuals():
+		return
 	_visuals.rebuild_cell(self, grid_position)
 
 
-func _resolve_visuals() -> void:
+func _resolve_visuals() -> bool:
 	_visuals = get_node_or_null("MapVisuals")
 	if _visuals == null:
-		_visuals = MAP_VISUALS_SCRIPT.new()
-		_visuals.name = "MapVisuals"
-		add_child(_visuals)
+		push_warning("GameMap needs a MapVisuals child.")
+		return false
+	return true

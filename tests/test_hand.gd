@@ -1,6 +1,6 @@
 extends SceneTree
 
-const HAND_SCRIPT := preload("res://scripts/hand_ui.gd")
+const HAND_SCENE := preload("res://ui/hand.tscn")
 const STRAIGHT := preload("res://data/road_straight.tres")
 const CORNER := preload("res://data/road_corner.tres")
 const T_JUNCTION := preload("res://data/road_t_junction.tres")
@@ -13,7 +13,7 @@ func _initialize() -> void:
 	root.size = Vector2(360.0, 640.0)
 	get_root().add_child(root)
 
-	var hand = HAND_SCRIPT.new()
+	var hand = HAND_SCENE.instantiate() as HandUI
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0
 	hand.size = root.size

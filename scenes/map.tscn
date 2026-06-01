@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/map.gd" id="1_htr0p"]
+[ext_resource type="Script" path="res://scripts/map_visuals.gd" id="2_rq284"]
+
+[node name="Map" type="Node3D"]
+script = ExtResource("1_htr0p")
+
+[node name="MapVisuals" type="Node3D" parent="."]
+script = ExtResource("2_rq284")
+
+[node name="Cells" type="Node3D" parent="MapVisuals"]
+
+[node name="Forest" type="Node3D" parent="MapVisuals"]

@@ -1,8 +1,6 @@
 class_name RoadTile
 extends Node3D
 
-const ROAD_TILE_VISUALS_SCRIPT := preload("res://scripts/road_tile_visuals.gd")
-
 @export var definition: Resource:
 	set(value):
 		definition = value
@@ -84,7 +82,8 @@ func set_encounter_data(value: Dictionary) -> void:
 func _refresh_visuals() -> void:
 	if not is_inside_tree():
 		return
-	_resolve_visuals()
+	if not _resolve_visuals():
+		return
 	_visuals.render(
 		definition,
 		rotation_steps,
@@ -97,12 +96,12 @@ func _refresh_visuals() -> void:
 	)
 
 
-func _resolve_visuals() -> void:
+func _resolve_visuals() -> bool:
 	_visuals = get_node_or_null("Visuals")
 	if _visuals == null:
-		_visuals = ROAD_TILE_VISUALS_SCRIPT.new()
-		_visuals.name = "Visuals"
-		add_child(_visuals)
+		push_warning("RoadTile needs a Visuals child.")
+		return false
+	return true
 
 
 func _encounter_type() -> String:

@@ -1,9 +1,9 @@
 extends SceneTree
 
-const MAP_SCRIPT := preload("res://scripts/map.gd")
+const MAP_SCENE := preload("res://scenes/map.tscn")
 const ROADS_SCRIPT := preload("res://scripts/roads.gd")
-const PLAYER_SCRIPT := preload("res://scripts/player.gd")
-const HAND_SCRIPT := preload("res://scripts/hand_ui.gd")
+const PLAYER_SCENE := preload("res://scenes/player.tscn")
+const HAND_SCENE := preload("res://ui/hand.tscn")
 const PLACEMENT_SCRIPT := preload("res://scripts/placement_controller.gd")
 const STRAIGHT := preload("res://data/road_straight.tres")
 const CORNER := preload("res://data/road_corner.tres")
@@ -14,7 +14,7 @@ func _initialize() -> void:
 	var root := Node2D.new()
 	get_root().add_child(root)
 
-	var map = MAP_SCRIPT.new()
+	var map = MAP_SCENE.instantiate() as GameMap
 	map.name = "Map"
 	root.add_child(map)
 
@@ -25,7 +25,7 @@ func _initialize() -> void:
 	root.add_child(roads)
 	roads._ready()
 
-	var player = PLAYER_SCRIPT.new()
+	var player = PLAYER_SCENE.instantiate() as GamePlayer
 	player.name = "Player"
 	player.map_path = NodePath("../Map")
 	player.start_position = Vector2i(4, 8)
@@ -38,7 +38,7 @@ func _initialize() -> void:
 	ui.name = "UI"
 	root.add_child(ui)
 
-	var hand = HAND_SCRIPT.new()
+	var hand = HAND_SCENE.instantiate() as HandUI
 	hand.name = "Hand"
 	hand.demo_cards_enabled = false
 	hand.layout_duration = 0.0

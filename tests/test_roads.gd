@@ -1,6 +1,6 @@
 extends SceneTree
 
-const MAP_SCRIPT := preload("res://scripts/map.gd")
+const MAP_SCENE := preload("res://scenes/map.tscn")
 const ROADS_SCRIPT := preload("res://scripts/roads.gd")
 const STRAIGHT := preload("res://data/road_straight.tres")
 const CORNER := preload("res://data/road_corner.tres")
@@ -11,7 +11,7 @@ func _initialize() -> void:
 	var root := Node2D.new()
 	get_root().add_child(root)
 
-	var map = MAP_SCRIPT.new()
+	var map = MAP_SCENE.instantiate() as GameMap
 	map.name = "Map"
 	root.add_child(map)
 	_assert(map.get_padded_world_rect() == map.get_playable_world_rect(), "Expected map bounds to exclude visual padding")

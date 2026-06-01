@@ -1,8 +1,8 @@
 extends SceneTree
 
-const MAP_SCRIPT := preload("res://scripts/map.gd")
+const MAP_SCENE := preload("res://scenes/map.tscn")
 const ROADS_SCRIPT := preload("res://scripts/roads.gd")
-const PLAYER_SCRIPT := preload("res://scripts/player.gd")
+const PLAYER_SCENE := preload("res://scenes/player.tscn")
 const STRAIGHT := preload("res://data/road_straight.tres")
 const CORNER := preload("res://data/road_corner.tres")
 const T_JUNCTION := preload("res://data/road_t_junction.tres")
@@ -12,7 +12,7 @@ func _initialize() -> void:
 	var root := Node2D.new()
 	get_root().add_child(root)
 
-	var map = MAP_SCRIPT.new()
+	var map = MAP_SCENE.instantiate() as GameMap
 	map.name = "Map"
 	root.add_child(map)
 
@@ -27,7 +27,7 @@ func _initialize() -> void:
 	root.add_child(roads)
 	roads._ready()
 
-	var player = PLAYER_SCRIPT.new()
+	var player = PLAYER_SCENE.instantiate() as GamePlayer
 	player.name = "Player"
 	player.map_path = NodePath("../Map")
 	player.health_label_path = NodePath("../HealthLabel")
@@ -78,7 +78,7 @@ func _initialize() -> void:
 	_assert(player.health == 4, "Expected player health to be mutable state")
 	_assert(health_label.text == "Health: 4", "Expected health label to update after health changes")
 
-	var default_food_player = PLAYER_SCRIPT.new()
+	var default_food_player = PLAYER_SCENE.instantiate() as GamePlayer
 	default_food_player.name = "DefaultFoodPlayer"
 	default_food_player.map_path = NodePath("../Map")
 	root.add_child(default_food_player)
