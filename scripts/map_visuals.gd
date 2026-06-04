@@ -133,7 +133,7 @@ func _add_fixed_feature_visual(map: GameMap, parent: Node3D, feature: Dictionary
 
 func _add_river(map: GameMap, parent: Node3D, rotation_steps: int) -> void:
 	var horizontal := posmod(rotation_steps, 2) == 0
-	var size := Vector3(map.tile_size * 0.96, 0.04, map.tile_size * 0.34) if horizontal else Vector3(map.tile_size * 0.34, 0.04, map.tile_size * 0.96)
+	var size := Vector3(map.tile_size * 1.04, 0.04, map.tile_size * 0.34) if horizontal else Vector3(map.tile_size * 0.34, 0.04, map.tile_size * 1.04)
 	_add_box(parent, "River", size, Vector3(0.0, 0.03, 0.0), Color(0.23, 0.48, 0.68))
 
 

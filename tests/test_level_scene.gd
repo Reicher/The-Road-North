@@ -63,12 +63,12 @@ func run() -> void:
 	var second_map := level_002.get_node("Map") as GameMap
 	var second_deck_controller := level_002.get_node("DeckController") as DeckController
 	var second_camera := level_002.get_node("Camera3D") as Camera3D
-	_assert(second_map.playable_width == 11 and second_map.playable_height == 11, "Expected level 002 to configure an 11x11 map")
-	_assert(second_map.get_fixed_feature(Vector2i(5, 5))["type"] == GameMap.FEATURE_RIVER, "Expected level 002 to include a horizontal river")
-	_assert(second_map.get_fixed_feature(Vector2i(3, 5))["type"] == GameMap.FEATURE_BRIDGE, "Expected level 002 river to include bridge crossings")
-	_assert(not second_map.can_place_tile(Vector2i(5, 5), {}), "Expected river fixed features to block road placement")
-	_assert(not second_map.can_place_tile(Vector2i(3, 5), {}), "Expected bridge fixed features to already provide a road crossing")
-	_assert(second_map.get_fixed_feature_connections(Vector2i(3, 5))["north"] == true, "Expected level 002 bridges to connect across the river")
+	_assert(second_map.playable_width == 7 and second_map.playable_height == 7, "Expected level 002 to configure a 7x7 map")
+	_assert(second_map.get_fixed_feature(Vector2i(3, 3))["type"] == GameMap.FEATURE_RIVER, "Expected level 002 to include a horizontal river")
+	_assert(second_map.get_fixed_feature(Vector2i(2, 3))["type"] == GameMap.FEATURE_BRIDGE, "Expected level 002 river to include bridge crossings")
+	_assert(not second_map.can_place_tile(Vector2i(3, 3), {}), "Expected river fixed features to block road placement")
+	_assert(not second_map.can_place_tile(Vector2i(2, 3), {}), "Expected bridge fixed features to already provide a road crossing")
+	_assert(second_map.get_fixed_feature_connections(Vector2i(2, 3))["north"] == true, "Expected level 002 bridges to connect across the river")
 	_assert(second_deck_controller.hand_size == 4, "Expected level 002 to configure a four-card hand")
 	_assert(second_deck_controller.enemy_level == 2, "Expected level 002 enemies to use level two power")
 	_assert(second_camera.reserved_bottom_path == NodePath("../UI/Hand"), "Expected camera to reserve the card hand area when sizing the map viewport")

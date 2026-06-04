@@ -56,7 +56,11 @@ func _initialize() -> void:
 	var power_label := enemy_tile.get_node_or_null("Enemy/PowerLabel") as Label3D
 	_assert(power_label != null, "Expected revealed enemy tiles to show a power label")
 	_assert(power_label.text == "7", "Expected enemy power label to show the enemy power")
-	_assert(power_label.position.z > TILE_SIZE * 0.25, "Expected enemy power label to sit below the enemy model on the tile")
+	_assert(power_label.position.y > TILE_SIZE * 0.45, "Expected enemy power label to sit above the enemy model")
+	_assert(power_label.position.x > TILE_SIZE * 0.08, "Expected enemy power label to sit slightly right of the enemy model center")
+	_assert(is_equal_approx(power_label.position.z, 0.0), "Expected enemy power label to stay centered above the enemy model")
+	_assert(power_label.fixed_size, "Expected enemy power label to stay readable at camera distance")
+	_assert(power_label.font_size < 24 and power_label.outline_size <= 3, "Expected enemy power label to render smaller and cleaner than the original oversized label")
 	enemy_tile.queue_free()
 
 	var start_camp := load("res://data/start_camp.tres")

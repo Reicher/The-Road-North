@@ -34,7 +34,7 @@ func run() -> void:
 	_send_key(main, KEY_2)
 	await process_frame
 	var debug_second_level := main.get_node("Level")
-	_assert((debug_second_level.get_node("Map") as GameMap).playable_width == 11, "Expected debug key 2 to load the second level")
+	_assert((debug_second_level.get_node("Map") as GameMap).playable_width == 7, "Expected debug key 2 to load the second level")
 	_send_key(main, KEY_2)
 	await process_frame
 	_assert(main.get_node("Level") != debug_second_level, "Expected debug key 2 to reload the second level when already active")
@@ -62,7 +62,7 @@ func run() -> void:
 	var second_map := second_level.get_node("Map") as GameMap
 	var second_player := second_level.get_node("Player") as GamePlayer
 	var second_screen := second_level.get_node("UI/GameOver") as GameOverUI
-	_assert(second_map.playable_width == 11 and second_map.playable_height == 11, "Expected Next level to load the 11x11 map")
+	_assert(second_map.playable_width == 7 and second_map.playable_height == 7, "Expected Next level to load the 7x7 map")
 
 	second_player.set_health(0)
 	_assert(second_screen.visible, "Expected loss screen to show on the current level")
@@ -77,7 +77,7 @@ func run() -> void:
 	second_player = second_level.get_node("Player") as GamePlayer
 	second_screen = second_level.get_node("UI/GameOver") as GameOverUI
 	var second_hand := second_level.get_node("UI/Hand") as HandUI
-	_assert(second_map.playable_width == 11 and second_map.playable_height == 11, "Expected Restart level to reload the current 11x11 level")
+	_assert(second_map.playable_width == 7 and second_map.playable_height == 7, "Expected Restart level to reload the current 7x7 level")
 
 	second_player.grid_position = second_map.get_goal_position()
 	_assert(second_player.call("_check_run_won"), "Expected reaching the final goal to complete the game")

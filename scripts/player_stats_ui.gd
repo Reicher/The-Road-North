@@ -12,8 +12,8 @@ const ICON_PATHS := {
 @export var player_path: NodePath
 @export var top_margin := 10.0
 @export var left_margin := 10.0
-@export var icon_size := 52.0
-@export var row_height := 62.0
+@export var icon_size := 48.0
+@export var row_height := 58.0
 @export var panel_color := Color.TRANSPARENT
 @export var border_color := Color.TRANSPARENT
 
@@ -28,7 +28,7 @@ var _icon_cache: Dictionary = {}
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_player = get_node_or_null(player_path) as GamePlayer
-	custom_minimum_size = Vector2(154.0, row_height * 4.0 + 10.0)
+	custom_minimum_size = Vector2(144.0, row_height * 4.0 + 10.0)
 	size = custom_minimum_size
 	position = Vector2(left_margin, top_margin)
 	if _player != null and not _player.health_changed.is_connected(_on_player_health_changed):
@@ -52,7 +52,7 @@ func _draw() -> void:
 
 
 func _draw_stat_row(index: int, stat_name: String, value: int) -> void:
-	var row_center := Vector2(33.0, 5.0 + row_height * float(index) + row_height * 0.5)
+	var row_center := Vector2(31.0, 5.0 + row_height * float(index) + row_height * 0.5)
 	var pulse := float(_pulse_strength.get(stat_name, 0.0))
 	if pulse > 0.0:
 		var sign := int(_pulse_sign.get(stat_name, 1))
@@ -67,10 +67,10 @@ func _draw_stat_row(index: int, stat_name: String, value: int) -> void:
 		draw_texture_rect(icon, icon_rect, false)
 
 	var font: Font = ThemeDB.fallback_font
-	var font_size := 38
-	var text_position := Vector2(74.0, row_center.y + 14.0)
-	draw_string_outline(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 78.0, font_size, 7, Color(0.10, 0.08, 0.05, 0.92))
-	draw_string(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 78.0, font_size, Color(1.0, 0.96, 0.84))
+	var font_size := 34
+	var text_position := Vector2(70.0, row_center.y + 13.0)
+	draw_string_outline(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 72.0, font_size, 7, Color(0.10, 0.08, 0.05, 0.92))
+	draw_string(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 72.0, font_size, Color(1.0, 0.96, 0.84))
 
 
 func _get_food() -> int:

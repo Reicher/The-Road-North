@@ -43,14 +43,15 @@ func _add_power_label(power: int) -> void:
 	var label := Label3D.new()
 	label.name = "PowerLabel"
 	label.text = str(power)
-	label.font_size = maxi(24, roundi(tile_size * 0.34))
+	label.font_size = 22
 	label.modulate = Color(1.0, 0.94, 0.76)
 	label.outline_modulate = Color(0.16, 0.05, 0.04)
-	label.outline_size = maxi(6, roundi(tile_size * 0.08))
+	label.outline_size = 3
+	label.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = true
 	label.fixed_size = true
-	label.position = Vector3(0.0, tile_size * 0.14, tile_size * 0.31)
+	label.position = Vector3(tile_size * 0.11, tile_size * 0.52, 0.0)
 	add_child(label)
 
 

@@ -40,7 +40,7 @@ The 3D presentation must not change any placement, movement, deck, encounter, or
 
 # Map Structure
 
-The prototype supports multiple square levels. The base run target remains a compact square grid, with the current level set including a small 5x5 introductory map and a larger 11x11 map.
+The prototype supports multiple square levels. The base run target remains a compact square grid, with the current level set including a small 5x5 introductory map and a larger 7x7 map.
 
 The playable area has no surrounding gameplay padding border.
 

@@ -15,12 +15,12 @@ const EQUIPPED_SLOT_TINT := Color(1.0, 0.86, 0.45)
 const NORMAL_SLOT_TINT := Color.WHITE
 
 @export var button_size := Vector2(130.0, 130.0)
-@export var slot_size := Vector2(58.0, 58.0)
+@export var slot_size := Vector2(62.0, 62.0)
 @export var top_margin := 18.0
 @export var right_margin := 18.0
-@export var slot_spacing := 6.0
+@export var slot_spacing := 2.0
 @export var overlay_gap := 0.0
-@export var overlay_padding := 8.0
+@export var overlay_padding := 4.0
 @export var overlay_animation_duration := 0.36
 
 var items: Array[Dictionary] = [
