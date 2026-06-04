@@ -76,7 +76,7 @@ func _initialize() -> void:
 			event_types[str(card_data.get("event_type", ""))] = true
 	_assert(category_counts["Road"] == 61, "Expected 75 percent of an 81 card deck to round to 61 road cards")
 	_assert(category_counts["Event"] == 20, "Expected the remaining deck cards to be events")
-	_assert(event_types.has(DeckController.EVENT_RESTART_MAP), "Expected event deck to include It Was All a Dream")
+	_assert(not event_types.has("restart_map"), "Expected event deck not to include removed restart event")
 	_assert(event_types.has(DeckController.EVENT_DESTROY_TILE), "Expected event deck to include Mirage")
 	_assert(event_types.has(DeckController.EVENT_DRAW_TWO), "Expected event deck to include Idea")
 	_assert(event_types.has(DeckController.EVENT_ROTATE_TILE), "Expected event deck to include Doubt")

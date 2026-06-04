@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://oekhv4tpgpwi"
-path="res://.godot/imported/card_art_road_dead_end.png-8c2dea65d57f94187e06245cc09e485d.ctex"
+uid="uid://h8aeeka6fvmi"
+path="res://.godot/imported/card_base.png-5318a0357fc4969f38406ba14d7296cc.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://ui/card_art_road_dead_end.png"
-dest_files=["res://.godot/imported/card_art_road_dead_end.png-8c2dea65d57f94187e06245cc09e485d.ctex"]
+source_file="res://assets/images/card_base.png"
+dest_files=["res://.godot/imported/card_base.png-5318a0357fc4969f38406ba14d7296cc.ctex"]
 
 [params]
 

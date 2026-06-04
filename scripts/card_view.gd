@@ -3,26 +3,25 @@ extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
 const CARD_DEFINITION_SCRIPT = preload("res://scripts/card_definition.gd")
-const DEFAULT_CARD_BASE_TEXTURE_PATH := "res://ui/card_base.png"
-const FALLBACK_EVENT_ART_TEXTURE_PATH := "res://ui/card_art_event.png"
+const DEFAULT_CARD_BASE_TEXTURE_PATH := "res://assets/images/card_base.png"
+const FALLBACK_EVENT_ART_TEXTURE_PATH := "res://assets/images/card_art_event.png"
 const EVENT_ART_TEXTURES := {
-	DeckController.EVENT_RESTART_MAP: "res://ui/card_art_event_restart_map.png",
-	DeckController.EVENT_DESTROY_TILE: "res://ui/card_art_event_destroy_tile.png",
-	DeckController.EVENT_DRAW_TWO: "res://ui/card_art_event_draw_two.png",
-	DeckController.EVENT_ROTATE_TILE: "res://ui/card_art_event_rotate_tile.png",
-	DeckController.EVENT_LUCKY_FIND: "res://ui/card_art_event_lucky_find.png",
+	DeckController.EVENT_DESTROY_TILE: "res://assets/images/card_art_event_destroy_tile.png",
+	DeckController.EVENT_DRAW_TWO: "res://assets/images/card_art_event_draw_two.png",
+	DeckController.EVENT_ROTATE_TILE: "res://assets/images/card_art_event_rotate_tile.png",
+	DeckController.EVENT_LUCKY_FIND: "res://assets/images/card_art_event_lucky_find.png",
 }
 const ROAD_ART_TEXTURES := {
-	"Straight Road": "res://ui/card_art_road_straight.png",
-	"Corner": "res://ui/card_art_road_corner.png",
-	"T-Junction": "res://ui/card_art_road_t_junction.png",
-	"Four-Way Intersection": "res://ui/card_art_road_four_way.png",
-	"Dead End": "res://ui/card_art_road_dead_end.png",
+	"Straight Road": "res://assets/images/card_art_road_straight.png",
+	"Corner": "res://assets/images/card_art_road_corner.png",
+	"T-Junction": "res://assets/images/card_art_road_t_junction.png",
+	"Four-Way Intersection": "res://assets/images/card_art_road_four_way.png",
+	"Dead End": "res://assets/images/card_art_road_dead_end.png",
 }
 const ENCOUNTER_MARKER_TEXTURES := {
-	GameMap.ENCOUNTER_ENEMY: "res://ui/card_marker_danger.png",
-	GameMap.ENCOUNTER_BERRY_BUSH: "res://ui/card_marker_berry.png",
-	GameMap.ENCOUNTER_CACHE: "res://ui/card_marker_cache.png",
+	GameMap.ENCOUNTER_ENEMY: "res://assets/images/card_marker_danger.png",
+	GameMap.ENCOUNTER_BERRY_BUSH: "res://assets/images/card_marker_berry.png",
+	GameMap.ENCOUNTER_CACHE: "res://assets/images/card_marker_cache.png",
 }
 
 signal focus_requested(card: CardView)
@@ -278,12 +277,10 @@ static func _load_texture(path: String) -> Texture2D:
 	if _texture_cache.has(path):
 		return _texture_cache[path]
 
-	var image := Image.new()
-	var error := image.load(path)
-	if error != OK:
+	var texture := load(path) as Texture2D
+	if texture == null:
 		push_warning("Could not load card texture: %s" % path)
 		return null
-	var texture := ImageTexture.create_from_image(image)
 	_texture_cache[path] = texture
 	return texture
 

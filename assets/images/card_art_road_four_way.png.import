@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d2db3w5mbyset"
-path="res://.godot/imported/card_marker_danger.png-b2557909d78b11dfe906040bd5eff237.ctex"
+uid="uid://bui5t6ktssbcy"
+path="res://.godot/imported/card_art_road_four_way.png-9a537e740c5591a72e64bbefd540259e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://ui/card_marker_danger.png"
-dest_files=["res://.godot/imported/card_marker_danger.png-b2557909d78b11dfe906040bd5eff237.ctex"]
+source_file="res://assets/images/card_art_road_four_way.png"
+dest_files=["res://.godot/imported/card_art_road_four_way.png-9a537e740c5591a72e64bbefd540259e.ctex"]
 
 [params]
 

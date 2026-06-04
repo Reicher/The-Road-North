@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://brnki5r8823h5"
-path="res://.godot/imported/card_marker_berry.png-3fee3346b419a1dcb5637f6f095eb182.ctex"
+uid="uid://d2db3w5mbyset"
+path="res://.godot/imported/card_marker_danger.png-194f8bbb3f545b8bd6f28cc9b8917660.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://ui/card_marker_berry.png"
-dest_files=["res://.godot/imported/card_marker_berry.png-3fee3346b419a1dcb5637f6f095eb182.ctex"]
+source_file="res://assets/images/card_marker_danger.png"
+dest_files=["res://.godot/imported/card_marker_danger.png-194f8bbb3f545b8bd6f28cc9b8917660.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://h8aeeka6fvmi"
-path="res://.godot/imported/card_base.png-8a060d8cf6bfaefcc181114c2bff17f1.ctex"
+uid="uid://dhupaxyrymke0"
+path="res://.godot/imported/card_art_road_corner.png-eddb3742c79a754640a9f3b5142ed2e1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://ui/card_base.png"
-dest_files=["res://.godot/imported/card_base.png-8a060d8cf6bfaefcc181114c2bff17f1.ctex"]
+source_file="res://assets/images/card_art_road_corner.png"
+dest_files=["res://.godot/imported/card_art_road_corner.png-eddb3742c79a754640a9f3b5142ed2e1.ctex"]
 
 [params]
 

@@ -5,7 +5,6 @@ const CARD_DEFINITION_SCRIPT := preload("res://scripts/card_definition.gd")
 
 const ROAD_CATEGORY := "Road"
 const EVENT_CATEGORY := "Event"
-const EVENT_RESTART_MAP := "restart_map"
 const EVENT_DESTROY_TILE := "destroy_tile"
 const EVENT_DRAW_TWO := "draw_two"
 const EVENT_ROTATE_TILE := "rotate_tile"
@@ -44,7 +43,6 @@ func _make_road_cards(count: int, rng: RandomNumberGenerator, config: Dictionary
 
 func _make_event_cards(count: int) -> Array[Dictionary]:
 	var event_templates: Array[Dictionary] = [
-		{"title": "It Was All a Dream", "detail": "Restart the map.", "event_type": EVENT_RESTART_MAP},
 		{"title": "Mirage", "detail": "Destroy a placed tile.", "event_type": EVENT_DESTROY_TILE},
 		{"title": "Idea", "detail": "Draw two extra cards.", "event_type": EVENT_DRAW_TWO},
 		{"title": "Doubt", "detail": "Rotate a placed tile.", "event_type": EVENT_ROTATE_TILE},

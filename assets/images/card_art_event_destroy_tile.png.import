@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b4yk5yf5qlaoa"
-path="res://.godot/imported/card_art_event_draw_two.png-76658b6185588224182c5143162f0af8.ctex"
+uid="uid://qcnrcr0tdqbo"
+path="res://.godot/imported/card_art_event_destroy_tile.png-46007d6db89d8b27e157fb4674794543.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://ui/card_art_event_draw_two.png"
-dest_files=["res://.godot/imported/card_art_event_draw_two.png-76658b6185588224182c5143162f0af8.ctex"]
+source_file="res://assets/images/card_art_event_destroy_tile.png"
+dest_files=["res://.godot/imported/card_art_event_destroy_tile.png-46007d6db89d8b27e157fb4674794543.ctex"]
 
 [params]
 

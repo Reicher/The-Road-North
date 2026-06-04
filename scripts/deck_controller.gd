@@ -1,11 +1,8 @@
 class_name DeckController
 extends Node
 
-signal restart_map_requested
-
 const ROAD_CATEGORY := "Road"
 const EVENT_CATEGORY := "Event"
-const EVENT_RESTART_MAP := "restart_map"
 const EVENT_DESTROY_TILE := "destroy_tile"
 const EVENT_DRAW_TWO := "draw_two"
 const EVENT_ROTATE_TILE := "rotate_tile"
@@ -158,9 +155,6 @@ func _on_card_use_requested(card: CardView) -> void:
 	elif card.event_type == EVENT_LUCKY_FIND:
 		if consume_card(card):
 			_apply_lucky_find()
-	elif card.event_type == EVENT_RESTART_MAP:
-		if consume_card(card):
-			restart_map_requested.emit()
 
 
 func _apply_lucky_find() -> void:
@@ -200,4 +194,3 @@ func _deck_config() -> Dictionary:
 			"dead_end": dead_end_definition,
 		},
 	}
-

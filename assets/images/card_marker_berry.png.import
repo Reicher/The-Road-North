@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c55urbioxvh0n"
-path="res://.godot/imported/card_art_event_rotate_tile.png-4d0c1f81a8c1a09449088523b623eeed.ctex"
+uid="uid://brnki5r8823h5"
+path="res://.godot/imported/card_marker_berry.png-ef84e3db68ac2f5b46b20285ca5dc251.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://ui/card_art_event_rotate_tile.png"
-dest_files=["res://.godot/imported/card_art_event_rotate_tile.png-4d0c1f81a8c1a09449088523b623eeed.ctex"]
+source_file="res://assets/images/card_marker_berry.png"
+dest_files=["res://.godot/imported/card_marker_berry.png-ef84e3db68ac2f5b46b20285ca5dc251.ctex"]
 
 [params]
 

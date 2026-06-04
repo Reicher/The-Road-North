@@ -16,21 +16,18 @@ enum RunState {
 @export var hand_path: NodePath = NodePath("UI/Hand")
 @export var placement_controller_path: NodePath = NodePath("PlacementController")
 @export var player_path: NodePath = NodePath("Player")
-@export var deck_controller_path: NodePath = NodePath("DeckController")
 
 var state := RunState.IDLE
 
 var _hand: HandUI
 var _placement_controller: PlacementController
 var _player: GamePlayer
-var _deck_controller: DeckController
 
 
 func _ready() -> void:
 	_hand = get_node_or_null(hand_path) as HandUI
 	_placement_controller = get_node_or_null(placement_controller_path) as PlacementController
 	_player = get_node_or_null(player_path) as GamePlayer
-	_deck_controller = get_node_or_null(deck_controller_path) as DeckController
 
 	if _hand == null:
 		push_warning("Level needs a HandUI at hand_path.")
@@ -46,9 +43,6 @@ func _ready() -> void:
 		push_warning("Level needs a GamePlayer at player_path.")
 	else:
 		_connect_player()
-
-	if _deck_controller != null:
-		_connect_deck_controller()
 
 
 func _connect_hand() -> void:
@@ -80,11 +74,6 @@ func _connect_player() -> void:
 		_player.game_over.connect(_on_game_over)
 	if not _player.run_won.is_connected(_on_run_won):
 		_player.run_won.connect(_on_run_won)
-
-
-func _connect_deck_controller() -> void:
-	if not _deck_controller.restart_map_requested.is_connected(_on_restart_map_requested):
-		_deck_controller.restart_map_requested.connect(_on_restart_map_requested)
 
 
 func _on_card_focused(_card: CardView) -> void:
@@ -157,12 +146,6 @@ func _on_game_over(_reason: String) -> void:
 func _on_run_won() -> void:
 	state = RunState.RUN_WON
 	_set_player_input_enabled(false)
-
-
-func _on_restart_map_requested() -> void:
-	if _is_terminal_state():
-		return
-	restart_requested.emit()
 
 
 func _is_terminal_state() -> bool:

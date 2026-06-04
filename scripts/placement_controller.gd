@@ -75,6 +75,9 @@ var _targeted_tiles: Array[Vector2i] = []
 var _controls_layer
 var _placement_valid := false
 var _placement_hints: Dictionary = {}
+var _rotate_original_position := Vector2i(-1, -1)
+var _rotate_original_tile_data: Dictionary = {}
+var _rotate_original_rotation := 0
 
 
 func _ready() -> void:
@@ -115,7 +118,7 @@ func _process(_delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if active_card == null or active_mode != MODE_ROAD_PLACEMENT or preview_position.x < 0:
+	if active_card == null or preview_position.x < 0:
 		return
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and event.double_click:
@@ -182,7 +185,12 @@ func _begin_tile_targeting(card: CardView, mode: String) -> bool:
 
 
 func rotate_preview() -> void:
-	if active_card == null or active_mode != MODE_ROAD_PLACEMENT:
+	if active_card == null:
+		return
+	if active_mode == MODE_ROTATE_TARGETING:
+		_rotate_selected_target()
+		return
+	if active_mode != MODE_ROAD_PLACEMENT:
 		return
 	rotation_steps = posmod(rotation_steps + 1, 4)
 	_refresh_preview()
@@ -218,6 +226,7 @@ func cancel_placement() -> void:
 	if active_card == null:
 		return
 	var cancelled_card := active_card
+	_restore_rotate_target()
 	_end_placement(false)
 	placement_cancelled.emit(cancelled_card)
 
@@ -238,6 +247,8 @@ func _on_card_use_requested(card: CardView) -> void:
 func _on_tile_pressed(grid_position: Vector2i) -> void:
 	if active_card == null:
 		return
+	if active_mode == MODE_ROTATE_TARGETING:
+		_restore_rotate_target()
 	preview_position = grid_position
 	_refresh_preview()
 
@@ -306,7 +317,7 @@ func _confirm_destroy_target() -> bool:
 func _confirm_rotate_target() -> bool:
 	var rotated_card := active_card
 	var rotated_position := preview_position
-	if not _roads.rotate_tile(rotated_position):
+	if not _rotate_target_has_changed():
 		_refresh_tile_target()
 		return false
 	if _deck_controller != null:
@@ -319,8 +330,14 @@ func _confirm_rotate_target() -> bool:
 
 
 func _refresh_tile_target() -> void:
-	_placement_valid = _is_valid_tile_target(preview_position)
-	_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, false)
+	var valid_target := _is_valid_tile_target(preview_position)
+	if active_mode == MODE_ROTATE_TARGETING and valid_target:
+		_capture_rotate_target()
+		_placement_valid = _rotate_target_has_changed()
+		_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, true)
+	else:
+		_placement_valid = valid_target
+		_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, false)
 	_refresh_target_highlights()
 	set_process(true)
 
@@ -333,6 +350,7 @@ func _end_placement(keep_card_focused: bool) -> void:
 	preview_position = Vector2i(-1, -1)
 	rotation_steps = 0
 	_placement_valid = false
+	_clear_rotate_target_snapshot()
 	_player.input_enabled = true
 	if keep_card_focused and ending_card != null:
 		_hand.focus_card(ending_card)
@@ -374,7 +392,7 @@ func _show_prompt() -> void:
 	if active_mode == MODE_DESTROY_TARGETING:
 		_controls_layer.show_prompt("Choose tile", _hand)
 	elif active_mode == MODE_ROTATE_TARGETING:
-		_controls_layer.show_prompt("Choose tile", _hand)
+		_controls_layer.show_prompt("Rotate tile", _hand)
 	else:
 		_controls_layer.show_prompt("Place tile", _hand)
 	set_process(true)
@@ -419,6 +437,67 @@ func _is_valid_tile_target(grid_position: Vector2i) -> bool:
 	if active_mode == MODE_ROTATE_TARGETING:
 		return _is_valid_rotate_target(grid_position)
 	return _is_valid_destroy_target(grid_position)
+
+
+func _capture_rotate_target() -> void:
+	if _rotate_original_position == preview_position:
+		return
+	var tile_data: Variant = _map.get_tile(preview_position)
+	if not (tile_data is Dictionary):
+		return
+	_rotate_original_position = preview_position
+	_rotate_original_tile_data = tile_data.duplicate(true)
+	_rotate_original_rotation = int(tile_data.get("rotation_steps", 0))
+	rotation_steps = _rotate_original_rotation
+
+
+func _rotate_selected_target() -> void:
+	if active_mode != MODE_ROTATE_TARGETING or not _is_valid_rotate_target(preview_position):
+		return
+	_capture_rotate_target()
+	rotation_steps = posmod(rotation_steps + 1, 4)
+	_apply_rotate_target_rotation(rotation_steps)
+	_placement_valid = _rotate_target_has_changed()
+	_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, true)
+	_refresh_target_highlights()
+
+
+func _apply_rotate_target_rotation(new_rotation: int) -> void:
+	var tile_data: Variant = _map.get_tile(preview_position)
+	if not (tile_data is Dictionary):
+		return
+	var definition: Resource = tile_data.get("definition")
+	if definition == null or not definition.has_method("get_rotated_openings"):
+		return
+	tile_data = tile_data.duplicate(true)
+	tile_data["rotation_steps"] = posmod(new_rotation, 4)
+	tile_data["connections"] = definition.get_rotated_openings(tile_data["rotation_steps"])
+	_map.set_tile(preview_position, tile_data)
+	var visual_tile := _roads.get_visual_tile(preview_position)
+	if visual_tile != null:
+		visual_tile.rotation_steps = tile_data["rotation_steps"]
+
+
+func _restore_rotate_target() -> void:
+	if active_mode != MODE_ROTATE_TARGETING or _rotate_original_position.x < 0 or _rotate_original_tile_data.is_empty():
+		return
+	_map.set_tile(_rotate_original_position, _rotate_original_tile_data.duplicate(true))
+	var visual_tile := _roads.get_visual_tile(_rotate_original_position)
+	if visual_tile != null:
+		visual_tile.rotation_steps = int(_rotate_original_tile_data.get("rotation_steps", 0))
+	_clear_rotate_target_snapshot()
+
+
+func _rotate_target_has_changed() -> bool:
+	if _rotate_original_position != preview_position:
+		return false
+	return posmod(rotation_steps, 4) != posmod(_rotate_original_rotation, 4)
+
+
+func _clear_rotate_target_snapshot() -> void:
+	_rotate_original_position = Vector2i(-1, -1)
+	_rotate_original_tile_data.clear()
+	_rotate_original_rotation = 0
 
 
 func _refresh_placement_hints() -> void:
