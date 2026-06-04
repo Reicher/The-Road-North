@@ -4,6 +4,7 @@ set -euo pipefail
 GODOT_BIN="${GODOT_BIN:-/Users/robin.reicher/Downloads/Godot 2.app/Contents/MacOS/Godot}"
 
 tests=(
+	tests/test_model_assets.gd
 	tests/test_tile_definitions.gd
 	tests/test_roads.gd
 	tests/test_player_movement.gd

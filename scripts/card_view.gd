@@ -3,6 +3,27 @@ extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
 const CARD_DEFINITION_SCRIPT = preload("res://scripts/card_definition.gd")
+const DEFAULT_CARD_BASE_TEXTURE_PATH := "res://ui/card_base.png"
+const FALLBACK_EVENT_ART_TEXTURE_PATH := "res://ui/card_art_event.png"
+const EVENT_ART_TEXTURES := {
+	DeckController.EVENT_RESTART_MAP: "res://ui/card_art_event_restart_map.png",
+	DeckController.EVENT_DESTROY_TILE: "res://ui/card_art_event_destroy_tile.png",
+	DeckController.EVENT_DRAW_TWO: "res://ui/card_art_event_draw_two.png",
+	DeckController.EVENT_ROTATE_TILE: "res://ui/card_art_event_rotate_tile.png",
+	DeckController.EVENT_LUCKY_FIND: "res://ui/card_art_event_lucky_find.png",
+}
+const ROAD_ART_TEXTURES := {
+	"Straight Road": "res://ui/card_art_road_straight.png",
+	"Corner": "res://ui/card_art_road_corner.png",
+	"T-Junction": "res://ui/card_art_road_t_junction.png",
+	"Four-Way Intersection": "res://ui/card_art_road_four_way.png",
+	"Dead End": "res://ui/card_art_road_dead_end.png",
+}
+const ENCOUNTER_MARKER_TEXTURES := {
+	GameMap.ENCOUNTER_ENEMY: "res://ui/card_marker_danger.png",
+	GameMap.ENCOUNTER_BERRY_BUSH: "res://ui/card_marker_berry.png",
+	GameMap.ENCOUNTER_CACHE: "res://ui/card_marker_cache.png",
+}
 
 signal focus_requested(card: CardView)
 signal use_requested(card: CardView)
@@ -53,10 +74,16 @@ signal use_requested(card: CardView)
 		card_border_color = value
 		queue_redraw()
 
+@export_file("*.png") var card_base_texture_path := DEFAULT_CARD_BASE_TEXTURE_PATH:
+	set(value):
+		card_base_texture_path = value
+		queue_redraw()
+
 var _title_label: Label
 var _category_label: Label
 var _detail_label: Label
 var _use_button: Button
+static var _texture_cache := {}
 
 const TITLE_RECT := Rect2(14.0, 12.0, 122.0, 52.0)
 const ART_RECT := Rect2(18.0, 72.0, 114.0, 62.0)
@@ -83,23 +110,14 @@ func _ready() -> void:
 
 func _draw() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
-	var inner_rect := rect.grow(-8.0)
-	var border := _resolved_card_border_color()
-	UIStyle.draw_panel(self, rect, border, border)
-	UIStyle.draw_panel(self, inner_rect, _resolved_card_color(), border)
-
-	var header_rect := Rect2(Vector2(14.0, 10.0), Vector2(size.x - 28.0, 56.0))
-	UIStyle.draw_panel(self, header_rect, _resolved_card_color().lightened(0.08), border.darkened(0.08))
-
 	var art_rect := Rect2(Vector2(ART_RECT.position.x, ART_RECT.position.y), Vector2(size.x - ART_RECT.position.x * 2.0, ART_RECT.size.y))
-	UIStyle.draw_panel(self, art_rect, UIStyle.card_art_fill(self), border.darkened(0.12))
-	_draw_card_symbol(art_rect)
-
-	var badge_rect := Rect2(Vector2(CATEGORY_RECT.position.x, CATEGORY_RECT.position.y), Vector2(size.x - CATEGORY_RECT.position.x * 2.0, CATEGORY_RECT.size.y))
-	UIStyle.draw_panel(self, badge_rect, _category_badge_fill(), border.darkened(0.1))
-
-	var detail_rule_y := DETAIL_RECT.position.y - 7.0
-	draw_line(Vector2(20.0, detail_rule_y), Vector2(size.x - 20.0, detail_rule_y), border.lightened(0.24), 1.0)
+	var border := _resolved_card_border_color()
+	var card_base_texture := _load_texture(card_base_texture_path)
+	if card_base_texture != null:
+		draw_texture_rect(card_base_texture, rect, false)
+	else:
+		UIStyle.draw_panel(self, rect, _resolved_card_color(), border)
+	_draw_card_art_texture(art_rect)
 
 	if focused:
 		var focus_box := UIStyle.rounded_box(self, Color.TRANSPARENT, UIStyle.focus(self), -1, 4)
@@ -224,29 +242,50 @@ func _detail_from_definition() -> String:
 	return "Open: %s" % " ".join(names)
 
 
-func _draw_card_symbol(art_rect: Rect2) -> void:
-	if tile_definition == null or not tile_definition.has_method("get_base_openings"):
-		draw_circle(art_rect.get_center(), minf(art_rect.size.x, art_rect.size.y) * 0.25, UIStyle.road_ink(self))
+func _draw_card_art_texture(art_rect: Rect2) -> void:
+	var art_texture := _card_art_texture()
+	if art_texture == null:
 		return
+	draw_texture_rect(art_texture, art_rect, false)
 
-	var openings: Dictionary = tile_definition.get_base_openings()
-	var center := art_rect.get_center()
-	var road_width := 14.0
-	var road_color := UIStyle.road_ink(self)
+	var marker_texture := _encounter_marker_texture()
+	if marker_texture == null:
+		return
+	var marker_size := marker_texture.get_size()
+	var marker_position := art_rect.get_center() - marker_size * 0.5
+	if _encounter_type() != GameMap.ENCOUNTER_ENEMY:
+		marker_position += Vector2(-art_rect.size.x * 0.22, art_rect.size.y * 0.12)
+	draw_texture_rect(marker_texture, Rect2(marker_position, marker_size), false)
 
-	if openings.get("north", false) == true:
-		draw_rect(Rect2(Vector2(center.x - road_width * 0.5, art_rect.position.y), Vector2(road_width, art_rect.size.y * 0.5)), road_color, true)
-	if openings.get("east", false) == true:
-		draw_rect(Rect2(Vector2(center.x, center.y - road_width * 0.5), Vector2(art_rect.size.x * 0.5, road_width)), road_color, true)
-	if openings.get("south", false) == true:
-		draw_rect(Rect2(Vector2(center.x - road_width * 0.5, center.y), Vector2(road_width, art_rect.size.y * 0.5)), road_color, true)
-	if openings.get("west", false) == true:
-		draw_rect(Rect2(Vector2(art_rect.position.x, center.y - road_width * 0.5), Vector2(art_rect.size.x * 0.5, road_width)), road_color, true)
-	draw_circle(center, road_width * 0.62, road_color)
-	if not encounter_data.is_empty() and _encounter_type() != GameMap.ENCOUNTER_ENEMY:
-		_draw_reward_encounter_marker(art_rect)
-	if _encounter_type() == GameMap.ENCOUNTER_ENEMY:
-		_draw_hidden_enemy_marker(art_rect)
+
+func _card_art_texture() -> Texture2D:
+	if category == DeckController.EVENT_CATEGORY:
+		return _load_texture(str(EVENT_ART_TEXTURES.get(event_type, FALLBACK_EVENT_ART_TEXTURE_PATH)))
+	if tile_definition == null:
+		return null
+	return _load_texture(str(ROAD_ART_TEXTURES.get(str(tile_definition.get("display_name")), "")))
+
+
+func _encounter_marker_texture() -> Texture2D:
+	if encounter_data.is_empty():
+		return null
+	return _load_texture(str(ENCOUNTER_MARKER_TEXTURES.get(_encounter_type(), "")))
+
+
+static func _load_texture(path: String) -> Texture2D:
+	if path.is_empty():
+		return null
+	if _texture_cache.has(path):
+		return _texture_cache[path]
+
+	var image := Image.new()
+	var error := image.load(path)
+	if error != OK:
+		push_warning("Could not load card texture: %s" % path)
+		return null
+	var texture := ImageTexture.create_from_image(image)
+	_texture_cache[path] = texture
+	return texture
 
 
 func _category_badge_text() -> String:
@@ -312,33 +351,6 @@ func _fit_label_font_size(label: Label, max_size: int, min_size: int) -> void:
 		font_size -= line_count - 2
 
 	label.add_theme_font_size_override("font_size", clampi(font_size, min_size, max_size))
-
-
-func _draw_hidden_enemy_marker(art_rect: Rect2) -> void:
-	var radius := minf(art_rect.size.x, art_rect.size.y) * 0.24
-	var center := art_rect.get_center()
-	var points := PackedVector2Array([
-		center + Vector2(0.0, -radius),
-		center + Vector2(radius, 0.0),
-		center + Vector2(0.0, radius),
-		center + Vector2(-radius, 0.0),
-	])
-	draw_colored_polygon(points, Color(0.54, 0.12, 0.16, 0.90))
-	draw_arc(center, radius, 0.0, TAU, 24, Color(0.22, 0.06, 0.07, 0.95), 2.0)
-	draw_circle(center, radius * 0.30, Color(1.0, 0.86, 0.36, 0.98))
-
-
-func _draw_reward_encounter_marker(art_rect: Rect2) -> void:
-	var kind := _encounter_type()
-	var center := art_rect.get_center() + Vector2(-art_rect.size.x * 0.22, art_rect.size.y * 0.12)
-	var radius := minf(art_rect.size.x, art_rect.size.y) * 0.16
-	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
-		draw_circle(center, radius, Color(0.18, 0.44, 0.22))
-		draw_circle(center + Vector2(radius * 0.35, -radius * 0.2), radius * 0.22, Color(0.67, 0.10, 0.18))
-	elif kind == GameMap.ENCOUNTER_CACHE:
-		var box_rect := Rect2(center - Vector2(radius, radius * 0.55), Vector2(radius * 2.0, radius * 1.15))
-		draw_rect(box_rect, Color(0.48, 0.27, 0.12), true)
-		draw_rect(box_rect, Color(0.88, 0.67, 0.28), false, 1.5)
 
 
 func _encounter_type() -> String:

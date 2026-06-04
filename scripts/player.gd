@@ -2,6 +2,7 @@ class_name GamePlayer
 extends Node3D
 
 const DEFAULT_FOOD_MAP_AREA_DIVISOR := 4.0
+const ModelAssets = preload("res://scripts/model_assets.gd")
 
 signal food_changed(food: int)
 signal gold_changed(gold: int)
@@ -27,8 +28,6 @@ signal run_won
 @export_range(0.0, 1.0, 0.01) var move_duration := 0.16
 @export_range(0.0, 3.0, 0.01) var combat_bump_duration := 0.72
 @export_range(0.0, 2.0, 0.01) var post_combat_loot_delay := 0.45
-@export var pawn_color := Color(0.93, 0.56, 0.25)
-@export var pawn_shadow_color := Color(0.18, 0.16, 0.14, 0.32)
 
 var grid_position := Vector2i.ZERO
 var food := 0
@@ -198,47 +197,9 @@ func _rebuild_visuals() -> void:
 		child.queue_free()
 
 	var tile_size := _map.tile_size
-	var radius := tile_size * 0.16
-	_add_cylinder("Shadow", radius * 1.05, tile_size * 0.025, Vector3(0.0, tile_size * 0.012, 0.0), pawn_shadow_color)
-	_add_sphere("Body", radius, Vector3(0.0, tile_size * 0.20, 0.0), pawn_color)
-	_add_sphere("Head", radius * 0.62, Vector3(0.0, tile_size * 0.42, -tile_size * 0.02), pawn_color.lightened(0.18))
-
-
-func _add_cylinder(node_name: String, radius: float, height: float, local_position: Vector3, color: Color) -> void:
-	var mesh := CylinderMesh.new()
-	mesh.top_radius = radius
-	mesh.bottom_radius = radius
-	mesh.height = height
-	mesh.radial_segments = 16
-	var instance := MeshInstance3D.new()
-	instance.name = node_name
-	instance.mesh = mesh
-	instance.position = local_position
-	instance.material_override = _make_material(color)
-	_visual_root.add_child(instance)
-
-
-func _add_sphere(node_name: String, radius: float, local_position: Vector3, color: Color) -> void:
-	var mesh := SphereMesh.new()
-	mesh.radius = radius
-	mesh.height = radius * 2.0
-	mesh.radial_segments = 16
-	mesh.rings = 8
-	var instance := MeshInstance3D.new()
-	instance.name = node_name
-	instance.mesh = mesh
-	instance.position = local_position
-	instance.material_override = _make_material(color)
-	_visual_root.add_child(instance)
-
-
-func _make_material(color: Color) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = 0.82
-	if color.a < 1.0:
-		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	return material
+	var model := ModelAssets.instantiate_model(ModelAssets.PLAYER_MODEL, "Pawn", Vector3.ZERO, tile_size)
+	if model != null:
+		_visual_root.add_child(model)
 
 
 func _on_tile_pressed(target_position: Vector2i) -> void:

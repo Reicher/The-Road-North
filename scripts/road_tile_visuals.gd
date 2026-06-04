@@ -4,6 +4,7 @@ extends Node3D
 const GROUND_HEIGHT := 0.10
 const ROAD_HEIGHT := 0.08
 const ROAD_TREE_CLEARANCE := 0.26
+const ModelAssets = preload("res://scripts/model_assets.gd")
 
 var _enemy_view: Node3D
 
@@ -85,11 +86,10 @@ func _draw_visual_identity(identity: String, openings: Dictionary, tile_size: fl
 
 
 func _add_house(openings: Dictionary, tile_size: float) -> void:
-	var base_size := Vector3(tile_size * 0.26, tile_size * 0.20, tile_size * 0.24)
-	var base_y := GROUND_HEIGHT + base_size.y * 0.5
 	var z_offset := _get_house_z_offset(openings, tile_size)
-	_add_box("HouseBase", base_size, Vector3(0.0, base_y, z_offset), Color(0.70, 0.58, 0.42))
-	_add_cone("HouseRoof", tile_size * 0.20, tile_size * 0.18, Vector3(0.0, base_y + tile_size * 0.18, z_offset), Color(0.42, 0.20, 0.18), 4)
+	var model := ModelAssets.instantiate_model(ModelAssets.HOUSE_MODEL, "House", Vector3(0.0, GROUND_HEIGHT, z_offset), tile_size)
+	if model != null:
+		add_child(model)
 
 
 func _get_house_z_offset(openings: Dictionary, tile_size: float) -> float:
@@ -150,9 +150,9 @@ func _slot_touches_road(slot: Vector2, openings: Dictionary) -> bool:
 
 
 func _add_tree(tile_size: float, offset: Vector3, scale_factor: float = 1.0) -> void:
-	var trunk_height := tile_size * 0.15 * scale_factor
-	_add_box("TreeTrunk", Vector3(tile_size * 0.045, trunk_height, tile_size * 0.045), offset + Vector3(0.0, trunk_height * 0.5, 0.0), Color(0.34, 0.20, 0.10))
-	_add_cone("TreeTop", tile_size * 0.15 * scale_factor, tile_size * 0.30 * scale_factor, offset + Vector3(0.0, trunk_height + tile_size * 0.14 * scale_factor, 0.0), Color(0.17, 0.39, 0.20), 8)
+	var model := ModelAssets.instantiate_model(ModelAssets.TREE_MODEL, "Tree", offset, tile_size * scale_factor)
+	if model != null:
+		add_child(model)
 
 
 func _add_bush(tile_size: float, offset: Vector3, berries := false) -> void:

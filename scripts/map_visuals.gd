@@ -6,6 +6,7 @@ const FOREST_PADDING_TILES := 4
 const GROUND_LIGHT_COLOR := Color(0.69, 0.76, 0.57)
 const GROUND_DARK_COLOR := Color(0.64, 0.72, 0.53)
 const PLAYABLE_BORDER_COLOR := Color(0.30, 0.38, 0.26, 0.62)
+const ModelAssets = preload("res://scripts/model_assets.gd")
 const TREE_SLOTS := [
 	Vector2(-0.28, -0.28),
 	Vector2(0.30, -0.18),
@@ -132,9 +133,9 @@ func _add_cell_trees(map: GameMap, parent: Node3D, grid_position: Vector2i) -> v
 
 
 func _add_tree(map: GameMap, parent: Node3D, offset: Vector3, scale_factor: float = 1.0) -> void:
-	var trunk_height := map.tile_size * 0.16 * scale_factor
-	_add_box(parent, "TreeTrunk", Vector3(map.tile_size * 0.045, trunk_height, map.tile_size * 0.045), offset + Vector3(0.0, trunk_height * 0.5, 0.0), Color(0.34, 0.20, 0.10))
-	_add_cone(parent, "TreeTop", map.tile_size * 0.16 * scale_factor, map.tile_size * 0.32 * scale_factor, offset + Vector3(0.0, trunk_height + map.tile_size * 0.15 * scale_factor, 0.0), Color(0.17, 0.39, 0.20))
+	var model := ModelAssets.instantiate_model(ModelAssets.TREE_MODEL, "Tree", offset, map.tile_size * scale_factor)
+	if model != null:
+		parent.add_child(model)
 
 
 func _add_box(parent: Node3D, node_name: String, size: Vector3, local_position: Vector3, color: Color) -> MeshInstance3D:

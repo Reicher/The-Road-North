@@ -1,0 +1,40 @@
+newmtl TreeTrunk
+Kd 0.34 0.20 0.10
+Ka 0.34 0.20 0.10
+
+newmtl TreeTop
+Kd 0.17 0.39 0.20
+Ka 0.17 0.39 0.20
+
+newmtl HouseBase
+Kd 0.70 0.58 0.42
+Ka 0.70 0.58 0.42
+
+newmtl HouseRoof
+Kd 0.42 0.20 0.18
+Ka 0.42 0.20 0.18
+
+newmtl PlayerBody
+Kd 0.93 0.56 0.25
+Ka 0.93 0.56 0.25
+
+newmtl PlayerHead
+Kd 0.94 0.64 0.38
+Ka 0.94 0.64 0.38
+
+newmtl PawnShadow
+Kd 0.18 0.16 0.14
+Ka 0.18 0.16 0.14
+d 0.32
+
+newmtl EnemyBody
+Kd 0.55 0.10 0.13
+Ka 0.55 0.10 0.13
+
+newmtl EnemyHead
+Kd 0.61 0.18 0.20
+Ka 0.61 0.18 0.20
+
+newmtl EnemyEye
+Kd 1.00 0.84 0.34
+Ka 1.00 0.84 0.34
