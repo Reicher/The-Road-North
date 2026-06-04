@@ -86,8 +86,9 @@ static var _texture_cache := {}
 
 const TITLE_RECT := Rect2(14.0, 12.0, 122.0, 52.0)
 const ART_RECT := Rect2(18.0, 72.0, 114.0, 62.0)
-const CATEGORY_RECT := Rect2(22.0, 141.0, 106.0, 22.0)
-const DETAIL_RECT := Rect2(14.0, 170.0, 122.0, 30.0)
+const NO_DETAIL_ART_RECT := Rect2(18.0, 94.0, 114.0, 62.0)
+const DETAIL_RECT := Rect2(14.0, 141.0, 122.0, 38.0)
+const CATEGORY_RECT := Rect2(22.0, 186.0, 106.0, 22.0)
 const TITLE_FONT_MAX := 19
 const TITLE_FONT_MIN := 14
 const CATEGORY_FONT_SIZE := 12
@@ -109,7 +110,8 @@ func _ready() -> void:
 
 func _draw() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
-	var art_rect := Rect2(Vector2(ART_RECT.position.x, ART_RECT.position.y), Vector2(size.x - ART_RECT.position.x * 2.0, ART_RECT.size.y))
+	var base_art_rect := _card_art_rect()
+	var art_rect := Rect2(Vector2(base_art_rect.position.x, base_art_rect.position.y), Vector2(size.x - base_art_rect.position.x * 2.0, base_art_rect.size.y))
 	var border := _resolved_card_border_color()
 	var card_base_texture := _load_texture(card_base_texture_path)
 	if card_base_texture != null:
@@ -178,6 +180,7 @@ func _refresh_text() -> void:
 	if _detail_label != null:
 		_detail_label.text = _compact_detail_text()
 		_fit_label_font_size(_detail_label, DETAIL_FONT_MAX, DETAIL_FONT_MIN)
+	queue_redraw()
 
 
 func _refresh_focus() -> void:
@@ -249,6 +252,16 @@ func _draw_card_art_texture(art_rect: Rect2) -> void:
 	draw_texture_rect(marker_texture, Rect2(marker_position, marker_size), false)
 
 
+func get_card_art_rect() -> Rect2:
+	if _compact_detail_text().is_empty():
+		return NO_DETAIL_ART_RECT
+	return ART_RECT
+
+
+func _card_art_rect() -> Rect2:
+	return get_card_art_rect()
+
+
 func _card_art_texture() -> Texture2D:
 	if category == DeckController.EVENT_CATEGORY:
 		return _load_texture(str(EVENT_ART_TEXTURES.get(event_type, FALLBACK_EVENT_ART_TEXTURE_PATH)))
@@ -288,6 +301,8 @@ func _category_badge_text() -> String:
 
 
 func _compact_detail_text() -> String:
+	if category == DeckController.ROAD_CATEGORY:
+		return ""
 	if detail.is_empty():
 		if _encounter_type() == GameMap.ENCOUNTER_BERRY_BUSH:
 			return "Plus food"
