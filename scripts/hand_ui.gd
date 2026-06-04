@@ -11,6 +11,7 @@ signal card_use_requested(card: CardView)
 @export var demo_cards_enabled := true
 @export var card_size := Vector2(150.0, 216.0)
 @export var bottom_margin := 28.0
+@export var show_panel_background := false
 @export var panel_color := Color.TRANSPARENT
 @export_range(0.0, 1.0, 0.01) var focused_lift_ratio := 0.28
 @export var focused_scale := 1.12
@@ -47,6 +48,8 @@ func _ready() -> void:
 
 
 func _draw() -> void:
+	if not show_panel_background:
+		return
 	var fill := panel_color if panel_color != Color.TRANSPARENT else UIStyle.panel_fill(self)
 	UIStyle.draw_panel(self, Rect2(Vector2.ZERO, size).grow_individual(12.0, 0.0, 12.0, 12.0), fill, UIStyle.panel_border(self))
 
