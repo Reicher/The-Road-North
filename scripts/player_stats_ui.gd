@@ -2,12 +2,18 @@ class_name PlayerStatsUI
 extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
+const ICON_PATHS := {
+	"food": "res://assets/images/stat_food.png",
+	"gold": "res://assets/images/stat_gold.png",
+	"health": "res://assets/images/stat_health.png",
+	"power": "res://assets/images/stat_power.png",
+}
 
 @export var player_path: NodePath
 @export var top_margin := 10.0
 @export var left_margin := 10.0
-@export var icon_size := 34.0
-@export var row_height := 44.0
+@export var icon_size := 52.0
+@export var row_height := 62.0
 @export var panel_color := Color.TRANSPARENT
 @export var border_color := Color.TRANSPARENT
 
@@ -16,12 +22,13 @@ var _last_values: Dictionary = {}
 var _pulse_strength: Dictionary = {}
 var _pulse_sign: Dictionary = {}
 var _pulse_tween: Tween
+var _icon_cache: Dictionary = {}
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_player = get_node_or_null(player_path) as GamePlayer
-	custom_minimum_size = Vector2(112.0, row_height * 4.0 + 16.0)
+	custom_minimum_size = Vector2(154.0, row_height * 4.0 + 10.0)
 	size = custom_minimum_size
 	position = Vector2(left_margin, top_margin)
 	if _player != null and not _player.health_changed.is_connected(_on_player_health_changed):
@@ -38,10 +45,6 @@ func _ready() -> void:
 
 
 func _draw() -> void:
-	var rect := Rect2(Vector2.ZERO, size)
-	var fill := panel_color if panel_color != Color.TRANSPARENT else UIStyle.panel_fill(self)
-	var border := border_color if border_color != Color.TRANSPARENT else UIStyle.panel_border(self)
-	UIStyle.draw_panel(self, rect, fill, border)
 	_draw_stat_row(0, "food", _get_food())
 	_draw_stat_row(1, "gold", _get_gold())
 	_draw_stat_row(2, "health", _get_health())
@@ -49,29 +52,25 @@ func _draw() -> void:
 
 
 func _draw_stat_row(index: int, stat_name: String, value: int) -> void:
-	var row_center := Vector2(24.0, 8.0 + row_height * float(index) + row_height * 0.5)
+	var row_center := Vector2(33.0, 5.0 + row_height * float(index) + row_height * 0.5)
 	var pulse := float(_pulse_strength.get(stat_name, 0.0))
 	if pulse > 0.0:
-		var row_rect := Rect2(Vector2(6.0, row_center.y - row_height * 0.43), Vector2(size.x - 12.0, row_height * 0.86))
 		var sign := int(_pulse_sign.get(stat_name, 1))
 		var glow := _get_stat_glow_color(stat_name, sign)
-		glow.a = 0.16 + pulse * 0.44
-		draw_rect(row_rect, glow, true)
-		draw_arc(row_center, icon_size * (0.60 + pulse * 0.16), 0.0, TAU, 28, glow.lightened(0.20), maxf(2.0, 5.0 * pulse))
+		glow.a = 0.22 + pulse * 0.46
+		draw_circle(row_center, icon_size * (0.48 + pulse * 0.16), glow)
+		draw_arc(row_center, icon_size * (0.64 + pulse * 0.15), 0.0, TAU, 28, glow.lightened(0.20), maxf(2.0, 5.0 * pulse))
 
-	if stat_name == "food":
-		StatIconPainter.draw_food(self, row_center, icon_size)
-	elif stat_name == "gold":
-		StatIconPainter.draw_gold(self, row_center, icon_size)
-	elif stat_name == "health":
-		StatIconPainter.draw_heart(self, row_center, icon_size)
-	elif stat_name == "power":
-		StatIconPainter.draw_sword(self, row_center, icon_size)
+	var icon := _get_stat_icon(stat_name)
+	if icon != null:
+		var icon_rect := Rect2(row_center - Vector2.ONE * icon_size * 0.5, Vector2.ONE * icon_size)
+		draw_texture_rect(icon, icon_rect, false)
 
 	var font: Font = ThemeDB.fallback_font
-	var text_position := Vector2(56.0, row_center.y + 10.0)
-	draw_string_outline(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 42.0, 24, 4, UIStyle.panel_fill(self))
-	draw_string(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 42.0, 24, UIStyle.text(self))
+	var font_size := 38
+	var text_position := Vector2(74.0, row_center.y + 14.0)
+	draw_string_outline(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 78.0, font_size, 7, Color(0.10, 0.08, 0.05, 0.92))
+	draw_string(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 78.0, font_size, Color(1.0, 0.96, 0.84))
 
 
 func _get_food() -> int:
@@ -149,6 +148,21 @@ func _get_current_values() -> Dictionary:
 		"health": _get_health(),
 		"power": _get_power(),
 	}
+
+
+func _get_stat_icon(stat_name: String) -> Texture2D:
+	if _icon_cache.has(stat_name):
+		return _icon_cache[stat_name]
+	var path := str(ICON_PATHS.get(stat_name, ""))
+	if path.is_empty():
+		return null
+	var image := Image.new()
+	var error := image.load_png_from_buffer(FileAccess.get_file_as_bytes(path))
+	if error != OK or image.is_empty():
+		return null
+	var texture := ImageTexture.create_from_image(image)
+	_icon_cache[stat_name] = texture
+	return texture
 
 
 func _get_inventory() -> InventoryUI:
