@@ -48,6 +48,9 @@ current = true
 script = ExtResource("4_tbxl1")
 map_path = NodePath("../Map")
 player_path = NodePath("../Player")
+reserved_bottom_path = NodePath("../UI/Hand")
+pan_margin_x_tiles = 3.0
+pan_margin_z_tiles = 3.0
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.707107, -0.353553, 0.612372, 0, 0.866025, 0.5, -0.707107, -0.353553, 0.612372, 0, 0, 0)

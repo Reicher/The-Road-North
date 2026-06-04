@@ -18,6 +18,35 @@ func run() -> void:
 	var first_screen := first_level.get_node("UI/GameOver") as GameOverUI
 	var first_hand := first_level.get_node("UI/Hand") as HandUI
 	_assert(first_map.playable_width == 5 and first_map.playable_height == 5, "Expected the game to start on the 5x5 level")
+	var debug_label := main.get_node("DebugOverlay/DebugLabel") as Label
+	_assert(debug_label != null, "Expected main scene to create a debug label")
+	_assert(not debug_label.visible, "Expected debug label to start hidden")
+
+	_send_key(main, KEY_2)
+	await process_frame
+	_assert((main.get_node("Level/Map") as GameMap).playable_width == 5, "Expected level shortcuts to do nothing before debug mode is enabled")
+
+	_send_key(main, KEY_D)
+	await process_frame
+	_assert(debug_label.visible, "Expected D to enable debug mode")
+	_assert(debug_label.text == "debugg", "Expected debug mode to show a small debugg label")
+
+	_send_key(main, KEY_2)
+	await process_frame
+	var debug_second_level := main.get_node("Level")
+	_assert((debug_second_level.get_node("Map") as GameMap).playable_width == 11, "Expected debug key 2 to load the second level")
+	_send_key(main, KEY_2)
+	await process_frame
+	_assert(main.get_node("Level") != debug_second_level, "Expected debug key 2 to reload the second level when already active")
+
+	_send_key(main, KEY_1)
+	await process_frame
+	first_level = main.get_node("Level")
+	first_map = first_level.get_node("Map") as GameMap
+	first_player = first_level.get_node("Player") as GamePlayer
+	first_screen = first_level.get_node("UI/GameOver") as GameOverUI
+	first_hand = first_level.get_node("UI/Hand") as HandUI
+	_assert(first_map.playable_width == 5 and first_map.playable_height == 5, "Expected debug key 1 to load the first level")
 
 	first_player.grid_position = first_map.get_goal_position()
 	_assert(first_player.call("_check_run_won"), "Expected reaching the first goal to complete the level")
@@ -73,3 +102,11 @@ func _assert(condition: bool, message: String) -> void:
 		return
 	push_error(message)
 	quit(1)
+
+
+func _send_key(target: Node, keycode: int) -> void:
+	var event := InputEventKey.new()
+	event.keycode = keycode
+	event.physical_keycode = keycode
+	event.pressed = true
+	target.call("_input", event)

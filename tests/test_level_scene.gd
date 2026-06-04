@@ -62,6 +62,7 @@ func run() -> void:
 	get_root().add_child(level_002)
 	var second_map := level_002.get_node("Map") as GameMap
 	var second_deck_controller := level_002.get_node("DeckController") as DeckController
+	var second_camera := level_002.get_node("Camera3D") as Camera3D
 	_assert(second_map.playable_width == 11 and second_map.playable_height == 11, "Expected level 002 to configure an 11x11 map")
 	_assert(second_map.get_fixed_feature(Vector2i(5, 5))["type"] == GameMap.FEATURE_RIVER, "Expected level 002 to include a horizontal river")
 	_assert(second_map.get_fixed_feature(Vector2i(3, 5))["type"] == GameMap.FEATURE_BRIDGE, "Expected level 002 river to include bridge crossings")
@@ -70,6 +71,13 @@ func run() -> void:
 	_assert(second_map.get_fixed_feature_connections(Vector2i(3, 5))["north"] == true, "Expected level 002 bridges to connect across the river")
 	_assert(second_deck_controller.hand_size == 4, "Expected level 002 to configure a four-card hand")
 	_assert(second_deck_controller.enemy_level == 2, "Expected level 002 enemies to use level two power")
+	_assert(second_camera.reserved_bottom_path == NodePath("../UI/Hand"), "Expected camera to reserve the card hand area when sizing the map viewport")
+	_assert(is_equal_approx(second_camera.pan_margin_x_tiles, 3.0), "Expected camera to allow visual forest margin beyond the left and right edges")
+	_assert(is_equal_approx(second_camera.pan_margin_z_tiles, 3.0), "Expected camera to allow visual forest margin beyond the top and bottom edges")
+	var second_start_world := second_map.grid_to_world(second_map.get_start_position())
+	var second_intro_size: float = second_camera.call("_get_initial_zoom_target")
+	var second_intro_target: Vector2 = second_camera.call("_get_clamped_target_for_world_position", second_start_world, second_intro_size)
+	_assert(is_equal_approx(second_intro_target.y, second_start_world.z), "Expected level 002 intro camera target to center on the start tile")
 
 	level.queue_free()
 	level_002.queue_free()

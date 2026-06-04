@@ -41,6 +41,7 @@ const FEATURE_BRIDGE := "bridge"
 		tile_size = value
 		_rebuild_visuals()
 
+@export var mouse_click_threshold := 4.0
 @export var fixed_features: Array[Dictionary] = []:
 	set(value):
 		fixed_features = value
@@ -50,6 +51,8 @@ const FEATURE_BRIDGE := "bridge"
 var tiles: Dictionary = {}
 var _fixed_features_by_position: Dictionary = {}
 var _visuals: Node
+var _mouse_press_position := Vector2.ZERO
+var _mouse_press_active := false
 
 
 func _ready() -> void:
@@ -60,10 +63,23 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		_handle_screen_press(event.position)
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		_handle_mouse_button(event)
 	elif event is InputEventScreenTouch and event.pressed:
 		_handle_screen_press(event.position)
+
+
+func _handle_mouse_button(event: InputEventMouseButton) -> void:
+	if event.pressed:
+		_mouse_press_position = event.position
+		_mouse_press_active = true
+		return
+	if not _mouse_press_active:
+		return
+	_mouse_press_active = false
+	if _mouse_press_position.distance_to(event.position) > mouse_click_threshold:
+		return
+	_handle_screen_press(event.position)
 
 
 func _handle_screen_press(screen_position: Vector2) -> void:

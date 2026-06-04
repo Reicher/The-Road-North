@@ -5,12 +5,35 @@ const LEVEL_SCENES: Array[PackedScene] = [
 	preload("res://levels/level_002.tscn"),
 ]
 
+const DEBUG_LABEL_TEXT := "debugg"
+
 var _current_level_index := 0
 var _current_level: Node
+var _debug_mode_enabled := false
+var _debug_layer: CanvasLayer
+var _debug_label: Label
 
 
 func _ready() -> void:
+	_ensure_debug_overlay()
 	_load_level(0)
+
+
+func _input(event: InputEvent) -> void:
+	if not (event is InputEventKey) or not event.pressed or event.echo:
+		return
+	if event.keycode == KEY_D:
+		_set_debug_mode_enabled(not _debug_mode_enabled)
+		get_viewport().set_input_as_handled()
+		return
+	if not _debug_mode_enabled:
+		return
+	if event.keycode == KEY_1:
+		_load_level(0)
+		get_viewport().set_input_as_handled()
+	elif event.keycode == KEY_2:
+		_load_level(1)
+		get_viewport().set_input_as_handled()
 
 
 func _load_level(level_index: int) -> void:
@@ -39,6 +62,31 @@ func _configure_level_end_screen() -> void:
 		end_screen.restart_level_requested.connect(_on_restart_level_requested)
 	if not end_screen.restart_game_requested.is_connected(_on_restart_game_requested):
 		end_screen.restart_game_requested.connect(_on_restart_game_requested)
+
+
+func _ensure_debug_overlay() -> void:
+	if _debug_layer != null:
+		return
+	_debug_layer = CanvasLayer.new()
+	_debug_layer.name = "DebugOverlay"
+	_debug_layer.layer = 100
+	add_child(_debug_layer)
+
+	_debug_label = Label.new()
+	_debug_label.name = "DebugLabel"
+	_debug_label.text = DEBUG_LABEL_TEXT
+	_debug_label.visible = false
+	_debug_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_debug_label.add_theme_font_size_override("font_size", 10)
+	_debug_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	_debug_label.position = Vector2(6.0, -18.0)
+	_debug_layer.add_child(_debug_label)
+
+
+func _set_debug_mode_enabled(enabled: bool) -> void:
+	_debug_mode_enabled = enabled
+	if _debug_label != null:
+		_debug_label.visible = _debug_mode_enabled
 
 
 func _on_next_level_requested() -> void:

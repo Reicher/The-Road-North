@@ -9,6 +9,7 @@ extends Camera3D
 @export_range(0.0, 5.0, 0.05) var start_zoom_duration := 0.85
 @export_range(0.0, 2.0, 0.01) var move_focus_duration := 0.18
 @export var zoom_step := 0.10
+@export var mouse_pan_threshold := 4.0
 @export_range(20.0, 80.0, 1.0) var camera_angle_degrees := 55.0
 @export_range(0.0, 3.0, 0.05) var pan_margin_x_tiles := 0.0
 @export_range(0.0, 3.0, 0.05) var pan_margin_z_tiles := 0.0
@@ -22,6 +23,9 @@ var _last_pinch_center := Vector2.ZERO
 var _target_xz := Vector2.ZERO
 var _start_zoom_tween: Tween
 var _move_focus_tween: Tween
+var _mouse_pan_button := MOUSE_BUTTON_NONE
+var _mouse_pan_start_position := Vector2.ZERO
+var _mouse_pan_dragging := false
 
 
 func _ready() -> void:
@@ -41,7 +45,7 @@ func _ready() -> void:
 		_target_xz = _world_to_xz(_get_full_map_position())
 		_clamp_target()
 		_apply_camera_transform()
-		_play_start_zoom_sequence()
+		call_deferred("_play_start_zoom_sequence")
 
 
 func _exit_tree() -> void:
@@ -56,6 +60,8 @@ func _exit_tree() -> void:
 func _input(event: InputEvent) -> void:
 	if _handle_scroll_zoom(event):
 		get_viewport().set_input_as_handled()
+	elif _handle_mouse_pan(event):
+		get_viewport().set_input_as_handled()
 	elif _handle_trackpad_zoom(event):
 		get_viewport().set_input_as_handled()
 	elif _handle_trackpad_pan(event):
@@ -66,9 +72,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _map == null:
 		return
 
-	if event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_MIDDLE) != 0:
-		_pan_by_screen_delta(event.relative)
-	elif event is InputEventScreenTouch:
+	if event is InputEventScreenTouch:
 		_handle_screen_touch(event)
 	elif event is InputEventScreenDrag:
 		_handle_screen_drag(event)
@@ -101,6 +105,43 @@ func _handle_trackpad_pan(event: InputEvent) -> bool:
 		return false
 	_pan_by_screen_delta(event.delta)
 	return true
+
+
+func _handle_mouse_pan(event: InputEvent) -> bool:
+	if _map == null:
+		return false
+
+	if event is InputEventMouseButton:
+		if not _is_pan_mouse_button(event.button_index):
+			return false
+		if event.pressed:
+			if not _is_in_map_screen_area(event.position):
+				return false
+			_mouse_pan_button = event.button_index
+			_mouse_pan_start_position = event.position
+			_mouse_pan_dragging = false
+			return false
+		if event.button_index == _mouse_pan_button:
+			var was_dragging := _mouse_pan_dragging
+			_mouse_pan_button = MOUSE_BUTTON_NONE
+			_mouse_pan_dragging = false
+			return was_dragging
+		return false
+
+	if event is InputEventMouseMotion and _mouse_pan_button != MOUSE_BUTTON_NONE:
+		var button_mask := _get_mouse_button_mask(_mouse_pan_button)
+		if (event.button_mask & button_mask) == 0:
+			_mouse_pan_button = MOUSE_BUTTON_NONE
+			_mouse_pan_dragging = false
+			return false
+		if not _mouse_pan_dragging:
+			if _mouse_pan_start_position.distance_to(event.position) < mouse_pan_threshold:
+				return false
+			_mouse_pan_dragging = true
+		_pan_by_screen_delta(event.relative)
+		return true
+
+	return false
 
 
 func _handle_screen_touch(event: InputEventScreenTouch) -> void:
@@ -169,15 +210,7 @@ func _pan_by_screen_delta(delta: Vector2) -> void:
 func _clamp_target() -> void:
 	if _map == null:
 		return
-	var map_rect := _map.get_padded_world_rect()
-	var rect := _get_camera_movement_rect()
-	var visible_ground_size := _get_visible_ground_size()
-	_target_xz.x = clampf(_target_xz.x, rect.position.x, rect.end.x)
-
-	if visible_ground_size.y >= map_rect.size.y:
-		_target_xz.y = map_rect.get_center().y
-	else:
-		_target_xz.y = clampf(_target_xz.y, rect.position.y, rect.end.y)
+	_target_xz = _clamp_xz_for_size(_target_xz, size)
 
 
 func _apply_camera_transform() -> void:
@@ -215,24 +248,10 @@ func _get_initial_zoom_target() -> float:
 	return clampf(wanted_size, _get_zoom_in_limit(), _get_zoom_out_limit())
 
 
-func _get_camera_movement_rect() -> Rect2:
+func _get_camera_boundary_rect() -> Rect2:
 	var map_rect := _map.get_padded_world_rect()
 	var margin := Vector2(_map.tile_size * pan_margin_x_tiles, _map.tile_size * pan_margin_z_tiles)
-	var min_position := map_rect.position - margin
-	var max_position := map_rect.end + margin
-	if is_zero_approx(pan_margin_x_tiles):
-		min_position.x = map_rect.position.x + _map.tile_size * 0.5
-		max_position.x = map_rect.end.x - _map.tile_size * 0.5
-		if min_position.x > max_position.x:
-			min_position.x = map_rect.get_center().x
-			max_position.x = map_rect.get_center().x
-	if is_zero_approx(pan_margin_z_tiles):
-		min_position.y = map_rect.position.y + _map.tile_size * 0.5
-		max_position.y = map_rect.end.y - _map.tile_size * 0.5
-		if min_position.y > max_position.y:
-			min_position.y = map_rect.get_center().y
-			max_position.y = map_rect.get_center().y
-	return Rect2(min_position, max_position - min_position)
+	return Rect2(map_rect.position - margin, map_rect.size + margin * 2.0)
 
 
 func _get_ground_size_for_vertical_map_span(map_depth: float) -> float:
@@ -241,10 +260,14 @@ func _get_ground_size_for_vertical_map_span(map_depth: float) -> float:
 
 
 func _get_visible_ground_size() -> Vector2:
+	return _get_visible_ground_size_for_size(size)
+
+
+func _get_visible_ground_size_for_size(camera_size: float) -> Vector2:
 	var viewport_size := _get_map_viewport_size()
 	var aspect := viewport_size.x / maxf(viewport_size.y, 1.0)
 	var angle := deg_to_rad(camera_angle_degrees)
-	return Vector2(size * aspect, size / maxf(sin(angle), 0.25))
+	return Vector2(camera_size * aspect, camera_size / maxf(sin(angle), 0.25))
 
 
 func _get_full_map_position() -> Vector3:
@@ -275,10 +298,9 @@ func _play_start_zoom_sequence() -> void:
 	_apply_camera_transform()
 
 	var target_size := _get_initial_zoom_target()
-	var target_xz := _world_to_xz(_get_player_tile_position())
+	var start_world_position := _get_start_focus_position()
 	var start_size := size
 	var start_xz := _target_xz
-	var t := 0.0
 
 	_start_zoom_tween = create_tween()
 	_start_zoom_tween.set_trans(Tween.TRANS_SINE)
@@ -286,9 +308,9 @@ func _play_start_zoom_sequence() -> void:
 	if start_zoom_hold_duration > 0.0:
 		_start_zoom_tween.tween_interval(start_zoom_hold_duration)
 	_start_zoom_tween.tween_method(func(value: float) -> void:
-		t = value
-		size = lerpf(start_size, target_size, t)
-		_target_xz = start_xz.lerp(target_xz, t)
+		size = lerpf(start_size, target_size, value)
+		var target_xz := _get_clamped_target_for_world_position(start_world_position, size)
+		_target_xz = start_xz.lerp(target_xz, value)
 		_clamp_target()
 		_apply_camera_transform()
 	, 0.0, 1.0, start_zoom_duration)
@@ -321,13 +343,36 @@ func _focus_on_grid_position(grid_position: Vector2i) -> void:
 	, 0.0, 1.0, move_focus_duration)
 
 
-func _get_clamped_target_for_world_position(world_position: Vector3) -> Vector2:
-	var previous := _target_xz
-	_target_xz = _world_to_xz(world_position)
-	_clamp_target()
-	var clamped := _target_xz
-	_target_xz = previous
+func _get_clamped_target_for_world_position(world_position: Vector3, camera_size := -1.0) -> Vector2:
+	var size_for_clamp := size if camera_size <= 0.0 else camera_size
+	return _clamp_xz_for_size(_world_to_xz(world_position), size_for_clamp)
+
+
+func _clamp_xz_for_size(target_xz: Vector2, camera_size: float) -> Vector2:
+	if _map == null:
+		return target_xz
+	var boundary_rect := _get_camera_boundary_rect()
+	var visible_ground_size := _get_visible_ground_size_for_size(camera_size)
+	var half_visible := visible_ground_size * 0.5
+	var clamped := target_xz
+
+	if visible_ground_size.x >= boundary_rect.size.x:
+		clamped.x = boundary_rect.get_center().x
+	else:
+		clamped.x = clampf(target_xz.x, boundary_rect.position.x + half_visible.x, boundary_rect.end.x - half_visible.x)
+
+	if visible_ground_size.y >= boundary_rect.size.y:
+		clamped.y = boundary_rect.get_center().y
+	else:
+		clamped.y = clampf(target_xz.y, boundary_rect.position.y + half_visible.y, boundary_rect.end.y - half_visible.y)
+
 	return clamped
+
+
+func _get_start_focus_position() -> Vector3:
+	if _map == null:
+		return Vector3.ZERO
+	return _map.grid_to_world(_map.get_start_position())
 
 
 func _screen_to_ground(screen_position: Vector2) -> Vector3:
@@ -373,3 +418,19 @@ func _get_touch_distance() -> float:
 	var first_point: Vector2 = points[0]
 	var second_point: Vector2 = points[1]
 	return first_point.distance_to(second_point)
+
+
+func _is_pan_mouse_button(button_index: int) -> bool:
+	return button_index == MOUSE_BUTTON_LEFT or button_index == MOUSE_BUTTON_RIGHT or button_index == MOUSE_BUTTON_MIDDLE
+
+
+func _get_mouse_button_mask(button_index: int) -> int:
+	match button_index:
+		MOUSE_BUTTON_LEFT:
+			return MOUSE_BUTTON_MASK_LEFT
+		MOUSE_BUTTON_RIGHT:
+			return MOUSE_BUTTON_MASK_RIGHT
+		MOUSE_BUTTON_MIDDLE:
+			return MOUSE_BUTTON_MASK_MIDDLE
+		_:
+			return 0
