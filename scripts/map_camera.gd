@@ -58,6 +58,8 @@ func _exit_tree() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _is_ui_item_drag_active():
+		return
 	if _handle_scroll_zoom(event):
 		get_viewport().set_input_as_handled()
 	elif _handle_mouse_pan(event):
@@ -71,11 +73,17 @@ func _input(event: InputEvent) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if _map == null:
 		return
+	if _is_ui_item_drag_active():
+		return
 
 	if event is InputEventScreenTouch:
 		_handle_screen_touch(event)
 	elif event is InputEventScreenDrag:
 		_handle_screen_drag(event)
+
+
+func _is_ui_item_drag_active() -> bool:
+	return get_tree().get_node_count_in_group("ui_item_drag_active") > 0
 
 
 func _handle_scroll_zoom(event: InputEvent) -> bool:

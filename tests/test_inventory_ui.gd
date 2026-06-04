@@ -14,13 +14,17 @@ func _initialize() -> void:
 	inventory._ready()
 
 	var backpack_button := inventory.get_node("BackpackButton") as Button
+	var frame := inventory.get_node("InventoryFrame") as PanelContainer
 	var overlay := inventory.get_node("InventoryOverlay") as PanelContainer
-	var slots := inventory.get_node("InventoryOverlay/ContentMargin/Slots") as HBoxContainer
+	var title := inventory.get_node("InventoryOverlay/ContentMargin/Stack/Title") as Label
+	var slots := inventory.get_node("InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
 	var tooltip := inventory.get_node("ItemTooltip") as PanelContainer
 
 	_assert(backpack_button != null, "Expected inventory to create a backpack button")
 	_assert(backpack_button.size == Vector2(130.0, 130.0), "Expected backpack button to use the requested icon size")
 	_assert(backpack_button.text == "", "Expected backpack button to use the painted bag icon instead of text")
+	_assert(backpack_button.icon != null, "Expected backpack button to use a replaceable image texture")
+	_assert(backpack_button.expand_icon, "Expected backpack image to fill the button")
 	_assert(is_equal_approx(backpack_button.position.x + backpack_button.size.x, 342.0), "Expected backpack button to keep its right margin")
 	_assert(not overlay.visible, "Expected inventory overlay to start closed")
 	_assert(inventory.get_active_items().size() == 1, "Expected player inventory to start with one visible weapon")
@@ -31,13 +35,29 @@ func _initialize() -> void:
 	)
 
 	inventory.toggle_inventory()
+	inventory.set_inventory_open(true)
 	_assert(overlay.visible, "Expected backpack button to open the inventory overlay")
-	_assert(slots.get_child_count() == 5, "Expected inventory overlay to contain five slots")
+	_assert(slots.get_child_count() == 3, "Expected inventory overlay to contain three slots")
+	_assert(overlay.position.x + overlay.size.x <= backpack_button.position.x, "Expected inventory overlay to grow out to the left of the backpack")
+	_assert(is_equal_approx(overlay.position.x + overlay.size.x, backpack_button.position.x), "Expected inventory overlay to connect directly to the backpack button")
+	_assert(overlay.position.y == backpack_button.position.y, "Expected inventory overlay to share the backpack button top edge")
+	_assert(overlay.size.y == backpack_button.size.y, "Expected inventory overlay to share the backpack button height")
+	_assert(overlay.pivot_offset.x == overlay.size.x, "Expected inventory overlay to animate from its right edge")
+	_assert(title.text == "Inventory", "Expected expanded inventory area to show a small title")
+	_assert(frame.position == overlay.position, "Expected shared inventory frame to start at the expanded slot area")
+	_assert(frame.size.x == overlay.size.x + backpack_button.size.x, "Expected shared inventory frame to wrap slots and backpack as one control")
+	_assert(frame.size.y == backpack_button.size.y, "Expected shared inventory frame to match backpack height")
+	var open_frame_size := frame.size
+	inventory.toggle_inventory()
+	_assert(frame.size == open_frame_size, "Expected closing inventory animation to start from the fully open frame")
+	inventory.set_inventory_open(true)
 
 	var first_slot := slots.get_child(0) as Button
 	var second_slot := slots.get_child(1) as Button
 	var empty_slot := slots.get_child(2) as Button
-	_assert(first_slot.text == "Knife", "Expected first slot to contain Knife")
+	_assert(first_slot.text == "", "Expected inventory item slots to use icons instead of text")
+	_assert(first_slot.icon != null, "Expected first inventory slot to show an item image")
+	_assert(first_slot.custom_minimum_size == inventory.get_slot_size(), "Expected inventory item slots to use the shared item slot size")
 	_assert(second_slot.disabled, "Expected second slot to be empty")
 	_assert(empty_slot.disabled, "Expected empty inventory slots to be disabled")
 	_assert(first_slot.self_modulate == InventoryUI.EQUIPPED_SLOT_TINT, "Expected strongest weapon slot to be tinted")
@@ -84,6 +104,35 @@ func _initialize() -> void:
 		"power": 1,
 	}), "Expected adding a test item to succeed")
 	_assert(stats_signal_result["count"] == 1, "Expected adding items to notify stat listeners")
+	inventory.set_inventory_open(true)
+	inventory._layout_inventory()
+	var first_slot_after_add := slots.get_child(0) as Button
+	var second_slot_after_add := slots.get_child(1) as Button
+	first_slot_after_add.position = Vector2.ZERO
+	second_slot_after_add.position = Vector2(inventory.get_slot_size().x + inventory.get_slot_spacing(), 0.0)
+	var second_slot_center := second_slot_after_add.get_global_rect().get_center()
+	_assert(inventory.get_slot_index_at_canvas_position(second_slot_center) == 1, "Expected second backpack slot center to resolve to slot one")
+	inventory._start_item_drag(0, first_slot_after_add, Vector2.ZERO)
+	var drag_ghost := inventory.get_node("DragGhost") as TextureRect
+	_assert(drag_ghost.visible, "Expected inventory drag to show an item image cursor")
+	_assert(drag_ghost.texture == first_slot_after_add.icon, "Expected inventory drag cursor to use the dragged item image")
+	_assert(drag_ghost.size == inventory.get_slot_size(), "Expected inventory drag cursor to match item slot size")
+	_assert(inventory.is_in_group("ui_item_drag_active"), "Expected item drag to block camera input")
+	inventory._finish_item_drag(second_slot_center)
+	_assert(not inventory.is_in_group("ui_item_drag_active"), "Expected finishing item drag to unblock camera input")
+	_assert(inventory.get_active_items()[0]["name"] == "Dagger", "Expected dropping an inventory item onto another slot to swap them")
+	_assert(inventory.get_active_items()[1]["name"] == "Knife", "Expected replaced inventory item to move into the source slot")
+	first_slot_after_add = slots.get_child(0) as Button
+	second_slot_after_add = slots.get_child(1) as Button
+	var third_slot_after_swap := slots.get_child(2) as Button
+	third_slot_after_swap.position = Vector2((inventory.get_slot_size().x + inventory.get_slot_spacing()) * 2.0, 0.0)
+	var third_slot_center := third_slot_after_swap.get_global_rect().get_center()
+	_assert(inventory.get_slot_index_at_canvas_position(third_slot_center) == 2, "Expected third backpack slot center to resolve to slot two")
+	inventory._start_item_drag(1, second_slot_after_add, Vector2.ZERO)
+	inventory._finish_item_drag(third_slot_center)
+	_assert((slots.get_child(1) as Button).disabled, "Expected moving an inventory item to an empty slot to clear the source slot")
+	_assert(not (slots.get_child(2) as Button).disabled, "Expected moving an inventory item to an empty slot to fill the target slot")
+	_assert((slots.get_child(2) as Button).icon != null, "Expected moved inventory item to keep its icon")
 
 	quit()
 
