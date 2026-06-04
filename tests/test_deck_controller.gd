@@ -56,7 +56,7 @@ func _initialize() -> void:
 			enemy_road_has_clear_label = enemy_road_has_clear_label or (card.title.begins_with("Enemy ") and card.detail == "Enemy waits on this road.")
 		elif card.category == "Road" and not card.encounter_data.is_empty():
 			reward_road_count += 1
-			reward_road_has_clear_label = reward_road_has_clear_label or card.detail.ends_with("when reached.")
+			reward_road_has_clear_label = reward_road_has_clear_label or card.detail in ["Plus food", "Plus treasure"]
 		elif card.category == "Event":
 			event_types[card.event_type] = true
 	for card_data in deck_controller.deck:
@@ -71,7 +71,7 @@ func _initialize() -> void:
 			enemy_road_has_clear_label = enemy_road_has_clear_label or (str(card_data.get("title", "")).begins_with("Enemy ") and str(card_data.get("detail", "")) == "Enemy waits on this road.")
 		elif card_data["category"] == "Road" and not encounter.is_empty():
 			reward_road_count += 1
-			reward_road_has_clear_label = reward_road_has_clear_label or str(card_data.get("detail", "")).ends_with("when reached.")
+			reward_road_has_clear_label = reward_road_has_clear_label or str(card_data.get("detail", "")) in ["Plus food", "Plus treasure"]
 		elif card_data["category"] == "Event":
 			event_types[str(card_data.get("event_type", ""))] = true
 	_assert(category_counts["Road"] == 61, "Expected 75 percent of an 81 card deck to round to 61 road cards")

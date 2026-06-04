@@ -230,15 +230,7 @@ func _compact_road_type_title(road_type: String) -> String:
 
 
 func _detail_from_definition() -> String:
-	if tile_definition == null or not tile_definition.has_method("get_base_openings"):
-		return detail
-
-	var openings: Dictionary = tile_definition.get_base_openings()
-	var names: Array[String] = []
-	for direction_name: String in TileDefinition.DIRECTION_NAMES:
-		if openings.get(direction_name, false) == true:
-			names.append(_short_direction_name(direction_name))
-	return "Open: %s" % " ".join(names)
+	return detail
 
 
 func _draw_card_art_texture(art_rect: Rect2) -> void:
@@ -296,12 +288,17 @@ func _category_badge_text() -> String:
 
 
 func _compact_detail_text() -> String:
+	if detail.is_empty():
+		if _encounter_type() == GameMap.ENCOUNTER_BERRY_BUSH:
+			return "Plus food"
+		if _encounter_type() == GameMap.ENCOUNTER_CACHE:
+			return "Plus treasure"
 	if detail == "Enemy waits on this road.":
 		return "Hidden fight on this road."
 	if detail == "Grants food when reached.":
-		return "+Food when reached."
+		return "Plus food"
 	if detail == "Contains an item when reached.":
-		return "Item when reached."
+		return "Plus treasure"
 	if detail == "Draw two extra cards.":
 		return "Draw 2 cards."
 	if detail == "Destroy a placed tile.":
@@ -317,19 +314,6 @@ func _category_badge_fill() -> Color:
 	if not encounter_data.is_empty():
 		return Color(0.74, 0.82, 0.54, 1.0)
 	return Color(0.86, 0.76, 0.52, 1.0)
-
-
-func _short_direction_name(direction_name: String) -> String:
-	match direction_name:
-		"north":
-			return "N"
-		"east":
-			return "E"
-		"south":
-			return "S"
-		"west":
-			return "W"
-	return direction_name.left(1).to_upper()
 
 
 func _fit_label_font_size(label: Label, max_size: int, min_size: int) -> void:

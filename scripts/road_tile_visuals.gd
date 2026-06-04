@@ -17,7 +17,7 @@ func render(
 	definition: Resource,
 	rotation_steps: int,
 	tile_size: float,
-	tile_tint: Color,
+	_tile_tint: Color,
 	highlight_enabled: bool,
 	highlight_color: Color,
 	encounter_data: Dictionary,
@@ -25,12 +25,6 @@ func render(
 ) -> void:
 	for child in get_children():
 		child.queue_free()
-
-	var terrain_color := Color(0.55, 0.63, 0.45)
-	if definition != null and definition.get("terrain_color") != null:
-		terrain_color = definition.get("terrain_color")
-	terrain_color = terrain_color * tile_tint
-	_add_box("Ground", Vector3(tile_size * 0.96, GROUND_HEIGHT, tile_size * 0.96), Vector3(0.0, -GROUND_HEIGHT * 0.35, 0.0), terrain_color)
 
 	var openings := _get_openings(definition, rotation_steps)
 	if definition != null and definition.get("road_visible") != false:

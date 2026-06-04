@@ -188,9 +188,9 @@ func _encounter_title_for_card(card: Dictionary) -> String:
 func _encounter_detail(encounter: Dictionary) -> String:
 	var kind := str(encounter.get("type", ""))
 	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
-		return "Grants food when reached."
+		return "Plus food"
 	if kind == GameMap.ENCOUNTER_CACHE:
-		return "Contains an item when reached."
+		return "Plus treasure"
 	return "Reward waits on this road."
 
 

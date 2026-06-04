@@ -64,9 +64,13 @@ func _initialize() -> void:
 	var berry_title_label := hand.cards[1].get_node("Title") as Label
 	var enemy_title_label := hand.cards[3].get_node("Title") as Label
 	var detail_label := focused_card.get_node("Detail") as Label
+	var plain_detail_label := hand.cards[0].get_node("Detail") as Label
+	var berry_detail_label := hand.cards[1].get_node("Detail") as Label
 	var focused_card_bottom: float = focused_card.position.y + focused_card.size.y * 0.5 + focused_card.size.y * focused_card.scale.y * 0.5
 	_assert(plain_title_label.text == "Straight Road", "Expected plain road cards to show only the road type")
+	_assert(plain_detail_label.text == "", "Expected plain road cards to leave the detail text empty")
 	_assert(berry_title_label.text == "Berry\nCorner", "Expected berry road cards to show modifier above road type")
+	_assert(berry_detail_label.text == "Plus food", "Expected berry road cards to use short reward detail text")
 	_assert(enemy_title_label.text == "Danger\nFour-Way", "Expected enemy road cards to show modifier above road type")
 	_assert(title_label.offset_bottom < CardView.ART_RECT.position.y, "Expected two-line card titles to stay above the card art")
 	_assert(detail_label.offset_bottom < focused_card.size.y, "Expected focused card detail text to stay inside the card")

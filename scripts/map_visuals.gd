@@ -16,6 +16,7 @@ const TREE_SLOTS := [
 
 var _cell_nodes: Dictionary = {}
 var _forest_nodes: Array[Node] = []
+var _ground_node: Node3D
 var _border_node: Node3D
 var _cells_root: Node3D
 var _forest_root: Node3D
@@ -33,6 +34,9 @@ func rebuild_all(map: GameMap) -> void:
 		if node != null:
 			node.queue_free()
 	_forest_nodes.clear()
+	if _ground_node != null:
+		_ground_node.queue_free()
+		_ground_node = null
 	if _border_node != null:
 		_border_node.queue_free()
 		_border_node = null
@@ -43,6 +47,7 @@ func rebuild_all(map: GameMap) -> void:
 			if not map.is_inside_playable_area(grid_position):
 				_add_border_forest_cell(map, grid_position)
 
+	_add_playable_ground(map)
 	for y in map.playable_height:
 		for x in map.playable_width:
 			rebuild_cell(map, Vector2i(x, y))
@@ -64,9 +69,6 @@ func rebuild_cell(map: GameMap, grid_position: Vector2i) -> void:
 	_cell_nodes[grid_position] = cell
 
 	var feature := map.get_fixed_feature(grid_position)
-	var terrain_color := GROUND_LIGHT_COLOR if (grid_position.x + grid_position.y) % 2 == 0 else GROUND_DARK_COLOR
-	_add_box(cell, "Ground", Vector3(map.tile_size * 0.96, GROUND_HEIGHT, map.tile_size * 0.96), Vector3(0.0, -GROUND_HEIGHT * 0.5, 0.0), terrain_color)
-
 	if not feature.is_empty():
 		_add_fixed_feature_visual(map, cell, feature)
 	elif not map.tiles.has(grid_position):
@@ -82,6 +84,22 @@ func _add_border_forest_cell(map: GameMap, grid_position: Vector2i) -> void:
 
 	_add_box(cell, "ForestGround", Vector3(map.tile_size * 1.08, GROUND_HEIGHT, map.tile_size * 1.08), Vector3(0.0, -GROUND_HEIGHT * 0.65, 0.0), GROUND_LIGHT_COLOR)
 	_add_cell_trees(map, cell, grid_position)
+
+
+func _add_playable_ground(map: GameMap) -> void:
+	_ground_node = Node3D.new()
+	_ground_node.name = "PlayableGround"
+	add_child(_ground_node)
+
+	var width := float(map.playable_width) * map.tile_size
+	var height := float(map.playable_height) * map.tile_size
+	_add_box(
+		_ground_node,
+		"Ground",
+		Vector3(width, GROUND_HEIGHT, height),
+		Vector3(width * 0.5, -GROUND_HEIGHT * 0.5, height * 0.5),
+		GROUND_LIGHT_COLOR
+	)
 
 
 func _add_playable_area_border(map: GameMap) -> void:
