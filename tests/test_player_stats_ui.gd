@@ -42,8 +42,18 @@ func _initialize() -> void:
 
 	player.food -= 1
 	player.food_changed.emit(player.food)
-	_assert(stats._gain_amounts.get("food", -1) == 0, "Expected spending food not to show a positive gain amount")
+	_assert(stats._gain_amounts.get("food", 0) == -1, "Expected spending food to show the amount lost")
 	_assert(stats._pulse_sign.get("food", 0) == -1, "Expected spending food to retain negative feedback")
+	_assert(stats._get_stat_glow_color("food", -1) == Color(1.0, 0.32, 0.22), "Expected resource losses to flash red")
+
+	player.set_health(2)
+	_assert(stats._gain_amounts.get("health", 0) == -1, "Expected lost health to show the amount lost")
+	_assert(stats._pulse_sign.get("health", 0) == -1, "Expected lost health to use negative feedback")
+	_assert(stats._pulse_strength.get("health", 0.0) > 0.0, "Expected lost health feedback to remain visible")
+
+	player.set_health(3)
+	_assert(stats._gain_amounts.get("health", 0) == 1, "Expected gained health to show the amount gained")
+	_assert(stats._pulse_sign.get("health", 0) == 1, "Expected gained health to use positive feedback")
 
 	quit()
 

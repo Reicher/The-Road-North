@@ -34,6 +34,8 @@ func _ready() -> void:
 	position = Vector2(left_margin, top_margin)
 	if _player != null and not _player.health_changed.is_connected(_on_player_health_changed):
 		_player.health_changed.connect(_on_player_health_changed)
+	if _player != null and not _player.base_power_changed.is_connected(_on_player_base_power_changed):
+		_player.base_power_changed.connect(_on_player_base_power_changed)
 	if _player != null and not _player.food_changed.is_connected(_on_player_food_changed):
 		_player.food_changed.connect(_on_player_food_changed)
 	if _player != null and not _player.gold_changed.is_connected(_on_player_gold_changed):
@@ -48,16 +50,16 @@ func _ready() -> void:
 func _draw() -> void:
 	_draw_stat_row(0, "food", _get_food())
 	_draw_stat_row(1, "gold", _get_gold())
-	_draw_stat_row(2, "health", _get_health())
+	_draw_stat_row(2, "health", _get_health_display())
 	_draw_stat_row(3, "power", _get_power())
 
 
-func _draw_stat_row(index: int, stat_name: String, value: int) -> void:
+func _draw_stat_row(index: int, stat_name: String, value: Variant) -> void:
 	var row_center := Vector2(31.0, 5.0 + row_height * float(index) + row_height * 0.5)
 	var pulse := float(_pulse_strength.get(stat_name, 0.0))
 	var sign := int(_pulse_sign.get(stat_name, 1))
-	var gain_amount := int(_gain_amounts.get(stat_name, 0))
-	var gain_color := _get_stat_glow_color(stat_name, 1)
+	var change_amount := int(_gain_amounts.get(stat_name, 0))
+	var change_color := _get_stat_glow_color(stat_name, sign)
 	if pulse > 0.0:
 		var glow := _get_stat_glow_color(stat_name, sign)
 		glow.a = 0.22 + pulse * 0.46
@@ -68,8 +70,8 @@ func _draw_stat_row(index: int, stat_name: String, value: int) -> void:
 	if icon != null:
 		var icon_rect := Rect2(row_center - Vector2.ONE * icon_size * 0.5, Vector2.ONE * icon_size)
 		var icon_color := Color.WHITE
-		if pulse > 0.0 and sign > 0:
-			icon_color = Color.WHITE.lerp(gain_color, 0.62 * pulse)
+		if pulse > 0.0:
+			icon_color = Color.WHITE.lerp(change_color, 0.62 * pulse)
 		draw_texture_rect(icon, icon_rect, false, icon_color)
 
 	var font: Font = ThemeDB.fallback_font
@@ -77,15 +79,15 @@ func _draw_stat_row(index: int, stat_name: String, value: int) -> void:
 	var text_position := Vector2(70.0, row_center.y + 13.0)
 	draw_string_outline(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 72.0, font_size, 7, Color(0.10, 0.08, 0.05, 0.92))
 	var value_color := Color(1.0, 0.96, 0.84)
-	if pulse > 0.0 and sign > 0:
-		value_color = value_color.lerp(gain_color, 0.86 * pulse)
+	if pulse > 0.0:
+		value_color = value_color.lerp(change_color, 0.86 * pulse)
 	draw_string(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 72.0, font_size, value_color)
-	if pulse > 0.0 and gain_amount > 0:
+	if pulse > 0.0 and change_amount != 0:
 		var value_width := font.get_string_size(str(value), HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
 		var gain_position := text_position + Vector2(value_width + 8.0, 0.0)
-		var gain_text := "+%d" % gain_amount
-		draw_string_outline(font, gain_position, gain_text, HORIZONTAL_ALIGNMENT_LEFT, 76.0, font_size, 7, Color(0.06, 0.14, 0.05, 0.94))
-		draw_string(font, gain_position, gain_text, HORIZONTAL_ALIGNMENT_LEFT, 76.0, font_size, gain_color)
+		var change_text := "%+d" % change_amount
+		draw_string_outline(font, gain_position, change_text, HORIZONTAL_ALIGNMENT_LEFT, 76.0, font_size, 7, Color(0.10, 0.08, 0.05, 0.94))
+		draw_string(font, gain_position, change_text, HORIZONTAL_ALIGNMENT_LEFT, 76.0, font_size, change_color)
 
 
 func _get_food() -> int:
@@ -104,6 +106,12 @@ func _get_health() -> int:
 	if _player == null:
 		return 0
 	return _player.health
+
+
+func _get_health_display() -> String:
+	if _player == null:
+		return "0/0"
+	return "%d/%d" % [_player.health, _player.max_health]
 
 
 func _get_power() -> int:
@@ -129,6 +137,22 @@ func _on_inventory_stats_changed() -> void:
 	_handle_value_change("power", int(current_values.get("power", 0)))
 
 
+func _on_player_base_power_changed(_base_power: int) -> void:
+	_handle_value_change("power", _get_power())
+
+
+func sync_without_feedback() -> void:
+	for tween in _pulse_tweens.values():
+		if tween is Tween:
+			(tween as Tween).kill()
+	_pulse_tweens.clear()
+	_pulse_strength.clear()
+	_pulse_sign.clear()
+	_gain_amounts.clear()
+	_last_values = _get_current_values()
+	queue_redraw()
+
+
 func _handle_value_change(stat_name: String, value: int) -> void:
 	var previous := int(_last_values.get(stat_name, value))
 	_last_values[stat_name] = value
@@ -139,11 +163,11 @@ func _handle_value_change(stat_name: String, value: int) -> void:
 
 
 func _start_pulse(stat_name: String, change: int) -> void:
-	var existing_gain := int(_gain_amounts.get(stat_name, 0))
-	var is_active_gain := int(_pulse_sign.get(stat_name, 0)) > 0 and float(_pulse_strength.get(stat_name, 0.0)) > 0.0
+	var existing_change := int(_gain_amounts.get(stat_name, 0))
+	var is_same_active_change := signi(existing_change) == signi(change) and float(_pulse_strength.get(stat_name, 0.0)) > 0.0
 	_pulse_strength[stat_name] = 1.0
 	_pulse_sign[stat_name] = 1 if change > 0 else -1
-	_gain_amounts[stat_name] = existing_gain + change if change > 0 and is_active_gain else maxi(change, 0)
+	_gain_amounts[stat_name] = existing_change + change if is_same_active_change else change
 	var existing_tween := _pulse_tweens.get(stat_name) as Tween
 	if existing_tween != null:
 		existing_tween.kill()

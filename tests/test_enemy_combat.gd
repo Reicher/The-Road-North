@@ -76,7 +76,8 @@ func run() -> void:
 	player.start_position = Vector2i(4, 8)
 	player.starting_food = 3
 	player.starting_health = 5
-	player.power = 0
+	player.starting_max_health = 5
+	player.base_power = 0
 	player.move_duration = 0.0
 	player.combat_bump_duration = 0.0
 	player.post_combat_loot_delay = 0.05
@@ -97,7 +98,7 @@ func run() -> void:
 	lethal_player.start_position = Vector2i(4, 8)
 	lethal_player.starting_food = 3
 	lethal_player.starting_health = 1
-	lethal_player.power = 0
+	lethal_player.base_power = 0
 	lethal_player.move_duration = 0.0
 	lethal_player.combat_bump_duration = 0.0
 	root.add_child(lethal_player)

@@ -3,6 +3,8 @@ extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
 const ItemIconLibrary = preload("res://scripts/item_icon_library.gd")
+const FULL_INVENTORY_FLASH_COLOR := Color(1.0, 0.32, 0.28)
+const FULL_INVENTORY_FLASH_DURATION := 0.28
 
 @export var player_path: NodePath
 @export var inventory_path: NodePath
@@ -28,6 +30,7 @@ var _backpack_drag_item: Dictionary = {}
 var _backpack_drag_source_button: Button
 var _drag_ghost: TextureRect
 var _ready_completed := false
+var _full_inventory_flash_tween: Tween
 
 
 func _ready() -> void:
@@ -82,6 +85,7 @@ func open_loot(new_loot: Array) -> void:
 func close_loot() -> void:
 	loot.clear()
 	collected_resources.clear()
+	_reset_full_inventory_flash()
 	_cancel_drag()
 	_cancel_backpack_drag()
 	_hide_tooltip()
@@ -98,14 +102,17 @@ func is_open() -> bool:
 
 func take_all() -> void:
 	_resolve_paths()
+	if not _can_take_all():
+		_flash_inventory_full()
+		return
 	for index in range(loot.size() - 1, -1, -1):
 		var entry := loot[index]
 		if _collect_loot_entry(entry):
 			loot.remove_at(index)
 	_refresh_loot()
-	if _inventory != null:
-		_inventory.set_inventory_open(false)
 	if loot.is_empty():
+		if _inventory != null:
+			_inventory.set_inventory_open(false)
 		close_loot()
 
 
@@ -318,6 +325,40 @@ func _collect_loot_entry(entry: Dictionary) -> bool:
 	if kind == "item":
 		return _inventory != null and _inventory.add_item(entry.get("item", {}).duplicate(true))
 	return false
+
+
+func _can_take_all() -> bool:
+	if _inventory == null:
+		return false
+	var required_slots := 0
+	for entry in loot:
+		if not _is_item_loot(entry):
+			return false
+		required_slots += 1
+	return required_slots <= _inventory.get_free_slot_count()
+
+
+func _flash_inventory_full() -> void:
+	if _panel == null:
+		return
+	if _full_inventory_flash_tween != null:
+		_full_inventory_flash_tween.kill()
+	_panel.self_modulate = FULL_INVENTORY_FLASH_COLOR
+	_full_inventory_flash_tween = create_tween()
+	_full_inventory_flash_tween.set_trans(Tween.TRANS_SINE)
+	_full_inventory_flash_tween.set_ease(Tween.EASE_OUT)
+	_full_inventory_flash_tween.tween_property(_panel, "self_modulate", Color.WHITE, FULL_INVENTORY_FLASH_DURATION)
+	_full_inventory_flash_tween.finished.connect(func() -> void:
+		_full_inventory_flash_tween = null
+	)
+
+
+func _reset_full_inventory_flash() -> void:
+	if _full_inventory_flash_tween != null:
+		_full_inventory_flash_tween.kill()
+		_full_inventory_flash_tween = null
+	if _panel != null:
+		_panel.self_modulate = Color.WHITE
 
 
 func _collect_resource_entry(entry: Dictionary) -> bool:

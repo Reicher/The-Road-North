@@ -8,6 +8,7 @@ const ModelAssets = preload("res://scripts/model_assets.gd")
 signal food_changed(food: int)
 signal gold_changed(gold: int)
 signal health_changed(health: int)
+signal base_power_changed(base_power: int)
 signal move_started(target_position: Vector2i)
 signal moved(grid_position: Vector2i)
 signal move_blocked(target_position: Vector2i, reason: String)
@@ -25,8 +26,12 @@ signal run_won
 @export var starting_food := -1
 @export var starting_gold := 0
 @export var starting_health := 3
-@export var power := 0
-@export_range(0.0, 1.0, 0.01) var move_duration := 0.16
+@export var starting_max_health := 3
+@export var base_power := 0
+@export_range(0.0, 2.0, 0.01) var move_duration := 0.85
+@export_range(1, 8, 1) var move_hop_count := 5
+@export_range(0.0, 1.0, 0.01) var move_hop_height_tiles := 0.16
+@export_range(0.0, 30.0, 0.5) var move_hop_tilt_degrees := 9.0
 @export_range(0.0, 3.0, 0.01) var combat_bump_duration := 0.72
 @export_range(0.0, 2.0, 0.01) var post_combat_loot_delay := 0.45
 
@@ -34,6 +39,7 @@ var grid_position := Vector2i.ZERO
 var food := 0
 var gold := 0
 var health := 0
+var max_health := 3
 var input_enabled := true
 
 var _map: GameMap
@@ -80,7 +86,8 @@ func _ready() -> void:
 	position = _map.grid_to_world(grid_position)
 	food = starting_food if starting_food >= 0 else _get_default_starting_food()
 	gold = starting_gold
-	health = starting_health
+	max_health = maxi(1, starting_max_health)
+	health = clampi(starting_health, 0, max_health)
 	_update_food_label()
 	_update_health_label()
 
@@ -138,11 +145,7 @@ func move_to(target_position: Vector2i) -> bool:
 		return true
 
 	_move_target = target_position
-	var tween := create_tween()
-	tween.set_trans(Tween.TRANS_SINE)
-	tween.set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "position", target_world_position, move_duration)
-	tween.finished.connect(_on_move_tween_finished)
+	_start_hop_move(target_world_position, move_duration, _on_move_tween_finished)
 	return true
 
 
@@ -155,13 +158,58 @@ func is_in_combat() -> bool:
 
 
 func set_health(value: int, check_game_over := true) -> void:
-	if health == value:
+	var clamped_value := clampi(value, 0, max_health)
+	if health == clamped_value:
 		return
-	health = value
+	health = clamped_value
 	_update_health_label()
 	health_changed.emit(health)
 	if check_game_over:
 		_check_game_over()
+
+
+func set_max_health(value: int) -> void:
+	var next_max_health := maxi(1, value)
+	if max_health == next_max_health:
+		return
+	max_health = next_max_health
+	health = mini(health, max_health)
+	_update_health_label()
+	health_changed.emit(health)
+	_check_game_over()
+
+
+func set_base_power(value: int) -> void:
+	if base_power == value:
+		return
+	base_power = value
+	base_power_changed.emit(base_power)
+
+
+func get_progression_state() -> Dictionary:
+	return {
+		"food": food,
+		"gold": gold,
+		"health": health,
+		"max_health": max_health,
+		"base_power": base_power,
+	}
+
+
+func apply_progression_state(state: Dictionary, emit_changes := true) -> void:
+	food = int(state.get("food", food))
+	gold = int(state.get("gold", gold))
+	max_health = maxi(1, int(state.get("max_health", max_health)))
+	health = clampi(int(state.get("health", health)), 0, max_health)
+	base_power = int(state.get("base_power", base_power))
+	_update_food_label()
+	_update_health_label()
+	if not emit_changes:
+		return
+	food_changed.emit(food)
+	gold_changed.emit(gold)
+	health_changed.emit(health)
+	base_power_changed.emit(base_power)
 
 
 func add_food(amount: int) -> void:
@@ -225,6 +273,46 @@ func _on_move_tween_finished() -> void:
 	_finish_move(_move_target)
 
 
+func _start_hop_move(target_world_position: Vector3, duration: float, finished_callback: Callable) -> void:
+	var start_world_position := position
+	var travel_direction := (target_world_position - start_world_position).normalized()
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_LINEAR)
+	tween.set_ease(Tween.EASE_IN_OUT)
+	tween.tween_method(func(progress: float) -> void:
+		_apply_hop_progress(start_world_position, target_world_position, travel_direction, progress)
+	, 0.0, 1.0, duration)
+	tween.finished.connect(func() -> void:
+		position = target_world_position
+		_reset_hop_visuals()
+		finished_callback.call()
+	)
+
+
+func _apply_hop_progress(start_world_position: Vector3, target_world_position: Vector3, travel_direction: Vector3, progress: float) -> void:
+	position = start_world_position.lerp(target_world_position, progress)
+	if _visual_root == null or _map == null:
+		return
+
+	var hop_progress := fposmod(progress * float(move_hop_count), 1.0)
+	if is_equal_approx(progress, 1.0):
+		hop_progress = 1.0
+	var hop_arc := sin(hop_progress * PI)
+	var landing_squash := pow(1.0 - hop_arc, 8.0)
+	_visual_root.position.y = hop_arc * _map.tile_size * move_hop_height_tiles
+	_visual_root.rotation.x = deg_to_rad(move_hop_tilt_degrees) * travel_direction.z * hop_arc
+	_visual_root.rotation.z = -deg_to_rad(move_hop_tilt_degrees) * travel_direction.x * hop_arc
+	_visual_root.scale = Vector3(1.0 + landing_squash * 0.05, 1.0 - landing_squash * 0.08, 1.0 + landing_squash * 0.05)
+
+
+func _reset_hop_visuals() -> void:
+	if _visual_root == null:
+		return
+	_visual_root.position = Vector3.ZERO
+	_visual_root.rotation = Vector3.ZERO
+	_visual_root.scale = Vector3.ONE
+
+
 func _update_food_label() -> void:
 	if _food_label != null:
 		_food_label.text = "Food: %d" % food
@@ -232,11 +320,11 @@ func _update_food_label() -> void:
 
 func _update_health_label() -> void:
 	if _health_label != null:
-		_health_label.text = "Health: %d" % health
+		_health_label.text = "Health: %d/%d" % [health, max_health]
 
 
 func get_total_power() -> int:
-	return power + _rewards.get_power_bonus()
+	return base_power + _rewards.get_power_bonus()
 
 
 func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previous_input_enabled: bool) -> void:
@@ -252,11 +340,7 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previou
 		_finish_enemy_move(target_position, enemy_data, previous_input_enabled)
 		return
 
-	var tween := create_tween()
-	tween.set_trans(Tween.TRANS_SINE)
-	tween.set_ease(Tween.EASE_IN)
-	tween.tween_property(self, "position", target_world_position, combat_bump_duration)
-	tween.finished.connect(func() -> void:
+	_start_hop_move(target_world_position, combat_bump_duration, func() -> void:
 		_finish_enemy_move(target_position, enemy_data, previous_input_enabled)
 	)
 

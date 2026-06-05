@@ -115,6 +115,26 @@ func get_active_items() -> Array[Dictionary]:
 	return active_items
 
 
+func get_items() -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	for item in items:
+		result.append(item.duplicate(true))
+	return result
+
+
+func set_items(next_items: Array, emit_stats_change := true) -> void:
+	var restored_items: Array[Dictionary] = []
+	for index in SLOT_COUNT:
+		var item: Dictionary = {}
+		if index < next_items.size() and next_items[index] is Dictionary:
+			item = (next_items[index] as Dictionary).duplicate(true)
+		restored_items.append(item)
+	items = restored_items
+	_refresh_slots()
+	if emit_stats_change:
+		stats_changed.emit()
+
+
 func has_space() -> bool:
 	return _get_first_empty_slot_index() >= 0
 

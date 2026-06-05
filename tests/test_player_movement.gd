@@ -43,7 +43,19 @@ func _initialize() -> void:
 	_assert(player.grid_position == Vector2i(4, 8), "Expected player to start at the requested grid position")
 	_assert(player.food == 5, "Expected player to start with configured food")
 	_assert(player.health == 3, "Expected player to start with default health")
-	_assert(health_label.text == "Health: 3", "Expected health label to show default health")
+	_assert(player.max_health == 3, "Expected player to start with default max health")
+	_assert(health_label.text == "Health: 3/3", "Expected health label to show current and max health")
+
+	var hop_start: Vector3 = player.position
+	var hop_target: Vector3 = map.grid_to_world(Vector2i(4, 7))
+	player.call("_apply_hop_progress", hop_start, hop_target, (hop_target - hop_start).normalized(), 0.1)
+	_assert(player.position.is_equal_approx(hop_start.lerp(hop_target, 0.1)), "Expected hop movement to advance toward the target")
+	_assert(player.get_node("Visuals").position.y > 0.0, "Expected the player visuals to rise during each hop")
+	player.call("_apply_hop_progress", hop_start, hop_target, (hop_target - hop_start).normalized(), 0.2)
+	_assert(is_zero_approx(player.get_node("Visuals").position.y), "Expected the player visuals to land between hops")
+	player.call("_reset_hop_visuals")
+	_assert(player.get_node("Visuals").transform.is_equal_approx(Transform3D.IDENTITY), "Expected hop visuals to reset after movement")
+	player.position = hop_start
 
 	_assert(player.move_to(Vector2i(4, 7)), "Expected player to move north onto connected road")
 	_assert(player.grid_position == Vector2i(4, 7), "Expected player grid position to update after movement")
@@ -93,8 +105,13 @@ func _initialize() -> void:
 	_assert(player.grid_position == Vector2i(6, 6), "Expected no-food movement to leave player in place")
 
 	player.set_health(4)
-	_assert(player.health == 4, "Expected player health to be mutable state")
-	_assert(health_label.text == "Health: 4", "Expected health label to update after health changes")
+	_assert(player.health == 3, "Expected player health not to exceed max health")
+	player.set_max_health(5)
+	player.set_health(4)
+	_assert(player.health == 4, "Expected player health to increase after max health is raised")
+	_assert(health_label.text == "Health: 4/5", "Expected health label to update after health changes")
+	player.set_base_power(2)
+	_assert(player.get_total_power() == 2, "Expected mutable base power to contribute to total power")
 
 	var default_food_player = PLAYER_SCENE.instantiate() as GamePlayer
 	default_food_player.name = "DefaultFoodPlayer"

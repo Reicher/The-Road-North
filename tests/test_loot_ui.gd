@@ -142,12 +142,18 @@ func _initialize() -> void:
 	_assert(player.food == 8, "Expected food loot to add immediately even when item slots are full")
 	_assert(player.gold == 11, "Expected gold loot to add immediately even when item slots are full")
 	_assert(loot_ui.loot.size() == 1, "Expected only item loot to remain after opening full-inventory loot")
+	var inventory_items_before_failed_take_all := inventory.get_items()
+	var loot_before_failed_take_all: Array[Dictionary] = []
+	for entry in loot_ui.loot:
+		loot_before_failed_take_all.append(entry.duplicate(true))
 	loot_ui.take_all()
 	_assert(loot_ui.is_open(), "Expected full inventory to leave item loot behind after Take All")
-	_assert(not inventory.is_open(), "Expected Take All to close the inventory even when item loot remains")
+	_assert(inventory.is_open(), "Expected failed Take All to keep the inventory open for manual choices")
+	_assert(loot_panel.self_modulate == LootUI.FULL_INVENTORY_FLASH_COLOR, "Expected failed Take All to flash the loot panel red")
 	_assert(player.food == 8, "Expected Take All not to add already collected food again")
 	_assert(player.gold == 11, "Expected Take All not to add already collected gold again")
-	_assert(loot_ui.loot.size() == 1, "Expected only the unclaimed item to remain")
+	_assert(loot_ui.loot == loot_before_failed_take_all, "Expected failed Take All to leave all loot untouched")
+	_assert(inventory.get_items() == inventory_items_before_failed_take_all, "Expected failed Take All to leave the backpack untouched")
 
 	inventory.set_inventory_open(true)
 	loot_item = loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootItem0") as Button
