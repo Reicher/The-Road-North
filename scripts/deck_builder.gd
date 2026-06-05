@@ -10,6 +10,8 @@ const EVENT_DRAW_TWO := "draw_two"
 const EVENT_ROTATE_TILE := "rotate_tile"
 const EVENT_LUCKY_FIND := "lucky_find"
 const ENCOUNTER_ENEMY := "enemy"
+const CACHE_GOLD_MIN := 0
+const CACHE_GOLD_MAX := 5
 
 
 func make_deck(deck_size: int, rng: RandomNumberGenerator, config: Dictionary) -> Array[Dictionary]:
@@ -134,7 +136,7 @@ func _add_reward_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomN
 	for index in mini(reward_count, eligible_indices.size()):
 		var card_index := eligible_indices[index]
 		var card: Dictionary = cards[card_index]
-		_set_card_encounter(card, _make_reward_encounter(index))
+		_set_card_encounter(card, _make_reward_encounter(index, rng))
 		card["detail"] = _encounter_detail(card["encounter"])
 		cards[card_index] = card
 
@@ -146,7 +148,7 @@ func _set_card_encounter(card: Dictionary, encounter: Dictionary) -> void:
 		definition.encounter = encounter.duplicate(true)
 
 
-func _make_reward_encounter(index: int) -> Dictionary:
+func _make_reward_encounter(index: int, rng: RandomNumberGenerator) -> Dictionary:
 	var reward_types: Array[String] = [GameMap.ENCOUNTER_BERRY_BUSH, GameMap.ENCOUNTER_CACHE]
 	var kind: String = reward_types[index % reward_types.size()]
 	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
@@ -156,14 +158,20 @@ func _make_reward_encounter(index: int) -> Dictionary:
 		}
 	return {
 		"type": kind,
-		"loot": [{
-			"kind": "item",
-			"item": {
-				"name": "Knife",
-				"effect": "+1 Power",
-				"power": 1,
+		"loot": [
+			{
+				"kind": "item",
+				"item": {
+					"name": "Knife",
+					"effect": "+1 Power",
+					"power": 1,
+				},
 			},
-		}],
+			{
+				"kind": "gold",
+				"amount": rng.randi_range(CACHE_GOLD_MIN, CACHE_GOLD_MAX),
+			},
+		],
 	}
 
 

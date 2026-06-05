@@ -70,9 +70,27 @@ func _initialize() -> void:
 	_assert(player.move_to(Vector2i(5, 6)), "Expected bidirectional east/west connection to allow movement")
 	_assert(player.food == 2, "Expected each valid movement to consume food after encounter reward")
 
+	_assert(roads.place_tile(Vector2i(6, 6), STRAIGHT, 1, {
+		"type": GameMap.ENCOUNTER_CACHE,
+		"loot": [
+			{
+				"kind": "item",
+				"item": {
+					"name": "Knife",
+					"effect": "+1 Power",
+					"power": 1,
+				},
+			},
+			{"kind": "gold", "amount": 4},
+		],
+	}), "Expected treasure cache road card placement to succeed")
+	_assert(player.move_to(Vector2i(6, 6)), "Expected player to move onto a treasure cache")
+	_assert(player.gold == 4, "Expected treasure cache gold to be collected when entering its tile")
+	_assert(map.get_encounter(Vector2i(6, 6)).is_empty(), "Expected collected treasure cache to be removed")
+
 	player.food = 0
 	_assert(not player.move_to(Vector2i(4, 6)), "Expected movement to be blocked when food is empty")
-	_assert(player.grid_position == Vector2i(5, 6), "Expected no-food movement to leave player in place")
+	_assert(player.grid_position == Vector2i(6, 6), "Expected no-food movement to leave player in place")
 
 	player.set_health(4)
 	_assert(player.health == 4, "Expected player health to be mutable state")

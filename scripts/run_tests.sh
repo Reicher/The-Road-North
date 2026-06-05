@@ -13,6 +13,7 @@ tests=(
 	tests/test_deck_controller.gd
 	tests/test_enemy_combat.gd
 	tests/test_loot_ui.gd
+	tests/test_player_stats_ui.gd
 	tests/test_inventory_ui.gd
 	tests/test_game_over.gd
 	tests/test_event_cards.gd

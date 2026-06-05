@@ -29,7 +29,7 @@ func _initialize() -> void:
 		_assert(_count_named_children(tile.get_node("Visuals"), "RoadCenter") == 1, "Expected roads to render without a second shoulder frame: %s" % path)
 		var road_center := tile.get_node("Visuals/RoadCenter") as MeshInstance3D
 		var road_material := road_center.material_override as StandardMaterial3D
-		_assert(road_material.albedo_texture != null, "Expected roads to use a subtle gravel texture: %s" % path)
+		_assert(road_material.albedo_texture == null, "Expected roads to use a clean solid color: %s" % path)
 		_assert(road_material.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED, "Expected flat roads to render without lighting shadows: %s" % path)
 		_assert(road_center.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, "Expected flat roads not to cast shadows: %s" % path)
 		_assert(road_center.mesh is ArrayMesh, "Expected each road tile to use one continuous generated mesh: %s" % path)

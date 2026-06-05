@@ -98,12 +98,3 @@ z_index = 1000
 top_level = true
 expand_mode = 1
 stretch_mode = 5
-
-[node name="ResourcePopupLayer" type="Control" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2

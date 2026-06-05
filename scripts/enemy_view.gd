@@ -1,6 +1,8 @@
 class_name EnemyView
 extends Node3D
 
+const ENEMY_COLOR := Color(0.78, 0.12, 0.10)
+const ENEMY_MODEL_SCALE := 0.5
 const ModelAssets = preload("res://scripts/model_assets.gd")
 
 @export_range(16.0, 256.0, 1.0) var tile_size := 96.0:
@@ -29,14 +31,22 @@ func _rebuild() -> void:
 		return
 
 	var eye_color := Color(1.0, 0.84, 0.34)
-	var model := ModelAssets.instantiate_model(ModelAssets.ENEMY_MODEL, "EnemyModel", Vector3.ZERO, tile_size)
+	var model := ModelAssets.instantiate_model(ModelAssets.ENEMY_MODEL, "EnemyModel", Vector3.ZERO, tile_size * ENEMY_MODEL_SCALE)
 	if model != null:
+		_apply_material_override(model, _make_material(ENEMY_COLOR))
 		add_child(model)
 
 	if enemy_data.get("revealed", false) != true:
 		_add_box("QuestionMark", Vector3(tile_size * 0.035, tile_size * 0.20, tile_size * 0.035), Vector3(0.0, tile_size * 0.54, 0.0), eye_color)
 	else:
 		_add_power_label(int(enemy_data.get("power", 0)))
+
+
+func _apply_material_override(node: Node, material: Material) -> void:
+	if node is MeshInstance3D:
+		node.material_override = material
+	for child in node.get_children():
+		_apply_material_override(child, material)
 
 
 func _add_power_label(power: int) -> void:

@@ -46,6 +46,8 @@ func _initialize() -> void:
 	var enemy_power_values_are_level_scaled := true
 	var reward_road_count := 0
 	var reward_road_has_clear_label := false
+	var cache_count := 0
+	var caches_have_item_and_gold := true
 	var event_types := {}
 	for card in hand.cards:
 		category_counts[card.category] += 1
@@ -57,6 +59,9 @@ func _initialize() -> void:
 		elif card.category == "Road" and not card.encounter_data.is_empty():
 			reward_road_count += 1
 			reward_road_has_clear_label = reward_road_has_clear_label or card.detail in ["Plus food", "Plus treasure"]
+			if card.encounter_data.get("type", "") == GameMap.ENCOUNTER_CACHE:
+				cache_count += 1
+				caches_have_item_and_gold = caches_have_item_and_gold and _cache_has_item_and_valid_gold(card.encounter_data)
 		elif card.category == "Event":
 			event_types[card.event_type] = true
 	for card_data in deck_controller.deck:
@@ -72,6 +77,9 @@ func _initialize() -> void:
 		elif card_data["category"] == "Road" and not encounter.is_empty():
 			reward_road_count += 1
 			reward_road_has_clear_label = reward_road_has_clear_label or str(card_data.get("detail", "")) in ["Plus food", "Plus treasure"]
+			if encounter.get("type", "") == GameMap.ENCOUNTER_CACHE:
+				cache_count += 1
+				caches_have_item_and_gold = caches_have_item_and_gold and _cache_has_item_and_valid_gold(encounter)
 		elif card_data["category"] == "Event":
 			event_types[str(card_data.get("event_type", ""))] = true
 	_assert(category_counts["Road"] == 61, "Expected 75 percent of an 81 card deck to round to 61 road cards")
@@ -87,6 +95,8 @@ func _initialize() -> void:
 	_assert(enemy_road_has_clear_label, "Expected enemy road cards to be clearly named and described")
 	_assert(reward_road_count == 9, "Expected fifteen percent of road cards to carry reward encounters")
 	_assert(reward_road_has_clear_label, "Expected reward encounter road cards to be clearly described")
+	_assert(cache_count > 0, "Expected reward road cards to include treasure caches")
+	_assert(caches_have_item_and_gold, "Expected every treasure cache to contain an item and zero to five gold")
 
 	var first_card = hand.cards[0]
 	deck_controller.consume_card(first_card)
@@ -108,3 +118,19 @@ func _assert(condition: bool, message: String) -> void:
 		return
 	push_error(message)
 	quit(1)
+
+
+func _cache_has_item_and_valid_gold(encounter: Dictionary) -> bool:
+	var has_item := false
+	var has_valid_gold := false
+	var loot: Array = encounter.get("loot", [])
+	for entry in loot:
+		if not entry is Dictionary:
+			continue
+		var kind := str(entry.get("kind", ""))
+		if kind == "item":
+			has_item = true
+		elif kind == "gold":
+			var amount := int(entry.get("amount", -1))
+			has_valid_gold = amount >= DeckBuilder.CACHE_GOLD_MIN and amount <= DeckBuilder.CACHE_GOLD_MAX
+	return has_item and has_valid_gold

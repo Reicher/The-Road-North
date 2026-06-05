@@ -2,6 +2,7 @@ class_name GamePlayer
 extends Node3D
 
 const DEFAULT_FOOD_MAP_AREA_DIVISOR := 4.0
+const PLAYER_MODEL_SCALE := 0.5
 const ModelAssets = preload("res://scripts/model_assets.gd")
 
 signal food_changed(food: int)
@@ -197,7 +198,7 @@ func _rebuild_visuals() -> void:
 		child.queue_free()
 
 	var tile_size := _map.tile_size
-	var model := ModelAssets.instantiate_model(ModelAssets.PLAYER_MODEL, "Pawn", Vector3.ZERO, tile_size)
+	var model := ModelAssets.instantiate_model(ModelAssets.PLAYER_MODEL, "Pawn", Vector3.ZERO, tile_size * PLAYER_MODEL_SCALE)
 	if model != null:
 		_visual_root.add_child(model)
 

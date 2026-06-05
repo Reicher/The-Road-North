@@ -36,13 +36,17 @@ func run() -> void:
 	_assert(map.get_fixed_feature(Vector2i(2, 2))["type"] == GameMap.FEATURE_MOUNTAIN, "Expected level 001 mountain to sit in the map center")
 	_assert(not map.can_place_tile(Vector2i(2, 2), {}), "Expected level 001 fixed mountain to block road placement")
 	var map_visuals := map.get_node("MapVisuals")
-	_assert(map_visuals.get_node_or_null("PlayableGround/Ground") != null, "Expected map visuals to use one continuous playable ground surface")
+	var playable_ground := map_visuals.get_node_or_null("PlayableGround/Ground") as MeshInstance3D
+	_assert(playable_ground != null, "Expected map visuals to use one continuous playable ground surface")
+	_assert((playable_ground.material_override as StandardMaterial3D).albedo_texture == null, "Expected playable ground to use a clean solid color")
 	_assert(map_visuals.get_node_or_null("PlayableAreaBorder") != null, "Expected map visuals to keep a thin playable area outline")
 	_assert(map_visuals.get_node_or_null("Cells/Cell_0_0/Ground") == null, "Expected playable cells not to render internal grid ground tiles")
 	var playable_forest_cell := map_visuals.get_node("Cells/Cell_0_0")
 	var outside_forest_cell := map_visuals.get_node("Forest/Forest_-1_-1")
+	var outside_ground := outside_forest_cell.get_node("ForestGround") as MeshInstance3D
 	_assert(playable_forest_cell.get_child_count() >= 6, "Expected playable empty cells to show dense forest")
 	_assert(outside_forest_cell.get_child_count() >= 7, "Expected outside cells to use the same dense forest plus forest ground")
+	_assert((outside_ground.material_override as StandardMaterial3D).albedo_texture == null, "Expected outside forest ground to use a clean solid color")
 	_assert(playable_forest_cell.get_child(0).scale != playable_forest_cell.get_child(1).scale, "Expected forest trees to vary in shape and size")
 	_assert(roads.seed_start_and_goal, "Expected level 001 to seed start and goal tiles")
 	var start_visual := roads.get_visual_tile(map.get_start_position())

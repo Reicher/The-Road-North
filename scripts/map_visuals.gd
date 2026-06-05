@@ -19,6 +19,7 @@ const TREE_SLOTS := [
 ]
 
 var _cell_nodes: Dictionary = {}
+var _hidden_tree_cells: Dictionary = {}
 var _forest_nodes: Array[Node] = []
 var _ground_node: Node3D
 var _border_node: Node3D
@@ -76,7 +77,24 @@ func rebuild_cell(map: GameMap, grid_position: Vector2i) -> void:
 	if not feature.is_empty():
 		_add_fixed_feature_visual(map, cell, feature)
 	elif not map.tiles.has(grid_position):
+		cell.set_meta("has_map_trees", true)
 		_add_cell_trees(map, cell, grid_position)
+		cell.visible = not _hidden_tree_cells.has(grid_position)
+
+
+func set_cell_trees_visible(grid_position: Vector2i, trees_visible: bool) -> void:
+	if trees_visible:
+		_hidden_tree_cells.erase(grid_position)
+	else:
+		_hidden_tree_cells[grid_position] = true
+	var cell: Node = _cell_nodes.get(grid_position)
+	if cell == null or not cell.has_meta("has_map_trees"):
+		return
+	(cell as Node3D).visible = trees_visible
+
+
+func are_cell_trees_visible(grid_position: Vector2i) -> bool:
+	return not _hidden_tree_cells.has(grid_position)
 
 
 func _add_border_forest_cell(map: GameMap, grid_position: Vector2i) -> void:

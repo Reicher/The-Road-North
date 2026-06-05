@@ -110,10 +110,9 @@ func _initialize() -> void:
 	_assert(player.food == 5, "Expected food loot to add when the loot screen opens")
 	_assert(player.gold == 6, "Expected gold loot to add when the loot screen opens")
 	_assert(loot_ui.loot.size() == 1, "Expected only item loot to remain in the loot screen")
-	_assert(loot_ui.collected_resources.size() == 2, "Expected collected resource loot to remain available for popup feedback")
+	_assert(loot_ui.collected_resources.size() == 2, "Expected collected resource loot to remain tracked")
 	_assert(loot_ui.get_node_or_null("LootPanel/ContentMargin/Stack/LootList/LootResource0") == null, "Expected resource loot to stay out of the item loot list")
-	var resource_popup_layer := loot_ui.get_node("ResourcePopupLayer") as Control
-	_assert(resource_popup_layer.get_child_count() == 1, "Expected collected resources to show one floating popup")
+	_assert(loot_ui.get_node_or_null("ResourcePopupLayer") == null, "Expected resource loot not to show floating feedback above the player")
 	var loot_panel_position := loot_panel.position
 	_assert(loot_panel_position.x < root.size.x * 0.33, "Expected loot panel to be offset from the screen center")
 
@@ -209,7 +208,7 @@ func _initialize() -> void:
 	])
 	_assert(not loot_ui.is_open(), "Expected resource-only loot to avoid opening the item loot panel")
 	_assert(player.food == 11, "Expected resource-only food loot to collect immediately")
-	_assert(resource_popup_layer.get_child_count() >= 1, "Expected resource-only loot to show floating feedback")
+	_assert(not loot_ui.visible, "Expected resource-only loot feedback to stay in the player stats HUD")
 
 	quit()
 

@@ -4,7 +4,6 @@ extends Node3D
 const GROUND_HEIGHT := 0.10
 const ROAD_HEIGHT := 0.08
 const ROAD_TREE_CLEARANCE := 0.26
-const ROAD_TEXTURE_SIZE := 32
 const ROAD_EDGE_SAMPLES := 6
 const ROAD_EDGE_JITTER_RATIO := 0.009
 const ModelAssets = preload("res://scripts/model_assets.gd")
@@ -24,7 +23,6 @@ const ROAD_TREE_SLOTS := [
 ]
 
 var _enemy_view: Node3D
-static var _road_texture: ImageTexture
 
 
 func _ready() -> void:
@@ -156,7 +154,6 @@ func _add_road_top_triangle(surface: SurfaceTool, a: Vector2, b: Vector2, c: Vec
 	if (vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]).y < 0.0:
 		vertices.reverse()
 	for vertex in vertices:
-		surface.set_uv(Vector2(vertex.x, vertex.z) / float(ROAD_TEXTURE_SIZE))
 		surface.add_vertex(vertex)
 
 
@@ -176,30 +173,9 @@ func _road_edge_jitter(seed: int, sample: int, side: int, amount: float) -> floa
 
 func _make_road_material(color: Color) -> StandardMaterial3D:
 	var material := _make_material(color)
-	material.albedo_texture = _get_road_texture()
-	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	material.roughness = 1.0
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	return material
-
-
-func _get_road_texture() -> ImageTexture:
-	if _road_texture != null:
-		return _road_texture
-	var image := Image.create(ROAD_TEXTURE_SIZE, ROAD_TEXTURE_SIZE, false, Image.FORMAT_RGBA8)
-	for y in ROAD_TEXTURE_SIZE:
-		for x in ROAD_TEXTURE_SIZE:
-			var value := 0.96
-			var grain := posmod(x * 17 + y * 31 + x * y * 7, 29)
-			if grain == 0:
-				value = 0.72
-			elif grain <= 3:
-				value = 0.84
-			elif grain >= 27:
-				value = 1.0
-			image.set_pixel(x, y, Color(value, value, value, 1.0))
-	_road_texture = ImageTexture.create_from_image(image)
-	return _road_texture
 
 
 func _draw_visual_identity(identity: String, openings: Dictionary, tile_size: float) -> void:

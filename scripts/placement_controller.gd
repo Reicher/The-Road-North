@@ -75,6 +75,8 @@ var _targeted_tiles: Array[Vector2i] = []
 var _controls_layer
 var _placement_valid := false
 var _placement_hints: Dictionary = {}
+var _hidden_preview_trees_position := Vector2i(-1, -1)
+var _hidden_preview_hint_position := Vector2i(-1, -1)
 var _rotate_original_position := Vector2i(-1, -1)
 var _rotate_original_tile_data: Dictionary = {}
 var _rotate_original_rotation := 0
@@ -258,9 +260,13 @@ func _refresh_preview() -> void:
 		_hide_preview()
 		return
 	if active_mode == MODE_DESTROY_TARGETING or active_mode == MODE_ROTATE_TARGETING:
+		_restore_preview_trees()
+		_restore_preview_hint()
 		_refresh_tile_target()
 		return
 
+	_hide_preview_trees(preview_position)
+	_hide_preview_hint(preview_position)
 	_ensure_preview_tile()
 	_preview_tile.definition = active_definition
 	_preview_tile.rotation_steps = rotation_steps
@@ -372,11 +378,47 @@ func _ensure_preview_tile() -> void:
 
 
 func _hide_preview() -> void:
+	_restore_preview_trees()
+	_restore_preview_hint()
 	if _preview_tile != null:
 		_preview_tile.visible = false
 	if _controls_layer != null:
 		_controls_layer.hide_all()
 	set_process(false)
+
+
+func _hide_preview_trees(grid_position: Vector2i) -> void:
+	if grid_position == _hidden_preview_trees_position:
+		return
+	_restore_preview_trees()
+	_map.set_cell_trees_visible(grid_position, false)
+	_hidden_preview_trees_position = grid_position
+
+
+func _restore_preview_trees() -> void:
+	if _hidden_preview_trees_position.x < 0:
+		return
+	_map.set_cell_trees_visible(_hidden_preview_trees_position, true)
+	_hidden_preview_trees_position = Vector2i(-1, -1)
+
+
+func _hide_preview_hint(grid_position: Vector2i) -> void:
+	if grid_position == _hidden_preview_hint_position:
+		return
+	_restore_preview_hint()
+	var hint: Node3D = _placement_hints.get(grid_position) as Node3D
+	if hint != null:
+		hint.visible = false
+		_hidden_preview_hint_position = grid_position
+
+
+func _restore_preview_hint() -> void:
+	if _hidden_preview_hint_position.x < 0:
+		return
+	var hint: Node3D = _placement_hints.get(_hidden_preview_hint_position) as Node3D
+	if hint != null:
+		hint.visible = true
+	_hidden_preview_hint_position = Vector2i(-1, -1)
 
 
 func _ensure_controls() -> void:
@@ -528,8 +570,10 @@ func _add_placement_hint(grid_position: Vector2i) -> void:
 
 
 func _clear_placement_hints() -> void:
+	_hidden_preview_hint_position = Vector2i(-1, -1)
 	for hint in _placement_hints.values():
 		if hint is Node:
+			(hint as Node3D).visible = false
 			hint.queue_free()
 	_placement_hints.clear()
 

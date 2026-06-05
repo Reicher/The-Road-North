@@ -7,8 +7,6 @@ const ItemIconLibrary = preload("res://scripts/item_icon_library.gd")
 @export var player_path: NodePath
 @export var inventory_path: NodePath
 @export var panel_size := Vector2(286.0, 310.0)
-@export var popup_duration := 2.15
-@export var popup_rise := 42.0
 
 var loot: Array[Dictionary] = []
 var collected_resources: Array[Dictionary] = []
@@ -29,7 +27,6 @@ var _backpack_drag_slot_index := -1
 var _backpack_drag_item: Dictionary = {}
 var _backpack_drag_source_button: Button
 var _drag_ghost: TextureRect
-var _resource_popup_layer: Control
 var _ready_completed := false
 
 
@@ -73,10 +70,8 @@ func open_loot(new_loot: Array) -> void:
 			if _collect_resource_entry(entry_copy):
 				continue
 			loot.append(entry_copy)
-	visible = not loot.is_empty() or not collected_resources.is_empty()
+	visible = not loot.is_empty()
 	mouse_filter = Control.MOUSE_FILTER_STOP if not loot.is_empty() else Control.MOUSE_FILTER_IGNORE
-	if not collected_resources.is_empty():
-		_show_resource_popup(collected_resources)
 	if not loot.is_empty() and _inventory != null:
 		_inventory.set_inventory_open(true)
 		_inventory.set_outside_close_enabled(false)
@@ -124,7 +119,6 @@ func _bind_scene_nodes() -> void:
 	_tooltip_name = get_node("ItemTooltip/ContentMargin/Text/ItemName") as Label
 	_tooltip_effect = get_node("ItemTooltip/ContentMargin/Text/ItemEffect") as Label
 	_drag_ghost = get_node("DragGhost") as TextureRect
-	_resource_popup_layer = get_node("ResourcePopupLayer") as Control
 
 	_dimmer.visible = false
 	_dimmer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -149,7 +143,6 @@ func _bind_scene_nodes() -> void:
 	_drag_ghost.top_level = true
 	_drag_ghost.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_drag_ghost.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_resource_popup_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _refresh_loot() -> void:
@@ -342,61 +335,6 @@ func _collect_resource_entry(entry: Dictionary) -> bool:
 	return false
 
 
-func _show_resource_popup(resources: Array[Dictionary]) -> void:
-	if _resource_popup_layer == null:
-		return
-	var label := Label.new()
-	label.text = _format_resource_popup_text(resources)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_color_override("font_color", UIStyle.text(self))
-	label.add_theme_color_override("font_shadow_color", Color(1.0, 0.93, 0.72, 0.95))
-	label.add_theme_constant_override("shadow_offset_x", 0)
-	label.add_theme_constant_override("shadow_offset_y", 2)
-	label.add_theme_font_size_override("font_size", 23)
-	label.modulate = Color(1, 1, 1, 0)
-	label.custom_minimum_size = Vector2(220.0, 42.0)
-	label.size = label.custom_minimum_size
-	_resource_popup_layer.add_child(label)
-
-	var start_position := _get_player_popup_position(label.size)
-	label.position = start_position
-
-	var tween := create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(label, "position", start_position + Vector2(0.0, -popup_rise), popup_duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	tween.tween_property(label, "modulate:a", 1.0, 0.18)
-	tween.tween_property(label, "modulate:a", 0.0, 0.65).set_delay(maxf(0.18, popup_duration - 0.65))
-	tween.finished.connect(func() -> void:
-		label.queue_free()
-		if loot.is_empty() and _resource_popup_layer != null and _resource_popup_layer.get_child_count() <= 1:
-			visible = false
-	)
-
-
-func _format_resource_popup_text(resources: Array[Dictionary]) -> String:
-	var parts: Array[String] = []
-	var totals := {}
-	for entry in resources:
-		var kind := str(entry.get("kind", ""))
-		totals[kind] = int(totals.get(kind, 0)) + int(entry.get("amount", 0))
-	for kind in ["food", "gold"]:
-		var amount := int(totals.get(kind, 0))
-		if amount <= 0:
-			continue
-		parts.append("+%d %s" % [amount, _format_resource_name(kind)])
-	return "  ".join(parts)
-
-
-func _format_resource_name(kind: String) -> String:
-	if kind == "food":
-		return "Food"
-	if kind == "gold":
-		return "Gold"
-	return kind.capitalize()
-
-
 func _format_loot_entry(entry: Dictionary) -> String:
 	var kind := str(entry.get("kind", "item"))
 	if kind == "food":
@@ -537,16 +475,3 @@ func _get_loot_panel_position(viewport_size: Vector2, loot_panel_size: Vector2) 
 			target_position.x = clampf(inventory_rect.position.x, 8.0, maxf(8.0, viewport_size.x - loot_panel_size.x - 8.0))
 			target_position.y = clampf(inventory_rect.position.y + inventory_rect.size.y + 6.0, 8.0, maxf(8.0, viewport_size.y - loot_panel_size.y - 8.0))
 	return target_position
-
-
-func _get_player_popup_position(label_size: Vector2) -> Vector2:
-	var viewport_size := _get_layout_size()
-	var center := viewport_size * 0.5
-	if _player != null:
-		var viewport := _player.get_viewport() if _player.is_inside_tree() else null
-		var camera := viewport.get_camera_3d() if viewport != null else null
-		if camera != null and not camera.is_position_behind(_player.global_position):
-			center = camera.unproject_position(_player.global_position + Vector3(0.0, 0.9, 0.0))
-	center.x = clampf(center.x, 8.0 + label_size.x * 0.5, maxf(8.0 + label_size.x * 0.5, viewport_size.x - label_size.x * 0.5 - 8.0))
-	center.y = clampf(center.y, 44.0 + label_size.y * 0.5, maxf(44.0 + label_size.y * 0.5, viewport_size.y - label_size.y * 0.5 - 108.0))
-	return center - label_size * 0.5

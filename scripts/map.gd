@@ -132,6 +132,18 @@ func clear_tile(grid_position: Vector2i) -> void:
 	_rebuild_cell_visual(grid_position)
 
 
+func set_cell_trees_visible(grid_position: Vector2i, trees_visible: bool) -> void:
+	if not _resolve_visuals():
+		return
+	_visuals.set_cell_trees_visible(grid_position, trees_visible)
+
+
+func are_cell_trees_visible(grid_position: Vector2i) -> bool:
+	if not _resolve_visuals():
+		return true
+	return _visuals.are_cell_trees_visible(grid_position)
+
+
 func get_fixed_feature(grid_position: Vector2i) -> Dictionary:
 	var feature: Variant = _fixed_features_by_position.get(grid_position, {})
 	if feature is Dictionary:
