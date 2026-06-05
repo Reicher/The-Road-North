@@ -40,8 +40,8 @@ func _initialize() -> void:
 			"kind": "item",
 			"item": {
 				"name": "Machete",
-				"effect": "+2 Power",
-				"power": 2,
+				"effect": "+3 Power",
+				"power_bonus": 3,
 			},
 		},
 	])
@@ -77,13 +77,13 @@ func _initialize() -> void:
 	var loot_tooltip_effect := loot_tooltip.get_node("ContentMargin/Text/ItemEffect") as Label
 	_assert(loot_tooltip.visible, "Expected tapping a loot item slot to show its tooltip")
 	_assert(loot_tooltip_name.text == "Machete", "Expected loot tooltip to show the item name")
-	_assert(loot_tooltip_effect.text == "+2 Power", "Expected loot tooltip to show the item effect")
+	_assert(loot_tooltip_effect.text == "+3 Power", "Expected loot tooltip to show the item effect")
 
 	loot_ui._start_drag(0, loot_item, Vector2.ZERO)
 	loot_ui._finish_drag(overlay.get_global_rect().get_center())
 	_assert(not loot_ui.is_open(), "Expected dragging the only loot item into the backpack to close loot")
 	_assert(inventory.get_active_items().size() == 2, "Expected dragged loot item to move into the backpack")
-	_assert(inventory.get_power_bonus() == 2, "Expected only the strongest weapon to count")
+	_assert(inventory.get_power_bonus() == 3, "Expected only the strongest weapon to count")
 
 	var loot := [
 		{
@@ -98,8 +98,8 @@ func _initialize() -> void:
 			"kind": "item",
 			"item": {
 				"name": "Sword",
-				"effect": "+3 Power",
-				"power": 3,
+				"effect": "+4 Power",
+				"power_bonus": 4,
 			},
 		},
 	]
@@ -124,7 +124,7 @@ func _initialize() -> void:
 	_assert(inventory.get_active_items().size() == 3, "Expected item loot to move into a new backpack slot")
 	_assert(inventory.get_active_items()[0]["name"] == "Knife", "Expected the old knife to stay in its slot")
 	_assert(inventory.get_active_items()[2]["name"] == "Sword", "Expected the new sword to use another slot")
-	_assert(inventory.get_power_bonus() == 3, "Expected only the strongest weapon to contribute power")
+	_assert(inventory.get_power_bonus() == 4, "Expected only the strongest weapon to contribute power")
 	var slots := inventory.get_node("InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
 	_assert((slots.get_child(0) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected weaker sword slot not to be tinted")
 	_assert((slots.get_child(1) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected weaker loot weapon slot not to be tinted")
@@ -134,7 +134,7 @@ func _initialize() -> void:
 		_assert(inventory.add_item({
 			"name": "Filler %d" % index,
 			"effect": "",
-			"power": 0,
+			"power_bonus": 0,
 		}), "Expected filler item to occupy a free slot")
 	_assert(not inventory.has_space(), "Expected inventory to report full when every slot has one item")
 
@@ -162,7 +162,7 @@ func _initialize() -> void:
 	_assert(inventory.get_slot_index_at_canvas_position(first_backpack_slot.get_global_rect().get_center()) == 0, "Expected first backpack slot center to resolve to slot zero")
 	loot_ui._start_drag(0, loot_item, Vector2.ZERO)
 	loot_ui._finish_drag(first_backpack_slot.get_global_rect().get_center())
-	_assert(inventory.get_active_items()[0]["effect"] == "+3 Power", "Expected dropping loot on an occupied backpack slot to replace it")
+	_assert(inventory.get_active_items()[0]["effect"] == "+4 Power", "Expected dropping loot on an occupied backpack slot to replace it")
 	_assert(loot_ui.loot[0]["item"]["effect"] == "+1 Power", "Expected replaced backpack item to move into the loot slot")
 
 	loot_item = loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootItem0") as Button
@@ -170,23 +170,23 @@ func _initialize() -> void:
 	inventory._start_item_drag(0, first_backpack_slot, Vector2.ZERO)
 	inventory._finish_item_drag(loot_item.get_global_rect().get_center())
 	_assert(inventory.get_active_items()[0]["effect"] == "+1 Power", "Expected dropping backpack item on occupied loot slot to replace it")
-	_assert(loot_ui.loot[0]["item"]["effect"] == "+3 Power", "Expected replaced loot item to move into the backpack slot")
+	_assert(loot_ui.loot[0]["item"]["effect"] == "+4 Power", "Expected replaced loot item to move into the backpack slot")
 
 	loot_ui.open_loot([
 		{
 			"kind": "item",
 			"item": {
 				"name": "Dagger",
-				"effect": "+1 Power",
-				"power": 1,
+				"effect": "+2 Power",
+				"power_bonus": 2,
 			},
 		},
 		{
 			"kind": "item",
 			"item": {
 				"name": "Katana",
-				"effect": "+4 Power",
-				"power": 4,
+				"effect": "+5 Power",
+				"power_bonus": 5,
 			},
 		},
 	])

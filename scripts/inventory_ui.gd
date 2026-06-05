@@ -27,7 +27,7 @@ var items: Array[Dictionary] = [
 	{
 		"name": "Knife",
 		"effect": "+1 Power",
-		"power": 1,
+		"power_bonus": 1,
 	},
 	{},
 	{},
@@ -103,7 +103,7 @@ func get_power_bonus() -> int:
 	for item in items:
 		if item.is_empty():
 			continue
-		highest = maxi(highest, int(item.get("power", 0)))
+		highest = maxi(highest, int(item.get("power_bonus", 0)))
 	return highest
 
 
@@ -524,7 +524,7 @@ func _get_equipped_power_slot_index() -> int:
 	for index in items.size():
 		if items[index].is_empty():
 			continue
-		var value := int(items[index].get("power", 0))
+		var value := int(items[index].get("power_bonus", 0))
 		if value > highest:
 			highest = value
 			equipped_index = index

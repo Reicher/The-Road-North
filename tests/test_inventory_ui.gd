@@ -102,8 +102,8 @@ func _initialize() -> void:
 
 	_assert(inventory.add_item({
 		"name": "Dagger",
-		"effect": "+1 Power",
-		"power": 1,
+		"effect": "+2 Power",
+		"power_bonus": 2,
 	}), "Expected adding a test item to succeed")
 	_assert(stats_signal_result["count"] == 1, "Expected adding items to notify stat listeners")
 	inventory.set_inventory_open(true)

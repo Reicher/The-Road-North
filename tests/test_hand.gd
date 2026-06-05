@@ -110,7 +110,7 @@ func _initialize() -> void:
 		"tile_definition": CORNER,
 		"encounter": {
 			"type": GameMap.ENCOUNTER_CACHE,
-			"loot": [{"kind": "item", "item": {"name": "Knife"}}],
+			"loot": [{"kind": "item", "item": {"name": "Knife", "effect": "+1 Power", "power_bonus": 1}}],
 		},
 	})
 	_assert((cache_card.get_node("Title") as Label).text == "Corner", "Expected treasure road cards to show only the road type")

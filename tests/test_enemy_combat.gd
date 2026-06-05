@@ -83,6 +83,13 @@ func run() -> void:
 	player.post_combat_loot_delay = 0.05
 	root.add_child(player)
 	player._ready()
+	var rewards = player.get_node("Rewards")
+	for loot_seed in range(1, 100):
+		rewards.set_loot_seed(loot_seed)
+		var seeded_loot: Array = rewards._make_enemy_loot(enemy_data)
+		if seeded_loot.size() == 2:
+			rewards.set_loot_seed(loot_seed)
+			break
 	player.move_started.connect(func(_target_position: Vector2i) -> void:
 		player.input_enabled = false
 	)
@@ -124,8 +131,8 @@ func run() -> void:
 	_assert(loot_ui.is_open(), "Expected defeated enemies to open the loot screen")
 
 	loot_ui.take_all()
-	_assert(player.food == 3, "Expected enemy food loot to add a small amount after movement food is spent")
-	_assert(player.gold == 1, "Expected enemy gold loot to add a small amount to the gold counter")
+	_assert(player.food == 2, "Expected enemy loot not to add food")
+	_assert(player.gold >= 1 and player.gold <= 2, "Expected enemy gold loot to scale from enemy power")
 	_assert(inventory.get_active_items().size() == 2, "Expected enemy item loot to move into one backpack slot")
 	_assert(player.input_enabled, "Expected player input to resume after enemy combat movement")
 	_assert(player.move_to(Vector2i(4, 8)), "Expected player to backtrack after enemy combat")

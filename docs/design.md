@@ -326,7 +326,7 @@ The goal of encounters is to add risk and reward to route planning without chang
 Enemy encounters:
 - are attached to some placed road tiles
 - have a simple power value
-- set power to enemy level multiplied by a random value from 1 to 3
+- set power from the level's three-value power range: level 1 uses 1-3, level 2 uses 4-6, and so on
 - trigger when the player moves onto the tile
 - cost the normal 1 food movement cost before combat resolves
 - damage the player by max(0, enemy power - player power)
@@ -356,7 +356,7 @@ Food and gold loot are collected directly.
 
 Items go into the inventory if there is space.
 
-The inventory is a small fixed-size backpack. Weapons may provide power. For version 1, only the strongest weapon contributes to the player's power. Weapons range from +1 power for a knife to +4 power for a katana.
+The inventory is a small fixed-size backpack. Weapons may provide power. For version 1, only the strongest weapon contributes to the player's power. Weapons range from +1 power for a knife to +5 power for a katana.
 
 The loot and inventory UI should stay simple and touch-friendly. They should support direct collection and basic drag/drop backpack interaction, but should not grow into a full equipment or economy system in version 1.
 

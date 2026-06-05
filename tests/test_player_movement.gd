@@ -90,7 +90,7 @@ func _initialize() -> void:
 				"item": {
 					"name": "Knife",
 					"effect": "+1 Power",
-					"power": 1,
+					"power_bonus": 1,
 				},
 			},
 			{"kind": "gold", "amount": 4},

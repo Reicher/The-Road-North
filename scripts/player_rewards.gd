@@ -1,6 +1,10 @@
 class_name PlayerRewards
 extends Node
 
+const WeaponCatalog = preload("res://scripts/weapon_catalog.gd")
+
+const ENEMY_WEAPON_DROP_CHANCES: Array[float] = [0.45, 0.65, 0.85]
+
 var _player: GamePlayer
 var _inventory: InventoryUI
 var _loot_ui: Node
@@ -20,6 +24,10 @@ func get_power_bonus() -> int:
 	if _inventory == null:
 		return 0
 	return _inventory.get_power_bonus()
+
+
+func set_loot_seed(seed: int) -> void:
+	_loot_rng.seed = seed
 
 
 func open_enemy_loot(enemy_data: Dictionary) -> void:
@@ -67,32 +75,31 @@ func _collect_loot_entry(entry: Dictionary) -> void:
 
 func _make_enemy_loot(enemy_data: Dictionary) -> Array[Dictionary]:
 	var loot: Array[Dictionary] = []
-	loot.append({
-		"kind": "food",
-		"amount": 1,
-	})
+	var enemy_power := maxi(1, int(enemy_data.get("power", 1)))
 	loot.append({
 		"kind": "gold",
-		"amount": 1,
+		"amount": _loot_rng.randi_range(enemy_power, enemy_power * 2),
 	})
-	loot.append({
-		"kind": "item",
-		"item": _make_enemy_item(enemy_data),
-	})
+	if _loot_rng.randf() < _get_enemy_weapon_drop_chance(enemy_data):
+		loot.append({
+			"kind": "item",
+			"item": _make_enemy_item(enemy_data),
+		})
 	return loot
 
 
 func _make_enemy_item(enemy_data: Dictionary) -> Dictionary:
-	var enemy_power := int(enemy_data.get("power", 1))
-	var value: int = clampi(enemy_power, 1, 4)
-	var names := {
-		1: "Knife",
-		2: "Machete",
-		3: "Sword",
-		4: "Katana",
-	}
-	return {
-		"name": str(names[value]),
-		"effect": "+%d Power" % value,
-		"power": value,
-	}
+	var enemy_power := maxi(1, int(enemy_data.get("power", 1)))
+	return WeaponCatalog.roll_weapon(_loot_rng, enemy_power, {
+		-1: 0.30,
+		0: 0.50,
+		1: 0.20,
+	})
+
+
+func _get_enemy_weapon_drop_chance(enemy_data: Dictionary) -> float:
+	var enemy_power := maxi(1, int(enemy_data.get("power", 1)))
+	var default_min_power := floori(float(enemy_power - 1) / 3.0) * 3 + 1
+	var enemy_min_power := int(enemy_data.get("enemy_min_power", default_min_power))
+	var enemy_rank := clampi(enemy_power - enemy_min_power, 0, ENEMY_WEAPON_DROP_CHANCES.size() - 1)
+	return ENEMY_WEAPON_DROP_CHANCES[enemy_rank]

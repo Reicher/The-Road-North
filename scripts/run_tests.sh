@@ -11,6 +11,7 @@ tests=(
 	tests/test_hand.gd
 	tests/test_placement_controller.gd
 	tests/test_deck_controller.gd
+	tests/test_weapon_loot.gd
 	tests/test_enemy_combat.gd
 	tests/test_loot_ui.gd
 	tests/test_player_stats_ui.gd

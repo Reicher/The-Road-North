@@ -30,7 +30,7 @@ const ROAD_DISTRIBUTION := {
 @export_range(0.0, 1.0, 0.01) var road_card_ratio := ROAD_CARD_RATIO
 @export_range(0.0, 1.0, 0.01) var enemy_road_card_ratio := ENEMY_ROAD_CARD_RATIO
 @export_range(0.0, 1.0, 0.01) var reward_road_card_ratio := REWARD_ROAD_CARD_RATIO
-@export var enemy_level := 1
+@export var level := 1
 @export var road_distribution := ROAD_DISTRIBUTION.duplicate()
 
 @export var straight_definition: Resource = preload("res://data/road_straight.tres")
@@ -183,7 +183,7 @@ func _deck_config() -> Dictionary:
 	return {
 		"road_card_ratio": road_card_ratio,
 		"enemy_road_card_ratio": enemy_road_card_ratio,
-		"enemy_level": enemy_level,
+		"level": level,
 		"reward_road_card_ratio": reward_road_card_ratio,
 		"road_distribution": road_distribution,
 		"road_definitions": {

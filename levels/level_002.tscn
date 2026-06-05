@@ -37,8 +37,8 @@ seed_start_and_goal = true
 hand_size = 4
 road_card_ratio = 0.75
 enemy_road_card_ratio = 0.2
-enemy_level = 2
 reward_road_card_ratio = 0.15
+level = 2
 road_distribution = {
 "corner": 30.0,
 "dead_end": 10.0,
