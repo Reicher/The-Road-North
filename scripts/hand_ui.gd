@@ -9,18 +9,18 @@ signal card_use_requested(card: CardView)
 
 @export var card_scene: PackedScene = preload("res://ui/card.tscn")
 @export var demo_cards_enabled := true
-@export var card_size := Vector2(150.0, 216.0)
-@export var bottom_margin := 28.0
+@export var card_size := Vector2(174.0, 250.0)
+@export var bottom_margin := 20.0
 @export var show_panel_background := false
 @export var panel_color := Color.TRANSPARENT
 @export_range(0.0, 1.0, 0.01) var focused_lift_ratio := 0.28
 @export var focused_scale := 1.12
-@export var arc_depth := 28.0
-@export var preferred_spacing := 94.0
+@export var arc_depth := 34.0
+@export var preferred_spacing := 180.0
 @export var minimum_spacing := 48.0
-@export var focused_side_shift := 30.0
+@export var focused_side_shift := 38.0
 @export var layout_duration := 0.14
-@export var use_button_size := Vector2(96.0, 40.0)
+@export var use_button_size := Vector2(116.0, 48.0)
 @export var use_button_gap := 8.0
 @export var use_button_bottom_margin := 8.0
 
@@ -59,7 +59,11 @@ func _gui_input(event: InputEvent) -> void:
 		if not _is_canvas_position_over_card(get_global_transform_with_canvas() * event.position):
 			clear_focus()
 	elif event is InputEventScreenTouch and event.pressed:
-		if not _is_canvas_position_over_card(get_global_transform_with_canvas() * event.position):
+		var touched_card := _card_at_canvas_position(event.position)
+		if touched_card != null:
+			_on_card_focus_requested(touched_card)
+			accept_event()
+		else:
 			clear_focus()
 
 
@@ -241,11 +245,18 @@ func _available_height() -> float:
 
 
 func _is_canvas_position_over_card(canvas_position: Vector2) -> bool:
+	return _card_at_canvas_position(canvas_position) != null
+
+
+func _card_at_canvas_position(canvas_position: Vector2) -> CardView:
+	var touched_card: CardView
+	var highest_z := -2147483648
 	for card in cards:
 		var local_position := card.get_global_transform_with_canvas().affine_inverse() * canvas_position
-		if Rect2(Vector2.ZERO, card.size).has_point(local_position):
-			return true
-	return false
+		if Rect2(Vector2.ZERO, card.size).has_point(local_position) and card.z_index >= highest_z:
+			touched_card = card
+			highest_z = card.z_index
+	return touched_card
 
 
 func _resolve_card_parent() -> void:

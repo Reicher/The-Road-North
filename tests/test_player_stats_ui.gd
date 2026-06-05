@@ -27,6 +27,8 @@ func _initialize() -> void:
 	root.add_child(stats)
 	stats._ready()
 	_assert(is_equal_approx(stats.gain_pulse_duration, 2.0), "Expected resource gain feedback to remain visible for two seconds")
+	for stat_name in ["food", "gold", "health", "power"]:
+		_assert(stats._get_stat_icon(stat_name) != null, "Expected exported stat texture to load for %s" % stat_name)
 
 	player.add_food(3)
 	_assert(stats._gain_amounts.get("food", 0) == 3, "Expected food gains to show their amount in the stats HUD")

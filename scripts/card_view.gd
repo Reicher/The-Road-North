@@ -82,6 +82,7 @@ var _title_label: Label
 var _category_label: Label
 var _detail_label: Label
 var _use_button: Button
+var _touch_button: Button
 static var _texture_cache := {}
 
 const TITLE_RECT := Rect2(14.0, 12.0, 122.0, 52.0)
@@ -94,6 +95,7 @@ const TITLE_FONT_MIN := 14
 const CATEGORY_FONT_SIZE := 12
 const DETAIL_FONT_MAX := 13
 const DETAIL_FONT_MIN := 11
+const BASE_CARD_SIZE := Vector2(150.0, 216.0)
 
 
 func _ready() -> void:
@@ -104,6 +106,7 @@ func _ready() -> void:
 	pivot_offset = size * 0.5
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_bind_scene_nodes()
+	_layout_content()
 	_refresh_text()
 	_refresh_focus()
 
@@ -150,6 +153,7 @@ func configure(card_data: Dictionary) -> void:
 		raw_encounter["type"] = GameMap.ENCOUNTER_ENEMY
 	encounter_data = raw_encounter
 	card_color = card_data.get("card_color", card_color)
+	_layout_content()
 
 
 func set_focused(value: bool) -> void:
@@ -163,23 +167,54 @@ func _bind_scene_nodes() -> void:
 	_category_label = get_node("Category") as Label
 	_detail_label = get_node("Detail") as Label
 	_use_button = get_node("UseButton") as Button
+	_touch_button = get_node("TouchButton") as Button
+	_title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_category_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_detail_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_title_label.add_theme_color_override("font_color", UIStyle.text(self))
 	_category_label.add_theme_color_override("font_color", UIStyle.muted_text(self))
 	_detail_label.add_theme_color_override("font_color", UIStyle.text(self))
 	_category_label.add_theme_font_size_override("font_size", CATEGORY_FONT_SIZE)
 	if not _use_button.pressed.is_connected(_on_use_button_pressed):
 		_use_button.pressed.connect(_on_use_button_pressed)
+	if not _touch_button.pressed.is_connected(_on_touch_button_pressed):
+		_touch_button.pressed.connect(_on_touch_button_pressed)
+
+
+func _layout_content() -> void:
+	if _title_label == null:
+		return
+	var scale_factor := _content_scale()
+	_apply_scaled_rect(_title_label, TITLE_RECT, scale_factor)
+	_apply_scaled_rect(_detail_label, DETAIL_RECT, scale_factor)
+	_apply_scaled_rect(_category_label, CATEGORY_RECT, scale_factor)
+	_category_label.add_theme_font_size_override("font_size", roundi(CATEGORY_FONT_SIZE * minf(scale_factor.x, scale_factor.y)))
+
+
+func _apply_scaled_rect(control: Control, rect: Rect2, scale_factor: Vector2) -> void:
+	control.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	control.position = rect.position * scale_factor
+	control.size = rect.size * scale_factor
+
+
+func _content_scale() -> Vector2:
+	return Vector2(size.x / BASE_CARD_SIZE.x, size.y / BASE_CARD_SIZE.y)
+
+
+func _scaled_rect(rect: Rect2) -> Rect2:
+	var scale_factor := _content_scale()
+	return Rect2(rect.position * scale_factor, rect.size * scale_factor)
 
 
 func _refresh_text() -> void:
 	if _title_label != null:
 		_title_label.text = _card_header_text()
-		_fit_label_font_size(_title_label, TITLE_FONT_MAX, TITLE_FONT_MIN)
+		_fit_label_font_size(_title_label, _scaled_font_size(TITLE_FONT_MAX), _scaled_font_size(TITLE_FONT_MIN))
 	if _category_label != null:
 		_category_label.text = _category_badge_text()
 	if _detail_label != null:
 		_detail_label.text = _compact_detail_text()
-		_fit_label_font_size(_detail_label, DETAIL_FONT_MAX, DETAIL_FONT_MIN)
+		_fit_label_font_size(_detail_label, _scaled_font_size(DETAIL_FONT_MAX), _scaled_font_size(DETAIL_FONT_MIN))
 	queue_redraw()
 
 
@@ -191,6 +226,10 @@ func _refresh_focus() -> void:
 
 func _on_use_button_pressed() -> void:
 	use_requested.emit(self)
+
+
+func _on_touch_button_pressed() -> void:
+	focus_requested.emit(self)
 
 
 func _title_from_definition() -> String:
@@ -227,8 +266,8 @@ func _draw_card_art_texture(art_rect: Rect2) -> void:
 
 func get_card_art_rect() -> Rect2:
 	if _compact_detail_text().is_empty():
-		return NO_DETAIL_ART_RECT
-	return ART_RECT
+		return _scaled_rect(NO_DETAIL_ART_RECT)
+	return _scaled_rect(ART_RECT)
 
 
 func _card_art_rect() -> Rect2:
@@ -324,6 +363,11 @@ func _fit_label_font_size(label: Label, max_size: int, min_size: int) -> void:
 		font_size -= line_count - 2
 
 	label.add_theme_font_size_override("font_size", clampi(font_size, min_size, max_size))
+
+
+func _scaled_font_size(font_size: int) -> int:
+	var scale_factor := _content_scale()
+	return maxi(1, roundi(font_size * minf(scale_factor.x, scale_factor.y)))
 
 
 func _encounter_type() -> String:

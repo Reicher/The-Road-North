@@ -14,6 +14,8 @@ The current scope is defined in [`docs/design.md`](docs/design.md).
 
 Godot 4.6.
 
+To run the game on an Android phone, follow [`docs/android.md`](docs/android.md).
+
 ## Version 1 focus
 
 - square grid map

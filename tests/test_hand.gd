@@ -20,6 +20,7 @@ func _initialize() -> void:
 	hand.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	hand.size = root.size
 	root.add_child(hand)
+	_assert(hand.card_size == Vector2(174.0, 250.0), "Expected mobile hand cards to use the larger presentation size")
 	hand.set_cards([
 		{"category": "Road", "tile_definition": STRAIGHT},
 		{
@@ -52,6 +53,23 @@ func _initialize() -> void:
 		_assert(card.position.x + card.size.x <= root.size.x, "Expected cards to stay inside the right screen edge")
 		_assert(not card.focused, "Expected cards to start unfocused")
 
+	var wide_hand = HAND_SCENE.instantiate() as HandUI
+	wide_hand.demo_cards_enabled = false
+	wide_hand.layout_duration = 0.0
+	wide_hand.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	wide_hand.size = Vector2(720.0, 340.0)
+	root.add_child(wide_hand)
+	wide_hand.set_cards([
+		{"category": "Road", "tile_definition": STRAIGHT},
+		{"category": "Road", "tile_definition": CORNER},
+		{"category": "Road", "tile_definition": T_JUNCTION},
+		{"category": "Road", "tile_definition": FOUR_WAY},
+	])
+	var wide_hand_left: float = wide_hand.cards[0].position.x
+	var wide_hand_right: float = wide_hand.cards[3].position.x + wide_hand.cards[3].size.x
+	_assert(wide_hand_left <= 6.0 and wide_hand_right >= 714.0, "Expected a four-card hand to use nearly the full mobile viewport width")
+	wide_hand.queue_free()
+
 	var focused_card = hand.cards[2]
 	hand.call("focus_card", focused_card)
 	_assert(hand.call("get_focused_card") == focused_card, "Expected tapped card to become focused")
@@ -80,13 +98,14 @@ func _initialize() -> void:
 	_assert(enemy_title_label.text == "Four-Way Intersection", "Expected enemy road cards to show only the road type")
 	_assert(enemy_detail_label.text == "", "Expected enemy road cards to leave the detail text empty")
 	_assert(enemy_category_label.text == "ROAD + ENEMY", "Expected enemy road cards to identify their enemy encounter")
-	_assert(title_label.offset_bottom < CardView.ART_RECT.position.y, "Expected two-line card titles to stay above the card art")
-	_assert(focused_card.get_card_art_rect() == CardView.NO_DETAIL_ART_RECT, "Expected road card art to sit lower when there is no detail text")
-	_assert(is_equal_approx(category_label.offset_top, CardView.CATEGORY_RECT.position.y), "Expected road category badge to keep the bottom category position")
-	_assert(is_equal_approx(category_label.offset_bottom, CardView.CATEGORY_RECT.end.y), "Expected road category badge to sit at the bottom of the card")
+	_assert(title_label.offset_bottom < focused_card.get_card_art_rect().position.y, "Expected two-line card titles to stay above the card art")
+	_assert(focused_card.get_card_art_rect().size.y > CardView.NO_DETAIL_ART_RECT.size.y, "Expected larger cards to scale up their road art")
+	var card_scale_y: float = focused_card.size.y / CardView.BASE_CARD_SIZE.y
+	_assert(is_equal_approx(category_label.offset_top, CardView.CATEGORY_RECT.position.y * card_scale_y), "Expected road category badge to keep the scaled bottom category position")
+	_assert(is_equal_approx(category_label.offset_bottom, CardView.CATEGORY_RECT.end.y * card_scale_y), "Expected road category badge to sit at the bottom of the larger card")
 	_assert(detail_label.offset_bottom < focused_card.size.y, "Expected focused card detail text to stay inside the card")
-	_assert(title_label.get_theme_font_size("font_size") <= CardView.TITLE_FONT_MAX, "Expected card titles to use the fitted title font size")
-	_assert(detail_label.get_theme_font_size("font_size") <= CardView.DETAIL_FONT_MAX, "Expected card details to use the fitted detail font size")
+	_assert(title_label.get_theme_font_size("font_size") > CardView.TITLE_FONT_MAX, "Expected larger cards to scale up their title text")
+	_assert(detail_label.get_theme_font_size("font_size") > CardView.DETAIL_FONT_MAX, "Expected larger cards to scale up their detail text")
 	_assert(hand_use_button.position.y >= focused_card_bottom, "Expected focused Use button to sit below the card")
 	_assert(hand_use_button.position.y + hand_use_button.size.y <= hand.size.y, "Expected focused Use button to fit above the bottom of the screen")
 	_assert(focused_card.position.y < hand.cards[1].position.y, "Expected focused card to lift above surrounding cards")
@@ -96,6 +115,19 @@ func _initialize() -> void:
 	hand.call("_on_card_focus_requested", focused_card)
 	_assert(hand.call("get_focused_card") == null, "Expected tapping the focused card again to clear focus")
 	_assert(not hand_use_button.visible, "Expected Use button to hide after tapping the focused card again")
+
+	var touch := InputEventScreenTouch.new()
+	touch.pressed = true
+	var touch_card: CardView = hand.cards[4]
+	touch.position = touch_card.get_global_transform_with_canvas() * (touch_card.size * 0.5)
+	var touch_button := touch_card.get_node("TouchButton") as Button
+	_assert(touch_button != null and touch_button.flat, "Expected cards to use a transparent native Button touch surface")
+	touch_button.pressed.emit()
+	_assert(hand.get_focused_card() == touch_card, "Expected native card button to focus an overlapping card on mobile")
+	_assert((touch_card.get_node("Title") as Label).mouse_filter == Control.MOUSE_FILTER_IGNORE, "Expected card labels not to intercept touch input")
+
+	touch.position = hand_use_button.get_global_rect().get_center()
+	_assert(hand.get_focused_card() == touch_card, "Expected global touch routing to leave the Use button available")
 
 	hand.call("focus_card", focused_card)
 
@@ -128,8 +160,8 @@ func _initialize() -> void:
 	var event_detail_label := event_card.get_node("Detail") as Label
 	var event_category_label := event_card.get_node("Category") as Label
 	_assert(event_detail_label.text == "Destroy placed tile.", "Expected event cards to keep compact detail text")
-	_assert(event_card.get_card_art_rect() == CardView.ART_RECT, "Expected event card art to stay above the detail text")
-	_assert(event_detail_label.offset_top > CardView.ART_RECT.end.y, "Expected event detail text to sit below the card art")
+	_assert(event_card.get_card_art_rect() == CardView.ART_RECT, "Expected default-size event card art to stay above the detail text")
+	_assert(event_detail_label.offset_top > event_card.get_card_art_rect().end.y, "Expected event detail text to sit below the card art")
 	_assert(event_detail_label.offset_bottom < event_category_label.offset_top, "Expected event detail text to sit between art and category")
 	_assert(is_equal_approx(event_category_label.offset_top, CardView.CATEGORY_RECT.position.y), "Expected event category badge to use the bottom category position")
 	_assert(is_equal_approx(event_category_label.offset_bottom, CardView.CATEGORY_RECT.end.y), "Expected event category badge to sit at the bottom of the card")

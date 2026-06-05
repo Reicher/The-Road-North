@@ -207,11 +207,10 @@ func _get_stat_icon(stat_name: String) -> Texture2D:
 	var path := str(ICON_PATHS.get(stat_name, ""))
 	if path.is_empty():
 		return null
-	var image := Image.new()
-	var error := image.load_png_from_buffer(FileAccess.get_file_as_bytes(path))
-	if error != OK or image.is_empty():
+	var texture := load(path) as Texture2D
+	if texture == null:
+		push_warning("Could not load stat icon: %s" % path)
 		return null
-	var texture := ImageTexture.create_from_image(image)
 	_icon_cache[stat_name] = texture
 	return texture
 

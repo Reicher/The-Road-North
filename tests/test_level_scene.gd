@@ -87,6 +87,7 @@ func run() -> void:
 	var second_intro_size: float = second_camera.call("_get_initial_zoom_target")
 	var second_intro_target: Vector2 = second_camera.call("_get_clamped_target_for_world_position", second_start_world, second_intro_size)
 	_assert(is_equal_approx(second_intro_target.y, second_start_world.z), "Expected level 002 intro camera target to center on the start tile")
+	_assert(second_intro_size < second_camera.call("_get_zoom_out_limit"), "Expected portrait intro camera sequence to visibly zoom toward the player")
 
 	level.queue_free()
 	level_002.queue_free()

@@ -57,7 +57,7 @@ func _initialize() -> void:
 	_assert(inventory.is_open(), "Expected loot screen interaction to keep the backpack open")
 
 	var loot_item := loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootItem0") as Button
-	_assert(loot_item.custom_minimum_size == inventory.get_slot_size(), "Expected loot item slots to match backpack slot size")
+	_assert(loot_item.custom_minimum_size.is_equal_approx(inventory.get_slot_size()), "Expected loot item slots to match backpack slot size")
 	_assert(loot_item.text == "", "Expected loot item slots to use icons instead of text")
 	_assert(loot_item.icon != null, "Expected loot item slots to show an item image")
 	_assert(loot_panel.size.x < 230.0, "Expected single-item loot panel to stay horizontally compact")
@@ -66,11 +66,11 @@ func _initialize() -> void:
 	var loot_panel_rect := loot_panel.get_global_rect()
 	_assert(is_equal_approx(loot_panel_rect.position.x, inventory_frame_rect.position.x), "Expected loot panel to align with the open inventory frame")
 	_assert(is_equal_approx(loot_panel_rect.position.y, inventory_frame_rect.position.y + inventory_frame_rect.size.y + 6.0), "Expected loot panel to sit directly below the open inventory frame")
-	loot_ui._start_drag(0, loot_item, Vector2.ZERO)
+	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
 	var drag_ghost := loot_ui.get_node("DragGhost") as TextureRect
 	_assert(drag_ghost.visible, "Expected dragging loot to show an item image cursor")
 	_assert(drag_ghost.texture == loot_item.icon, "Expected drag cursor to use the dragged item image")
-	_assert(drag_ghost.size == inventory.get_slot_size(), "Expected drag cursor to match item slot size")
+	_assert(drag_ghost.size.is_equal_approx(inventory.get_slot_size()), "Expected drag cursor to match item slot size")
 	loot_ui._finish_drag(loot_item.get_global_rect().get_center())
 	var loot_tooltip := loot_ui.get_node("ItemTooltip") as PanelContainer
 	var loot_tooltip_name := loot_tooltip.get_node("ContentMargin/Text/ItemName") as Label
@@ -79,7 +79,7 @@ func _initialize() -> void:
 	_assert(loot_tooltip_name.text == "Machete", "Expected loot tooltip to show the item name")
 	_assert(loot_tooltip_effect.text == "+3 Power", "Expected loot tooltip to show the item effect")
 
-	loot_ui._start_drag(0, loot_item, Vector2.ZERO)
+	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
 	loot_ui._finish_drag(overlay.get_global_rect().get_center())
 	_assert(not loot_ui.is_open(), "Expected dragging the only loot item into the backpack to close loot")
 	_assert(inventory.get_active_items().size() == 2, "Expected dragged loot item to move into the backpack")
@@ -160,14 +160,14 @@ func _initialize() -> void:
 	slots = inventory.get_node("InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
 	var first_backpack_slot := slots.get_child(0) as Button
 	_assert(inventory.get_slot_index_at_canvas_position(first_backpack_slot.get_global_rect().get_center()) == 0, "Expected first backpack slot center to resolve to slot zero")
-	loot_ui._start_drag(0, loot_item, Vector2.ZERO)
+	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
 	loot_ui._finish_drag(first_backpack_slot.get_global_rect().get_center())
 	_assert(inventory.get_active_items()[0]["effect"] == "+4 Power", "Expected dropping loot on an occupied backpack slot to replace it")
 	_assert(loot_ui.loot[0]["item"]["effect"] == "+1 Power", "Expected replaced backpack item to move into the loot slot")
 
 	loot_item = loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootItem0") as Button
 	first_backpack_slot = slots.get_child(0) as Button
-	inventory._start_item_drag(0, first_backpack_slot, Vector2.ZERO)
+	inventory._start_item_drag(0, first_backpack_slot, first_backpack_slot.get_global_rect().get_center())
 	inventory._finish_item_drag(loot_item.get_global_rect().get_center())
 	_assert(inventory.get_active_items()[0]["effect"] == "+1 Power", "Expected dropping backpack item on occupied loot slot to replace it")
 	_assert(loot_ui.loot[0]["item"]["effect"] == "+4 Power", "Expected replaced loot item to move into the backpack slot")
@@ -197,7 +197,7 @@ func _initialize() -> void:
 	second_loot_item.position = Vector2(0.0, inventory.get_slot_size().y + inventory.get_slot_spacing())
 	var second_loot_center := second_loot_item.get_global_rect().get_center()
 	_assert(loot_ui.get_loot_item_index_at_canvas_position(second_loot_center) == 1, "Expected second loot slot center to resolve to loot item one")
-	loot_ui._start_drag(0, first_loot_item, Vector2.ZERO)
+	loot_ui._start_drag(0, first_loot_item, first_loot_item.get_global_rect().get_center())
 	loot_ui._finish_drag(second_loot_center)
 	_assert(loot_ui.loot[0]["item"]["name"] == "Katana", "Expected dropping loot on loot to swap the target item back to the source slot")
 	_assert(loot_ui.loot[1]["item"]["name"] == "Dagger", "Expected dropping loot on loot to move the dragged item into the target slot")

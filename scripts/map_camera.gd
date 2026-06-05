@@ -252,7 +252,7 @@ func _get_initial_zoom_target() -> float:
 		return size
 	var viewport_size := _get_map_viewport_size()
 	var aspect := viewport_size.x / maxf(viewport_size.y, 1.0)
-	var wanted_size := _map.tile_size * initial_visible_tile_width / maxf(aspect, 0.01)
+	var wanted_size := _map.tile_size * initial_visible_tile_width / maxf(aspect, 1.0)
 	return clampf(wanted_size, _get_zoom_in_limit(), _get_zoom_out_limit())
 
 

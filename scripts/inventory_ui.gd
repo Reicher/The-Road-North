@@ -14,13 +14,13 @@ const SLOT_COUNT := 3
 const EQUIPPED_SLOT_TINT := Color(1.0, 0.86, 0.45)
 const NORMAL_SLOT_TINT := Color.WHITE
 
-@export var button_size := Vector2(130.0, 130.0)
-@export var slot_size := Vector2(62.0, 62.0)
+@export var button_size := Vector2(195.0, 195.0)
+@export var slot_size := Vector2(93.0, 93.0)
 @export var top_margin := 18.0
 @export var right_margin := 18.0
-@export var slot_spacing := 2.0
+@export var slot_spacing := 4.0
 @export var overlay_gap := 0.0
-@export var overlay_padding := 4.0
+@export var overlay_padding := 6.0
 @export var overlay_animation_duration := 0.36
 
 var items: Array[Dictionary] = [
@@ -49,6 +49,7 @@ var _dragged_slot_index := -1
 var _drag_source_button: Button
 var _overlay_tween: Tween
 var _inventory_open := false
+var _active_slot_size := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -148,7 +149,7 @@ func get_free_slot_count() -> int:
 
 
 func get_slot_size() -> Vector2:
-	return slot_size
+	return _active_slot_size if _active_slot_size != Vector2.ZERO else slot_size
 
 
 func get_slot_spacing() -> float:
@@ -322,11 +323,11 @@ func _bind_scene_nodes() -> void:
 
 
 func _load_backpack_icon() -> Texture2D:
-	var image := Image.new()
-	var error := image.load_png_from_buffer(FileAccess.get_file_as_bytes(BACKPACK_ICON_PATH))
-	if error != OK or image.is_empty():
+	var texture := load(BACKPACK_ICON_PATH) as Texture2D
+	if texture == null:
+		push_warning("Could not load backpack icon: %s" % BACKPACK_ICON_PATH)
 		return null
-	return ImageTexture.create_from_image(image)
+	return texture
 
 
 func _transparent_stylebox() -> StyleBoxFlat:
@@ -344,11 +345,12 @@ func _refresh_slots() -> void:
 		if slot_button == null:
 			continue
 		slot_button.focus_mode = Control.FOCUS_NONE
-		slot_button.custom_minimum_size = slot_size
-		slot_button.size = slot_size
+		var active_slot_size := get_slot_size()
+		slot_button.custom_minimum_size = active_slot_size
+		slot_button.size = active_slot_size
 		slot_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		slot_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		slot_button.add_theme_constant_override("icon_max_width", int(slot_size.x))
+		slot_button.add_theme_constant_override("icon_max_width", int(active_slot_size.x))
 		if not items[slot_index].is_empty():
 			var item := items[slot_index]
 			slot_button.text = ""
@@ -386,7 +388,7 @@ func _on_item_gui_input(event: InputEvent, slot_index: int, slot_button: Button)
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		slot_button.accept_event()
 		if event.pressed:
-			_start_item_drag(slot_index, slot_button, event.position)
+			_start_item_drag(slot_index, slot_button, _event_canvas_position(event, slot_button))
 		else:
 			_finish_item_drag(_event_canvas_position(event, slot_button))
 	elif event is InputEventMouseMotion and _dragged_slot_index == slot_index:
@@ -406,7 +408,7 @@ func _on_item_gui_input(event: InputEvent, slot_index: int, slot_button: Button)
 		item_drag_moved.emit(event.position)
 
 
-func _start_item_drag(slot_index: int, slot_button: Button, local_position: Vector2) -> void:
+func _start_item_drag(slot_index: int, slot_button: Button, canvas_position: Vector2) -> void:
 	if slot_index < 0 or slot_index >= SLOT_COUNT:
 		return
 	if items[slot_index].is_empty():
@@ -415,8 +417,8 @@ func _start_item_drag(slot_index: int, slot_button: Button, local_position: Vect
 	add_to_group("ui_item_drag_active")
 	_dragged_slot_index = slot_index
 	_drag_source_button = slot_button
-	_show_drag_ghost(items[slot_index], slot_button.get_global_position() + local_position, slot_button.self_modulate)
-	item_drag_started.emit(slot_index, items[slot_index].duplicate(true), slot_button, slot_button.get_global_position() + local_position)
+	_show_drag_ghost(items[slot_index], canvas_position, slot_button.self_modulate)
+	item_drag_started.emit(slot_index, items[slot_index].duplicate(true), slot_button, canvas_position)
 
 
 func _finish_item_drag(canvas_position: Vector2) -> void:
@@ -457,7 +459,8 @@ func _show_drag_ghost(item: Dictionary, canvas_position: Vector2, tint := Color.
 	if _drag_ghost == null:
 		return
 	_drag_ghost.texture = ItemIconLibrary.get_icon(item)
-	_drag_ghost.size = slot_size
+	_drag_ghost.custom_minimum_size = get_slot_size()
+	_drag_ghost.size = get_slot_size()
 	_drag_ghost.modulate = tint
 	_drag_ghost.visible = true
 	_update_drag_ghost(canvas_position)
@@ -546,14 +549,22 @@ func _layout_inventory() -> void:
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		return
 
-	_backpack_button.size = button_size
+	var active_button_size := button_size
+	var available_width := maxf(1.0, viewport_size.x - right_margin - 8.0)
+	var fixed_width := slot_spacing * float(SLOT_COUNT - 1) + overlay_padding * 2.0
+	var available_slot_width := maxf(1.0, available_width - button_size.x - fixed_width)
+	var responsive_scale := minf(1.0, available_slot_width / (slot_size.x * SLOT_COUNT))
+	_active_slot_size = slot_size * responsive_scale
+	_refresh_slots()
+	_backpack_button.custom_minimum_size = active_button_size
+	_backpack_button.size = active_button_size
 	_backpack_button.position = Vector2(
-		viewport_size.x - button_size.x - right_margin,
+		viewport_size.x - active_button_size.x - right_margin,
 		top_margin
 	)
 
-	var overlay_width := slot_size.x * SLOT_COUNT + slot_spacing * float(SLOT_COUNT - 1) + overlay_padding * 2.0
-	var overlay_height := button_size.y
+	var overlay_width := _active_slot_size.x * SLOT_COUNT + slot_spacing * float(SLOT_COUNT - 1) + overlay_padding * 2.0
+	var overlay_height := active_button_size.y
 	_overlay.size = Vector2(overlay_width, overlay_height)
 	_overlay.pivot_offset = Vector2(overlay_width, overlay_height * 0.5)
 	_overlay.position = Vector2(

@@ -18,10 +18,9 @@ static func get_icon(item: Dictionary) -> Texture2D:
 	var path := str(ICON_PATHS.get(item_name, ICON_PATHS["item"]))
 	if _cache.has(path):
 		return _cache[path]
-	var image := Image.new()
-	var error := image.load_png_from_buffer(FileAccess.get_file_as_bytes(path))
-	if error != OK or image.is_empty():
+	var texture := load(path) as Texture2D
+	if texture == null:
+		push_warning("Could not load item icon: %s" % path)
 		return null
-	var texture := ImageTexture.create_from_image(image)
 	_cache[path] = texture
 	return texture

@@ -181,7 +181,7 @@ func _on_item_gui_input(event: InputEvent, item_index: int, source_button: Butto
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		source_button.accept_event()
 		if event.pressed:
-			_start_drag(item_index, source_button, event.position)
+			_start_drag(item_index, source_button, _event_canvas_position(event, source_button))
 		else:
 			_finish_drag(_event_canvas_position(event, source_button))
 	elif event is InputEventMouseMotion and _dragged_item_index == item_index:
@@ -198,7 +198,7 @@ func _on_item_gui_input(event: InputEvent, item_index: int, source_button: Butto
 		_update_drag(event.position)
 
 
-func _start_drag(item_index: int, source_button: Button, local_position: Vector2) -> void:
+func _start_drag(item_index: int, source_button: Button, canvas_position: Vector2) -> void:
 	if item_index < 0 or item_index >= loot.size():
 		return
 	if not _is_item_loot(loot[item_index]):
@@ -208,10 +208,11 @@ func _start_drag(item_index: int, source_button: Button, local_position: Vector2
 	_dragged_item_index = item_index
 	_drag_source_button = source_button
 	_drag_ghost.texture = ItemIconLibrary.get_icon(loot[item_index].get("item", {}))
+	_drag_ghost.custom_minimum_size = _get_loot_slot_size()
 	_drag_ghost.size = _get_loot_slot_size()
 	_drag_ghost.modulate = source_button.self_modulate
 	_drag_ghost.visible = true
-	_update_drag(source_button.get_global_position() + local_position)
+	_update_drag(canvas_position)
 
 
 func _update_drag(canvas_position: Vector2) -> void:
@@ -432,6 +433,7 @@ func _event_canvas_position(event: InputEvent, source_button: Button) -> Vector2
 
 func _show_drag_ghost(item: Dictionary, canvas_position: Vector2) -> void:
 	_drag_ghost.texture = ItemIconLibrary.get_icon(item)
+	_drag_ghost.custom_minimum_size = _get_loot_slot_size()
 	_drag_ghost.size = _get_loot_slot_size()
 	_drag_ghost.modulate = Color.WHITE
 	_drag_ghost.visible = true
