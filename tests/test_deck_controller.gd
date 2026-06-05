@@ -53,7 +53,7 @@ func _initialize() -> void:
 			enemy_road_count += 1
 			var hand_enemy_power := int(card.encounter_data.get("power", 0))
 			enemy_power_values_are_level_scaled = enemy_power_values_are_level_scaled and hand_enemy_power >= 1 and hand_enemy_power <= 3
-			enemy_road_has_clear_label = enemy_road_has_clear_label or (card.title.begins_with("Enemy ") and card.detail == "Enemy waits on this road.")
+			enemy_road_has_clear_label = enemy_road_has_clear_label or (card.title == str(card.tile_definition.get("display_name")) and card.detail == "Enemy waits on this road.")
 		elif card.category == "Road" and not card.encounter_data.is_empty():
 			reward_road_count += 1
 			reward_road_has_clear_label = reward_road_has_clear_label or card.detail in ["Plus food", "Plus treasure"]
@@ -68,7 +68,7 @@ func _initialize() -> void:
 			enemy_road_count += 1
 			var deck_enemy_power := int(encounter.get("power", 0))
 			enemy_power_values_are_level_scaled = enemy_power_values_are_level_scaled and deck_enemy_power >= 1 and deck_enemy_power <= 3
-			enemy_road_has_clear_label = enemy_road_has_clear_label or (str(card_data.get("title", "")).begins_with("Enemy ") and str(card_data.get("detail", "")) == "Enemy waits on this road.")
+			enemy_road_has_clear_label = enemy_road_has_clear_label or (not card_data.has("title") and str(card_data.get("detail", "")) == "Enemy waits on this road.")
 		elif card_data["category"] == "Road" and not encounter.is_empty():
 			reward_road_count += 1
 			reward_road_has_clear_label = reward_road_has_clear_label or str(card_data.get("detail", "")) in ["Plus food", "Plus treasure"]

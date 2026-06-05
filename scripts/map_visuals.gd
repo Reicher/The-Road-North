@@ -4,14 +4,18 @@ extends Node3D
 const GROUND_HEIGHT := 0.08
 const FOREST_PADDING_TILES := 4
 const GROUND_LIGHT_COLOR := Color(0.69, 0.76, 0.57)
-const GROUND_DARK_COLOR := Color(0.64, 0.72, 0.53)
 const PLAYABLE_BORDER_COLOR := Color(0.30, 0.38, 0.26, 0.62)
 const ModelAssets = preload("res://scripts/model_assets.gd")
 const TREE_SLOTS := [
-	Vector2(-0.28, -0.28),
-	Vector2(0.30, -0.18),
-	Vector2(-0.18, 0.26),
-	Vector2(0.24, 0.30),
+	Vector2(-0.38, -0.36),
+	Vector2(-0.08, -0.39),
+	Vector2(0.31, -0.34),
+	Vector2(-0.34, -0.04),
+	Vector2(0.14, -0.08),
+	Vector2(0.39, 0.04),
+	Vector2(-0.28, 0.33),
+	Vector2(0.03, 0.38),
+	Vector2(0.34, 0.30),
 ]
 
 var _cell_nodes: Dictionary = {}
@@ -144,15 +148,23 @@ func _add_bridge(map: GameMap, parent: Node3D, rotation_steps: int) -> void:
 
 
 func _add_cell_trees(map: GameMap, parent: Node3D, grid_position: Vector2i) -> void:
-	var count := 2 + posmod(grid_position.x * 11 + grid_position.y * 7, 2)
+	var seed := grid_position.x * 11 + grid_position.y * 7
+	var count := 6 + posmod(seed, 3)
 	for index in count:
-		var offset: Vector2 = TREE_SLOTS[posmod(index + grid_position.x + grid_position.y, TREE_SLOTS.size())]
-		_add_tree(map, parent, Vector3(offset.x * map.tile_size, 0.0, offset.y * map.tile_size), 0.72 + float(index) * 0.08)
+		var slot_index := posmod(index * 4 + seed, TREE_SLOTS.size())
+		var offset: Vector2 = TREE_SLOTS[slot_index]
+		var scale_factor := 0.70 + float(posmod(seed + index * 5, 7)) * 0.055
+		var width_factor := 0.86 + float(posmod(seed + index * 3, 5)) * 0.055
+		var rotation_y := float(posmod(seed * 13 + index * 71, 360))
+		_add_tree(map, parent, Vector3(offset.x * map.tile_size, 0.0, offset.y * map.tile_size), scale_factor, width_factor, rotation_y)
 
 
-func _add_tree(map: GameMap, parent: Node3D, offset: Vector3, scale_factor: float = 1.0) -> void:
+func _add_tree(map: GameMap, parent: Node3D, offset: Vector3, scale_factor: float = 1.0, width_factor: float = 1.0, rotation_y := 0.0) -> void:
 	var model := ModelAssets.instantiate_model(ModelAssets.TREE_MODEL, "Tree", offset, map.tile_size * scale_factor)
 	if model != null:
+		model.scale.x *= width_factor
+		model.scale.z *= width_factor
+		model.rotation_degrees.y = rotation_y
 		parent.add_child(model)
 
 

@@ -119,6 +119,7 @@ func _initialize() -> void:
 
 	loot_ui.take_all()
 	_assert(not loot_ui.is_open(), "Expected taking all loot to close when everything fits")
+	_assert(not inventory.is_open(), "Expected Take All to close the inventory")
 	_assert(player.food == 5, "Expected Take All not to add already collected food again")
 	_assert(player.gold == 6, "Expected Take All not to add already collected gold again")
 	_assert(inventory.get_active_items().size() == 3, "Expected item loot to move into a new backpack slot")
@@ -144,10 +145,12 @@ func _initialize() -> void:
 	_assert(loot_ui.loot.size() == 1, "Expected only item loot to remain after opening full-inventory loot")
 	loot_ui.take_all()
 	_assert(loot_ui.is_open(), "Expected full inventory to leave item loot behind after Take All")
+	_assert(not inventory.is_open(), "Expected Take All to close the inventory even when item loot remains")
 	_assert(player.food == 8, "Expected Take All not to add already collected food again")
 	_assert(player.gold == 11, "Expected Take All not to add already collected gold again")
 	_assert(loot_ui.loot.size() == 1, "Expected only the unclaimed item to remain")
 
+	inventory.set_inventory_open(true)
 	loot_item = loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootItem0") as Button
 	slots = inventory.get_node("InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
 	var first_backpack_slot := slots.get_child(0) as Button

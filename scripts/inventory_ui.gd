@@ -191,10 +191,10 @@ func get_slot_index_at_canvas_position(canvas_position: Vector2) -> int:
 
 
 func toggle_inventory() -> void:
-	set_inventory_open(not is_open(), true)
+	set_inventory_open(not is_open())
 
 
-func set_inventory_open(open: bool, animate := false) -> void:
+func set_inventory_open(open: bool, animate := true) -> void:
 	if _overlay == null or _frame == null:
 		return
 	if _overlay_tween != null:

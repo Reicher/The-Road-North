@@ -109,7 +109,6 @@ func _add_enemy_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNu
 	for index in mini(enemy_count, cards.size()):
 		var card: Dictionary = cards[index]
 		_set_card_encounter(card, _make_enemy_encounter(rng, enemy_level))
-		card["title"] = _encounter_title_for_card(card)
 		card["detail"] = "Enemy waits on this road."
 		cards[index] = card
 
@@ -136,7 +135,6 @@ func _add_reward_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomN
 		var card_index := eligible_indices[index]
 		var card: Dictionary = cards[card_index]
 		_set_card_encounter(card, _make_reward_encounter(index))
-		card["title"] = _encounter_title_for_card(card)
 		card["detail"] = _encounter_detail(card["encounter"])
 		cards[card_index] = card
 
@@ -167,22 +165,6 @@ func _make_reward_encounter(index: int) -> Dictionary:
 			},
 		}],
 	}
-
-
-func _encounter_title_for_card(card: Dictionary) -> String:
-	var encounter: Dictionary = card.get("encounter", {})
-	var prefix := "Encounter"
-	var kind := str(encounter.get("type", ""))
-	if kind == ENCOUNTER_ENEMY:
-		prefix = "Enemy"
-	elif kind == GameMap.ENCOUNTER_BERRY_BUSH:
-		prefix = "Berry Bush"
-	elif kind == GameMap.ENCOUNTER_CACHE:
-		prefix = "Cache"
-	var definition: Resource = card.get("tile_definition")
-	if definition == null:
-		return prefix
-	return "%s %s" % [prefix, str(definition.get("display_name"))]
 
 
 func _encounter_detail(encounter: Dictionary) -> String:

@@ -82,7 +82,8 @@ func _initialize() -> void:
 	outside_click.pressed = true
 	outside_click.position = Vector2(16.0, 420.0)
 	inventory._input(outside_click)
-	_assert(not overlay.visible, "Expected clicking outside inventory to close the overlay")
+	_assert(not inventory.is_open(), "Expected clicking outside inventory to close it")
+	_assert(overlay.visible, "Expected clicking outside inventory to animate the overlay closed")
 	_assert(not tooltip.visible, "Expected outside click to hide the tooltip")
 
 	inventory.toggle_inventory()
@@ -95,7 +96,8 @@ func _initialize() -> void:
 	_assert(overlay.visible, "Expected clicking inside inventory to keep the overlay open")
 
 	inventory.set_inventory_open(false)
-	_assert(not overlay.visible, "Expected inventory overlay to close")
+	_assert(not inventory.is_open(), "Expected inventory overlay to close")
+	_assert(overlay.visible, "Expected direct inventory closing to use the soft closing animation")
 	_assert(not tooltip.visible, "Expected closing inventory to hide the tooltip")
 
 	_assert(inventory.add_item({

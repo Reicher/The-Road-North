@@ -65,6 +65,8 @@ func _initialize() -> void:
 	var plain_title_label := hand.cards[0].get_node("Title") as Label
 	var berry_title_label := hand.cards[1].get_node("Title") as Label
 	var enemy_title_label := hand.cards[3].get_node("Title") as Label
+	var berry_category_label := hand.cards[1].get_node("Category") as Label
+	var enemy_category_label := hand.cards[3].get_node("Category") as Label
 	var detail_label := focused_card.get_node("Detail") as Label
 	var plain_detail_label := hand.cards[0].get_node("Detail") as Label
 	var berry_detail_label := hand.cards[1].get_node("Detail") as Label
@@ -72,10 +74,12 @@ func _initialize() -> void:
 	var focused_card_bottom: float = focused_card.position.y + focused_card.size.y * 0.5 + focused_card.size.y * focused_card.scale.y * 0.5
 	_assert(plain_title_label.text == "Straight Road", "Expected plain road cards to show only the road type")
 	_assert(plain_detail_label.text == "", "Expected plain road cards to leave the detail text empty")
-	_assert(berry_title_label.text == "Berry\nCorner", "Expected berry road cards to show modifier above road type")
+	_assert(berry_title_label.text == "Corner", "Expected berry road cards to show only the road type")
 	_assert(berry_detail_label.text == "", "Expected berry road cards to leave the detail text empty")
-	_assert(enemy_title_label.text == "Danger\nFour-Way", "Expected enemy road cards to show modifier above road type")
+	_assert(berry_category_label.text == "ROAD + FOOD", "Expected berry road cards to identify their food reward")
+	_assert(enemy_title_label.text == "Four-Way Intersection", "Expected enemy road cards to show only the road type")
 	_assert(enemy_detail_label.text == "", "Expected enemy road cards to leave the detail text empty")
+	_assert(enemy_category_label.text == "ROAD + ENEMY", "Expected enemy road cards to identify their enemy encounter")
 	_assert(title_label.offset_bottom < CardView.ART_RECT.position.y, "Expected two-line card titles to stay above the card art")
 	_assert(focused_card.get_card_art_rect() == CardView.NO_DETAIL_ART_RECT, "Expected road card art to sit lower when there is no detail text")
 	_assert(is_equal_approx(category_label.offset_top, CardView.CATEGORY_RECT.position.y), "Expected road category badge to keep the bottom category position")
@@ -98,6 +102,20 @@ func _initialize() -> void:
 	hand.clear_focus()
 	_assert(hand.call("get_focused_card") == null, "Expected clear_focus to remove the selected card")
 	_assert(not hand_use_button.visible, "Expected Use button to hide when card is unfocused")
+
+	var cache_card := CARD_SCENE.instantiate() as CardView
+	root.add_child(cache_card)
+	cache_card.configure({
+		"category": "Road",
+		"tile_definition": CORNER,
+		"encounter": {
+			"type": GameMap.ENCOUNTER_CACHE,
+			"loot": [{"kind": "item", "item": {"name": "Knife"}}],
+		},
+	})
+	_assert((cache_card.get_node("Title") as Label).text == "Corner", "Expected treasure road cards to show only the road type")
+	_assert((cache_card.get_node("Category") as Label).text == "ROAD + LOOT", "Expected treasure road cards to identify their loot encounter")
+	cache_card.queue_free()
 
 	var event_card := CARD_SCENE.instantiate() as CardView
 	root.add_child(event_card)

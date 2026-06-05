@@ -4,9 +4,27 @@ extends Node3D
 const GROUND_HEIGHT := 0.10
 const ROAD_HEIGHT := 0.08
 const ROAD_TREE_CLEARANCE := 0.26
+const ROAD_TEXTURE_SIZE := 32
+const ROAD_EDGE_SAMPLES := 6
+const ROAD_EDGE_JITTER_RATIO := 0.009
 const ModelAssets = preload("res://scripts/model_assets.gd")
+const ROAD_TREE_SLOTS := [
+	Vector2(-0.40, -0.40),
+	Vector2(-0.12, -0.41),
+	Vector2(0.18, -0.40),
+	Vector2(0.41, -0.36),
+	Vector2(-0.42, -0.10),
+	Vector2(0.42, -0.06),
+	Vector2(-0.41, 0.20),
+	Vector2(0.41, 0.24),
+	Vector2(-0.36, 0.41),
+	Vector2(-0.06, 0.40),
+	Vector2(0.24, 0.41),
+	Vector2(0.42, 0.38),
+]
 
 var _enemy_view: Node3D
+static var _road_texture: ImageTexture
 
 
 func _ready() -> void:
@@ -28,10 +46,8 @@ func render(
 
 	var openings := _get_openings(definition, rotation_steps)
 	if definition != null and definition.get("road_visible") != false:
-		var shoulder_color: Color = definition.get("shoulder_color")
 		var road_color: Color = definition.get("road_color")
-		_draw_road(openings, tile_size, tile_size * 0.42, shoulder_color)
-		_draw_road(openings, tile_size, tile_size * 0.28, road_color, 0.02)
+		_draw_road(openings, tile_size, tile_size * 0.28, road_color)
 
 	if definition != null:
 		_draw_visual_identity(str(definition.get("visual_identity")), openings, tile_size)
@@ -57,21 +73,133 @@ func _get_openings(definition: Resource, rotation_steps: int) -> Dictionary:
 
 
 func _draw_road(openings: Dictionary, tile_size: float, width: float, color: Color, y_offset := 0.0) -> void:
-	var half := tile_size * 0.5
-	var arm_length := half
-	var arm_offset := half * 0.5
-	var arm_y := GROUND_HEIGHT + y_offset
-	var center_y := arm_y + 0.012
-	var center_size := Vector3(width, ROAD_HEIGHT, width)
-	_add_box("RoadCenter", center_size, Vector3(0.0, center_y, 0.0), color)
-	if openings.get("north", false) == true:
-		_add_box("RoadNorth", Vector3(width, ROAD_HEIGHT, arm_length), Vector3(0.0, arm_y, -arm_offset), color)
-	if openings.get("east", false) == true:
-		_add_box("RoadEast", Vector3(arm_length, ROAD_HEIGHT, width), Vector3(arm_offset, arm_y, 0.0), color)
-	if openings.get("south", false) == true:
-		_add_box("RoadSouth", Vector3(width, ROAD_HEIGHT, arm_length), Vector3(0.0, arm_y, arm_offset), color)
-	if openings.get("west", false) == true:
-		_add_box("RoadWest", Vector3(arm_length, ROAD_HEIGHT, width), Vector3(-arm_offset, arm_y, 0.0), color)
+	var mesh := _build_road_mesh(openings, tile_size, width, GROUND_HEIGHT + y_offset)
+	var instance := MeshInstance3D.new()
+	instance.name = "RoadCenter"
+	instance.mesh = mesh
+	instance.material_override = _make_road_material(color)
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(instance)
+
+
+func _build_road_mesh(openings: Dictionary, tile_size: float, width: float, road_y: float) -> ArrayMesh:
+	var half_width := width * 0.5
+	var polygons: Array[PackedVector2Array] = [
+		PackedVector2Array([
+			Vector2(-half_width, -half_width),
+			Vector2(half_width, -half_width),
+			Vector2(half_width, half_width),
+			Vector2(-half_width, half_width),
+		])
+	]
+	for direction in [
+		Vector2(0.0, -1.0),
+		Vector2(1.0, 0.0),
+		Vector2(0.0, 1.0),
+		Vector2(-1.0, 0.0),
+	]:
+		if openings.get(_direction_name(direction), false) == true:
+			polygons.append(_build_road_arm_polygon(direction, tile_size, width))
+
+	var outline := polygons[0]
+	for polygon_index in range(1, polygons.size()):
+		var merged := Geometry2D.merge_polygons(outline, polygons[polygon_index])
+		if not merged.is_empty():
+			outline = merged[0]
+
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var top_y := road_y + 0.006
+	var indices := Geometry2D.triangulate_polygon(outline)
+	for index in range(0, indices.size(), 3):
+		var a := outline[indices[index]]
+		var b := outline[indices[index + 1]]
+		var c := outline[indices[index + 2]]
+		_add_road_top_triangle(surface, a, b, c, top_y)
+	surface.generate_normals()
+	return surface.commit()
+
+
+func _build_road_arm_polygon(direction: Vector2, tile_size: float, width: float) -> PackedVector2Array:
+	var half_length := tile_size * 0.5
+	var half_width := width * 0.5
+	var side := Vector2(-direction.y, direction.x)
+	var jitter_amount := tile_size * ROAD_EDGE_JITTER_RATIO
+	var seed := _road_arm_seed(direction, tile_size)
+	var left_points := PackedVector2Array()
+	var right_points := PackedVector2Array()
+	for sample in ROAD_EDGE_SAMPLES:
+		var ratio := float(sample) / float(ROAD_EDGE_SAMPLES - 1)
+		var center := direction * half_length * ratio
+		left_points.append(center + side * (half_width + _road_edge_jitter(seed, sample, 0, jitter_amount)))
+		right_points.append(center - side * (half_width + _road_edge_jitter(seed, sample, 1, jitter_amount)))
+	var polygon := PackedVector2Array()
+	for point in left_points:
+		polygon.append(point)
+	for point_index in range(right_points.size() - 1, -1, -1):
+		polygon.append(right_points[point_index])
+	return polygon
+
+
+func _direction_name(direction: Vector2) -> String:
+	if direction.y < 0.0:
+		return "north"
+	if direction.x > 0.0:
+		return "east"
+	if direction.y > 0.0:
+		return "south"
+	return "west"
+
+
+func _add_road_top_triangle(surface: SurfaceTool, a: Vector2, b: Vector2, c: Vector2, y: float) -> void:
+	var vertices := [Vector3(a.x, y, a.y), Vector3(b.x, y, b.y), Vector3(c.x, y, c.y)]
+	if (vertices[1] - vertices[0]).cross(vertices[2] - vertices[0]).y < 0.0:
+		vertices.reverse()
+	for vertex in vertices:
+		surface.set_uv(Vector2(vertex.x, vertex.z) / float(ROAD_TEXTURE_SIZE))
+		surface.add_vertex(vertex)
+
+
+func _road_arm_seed(direction: Vector2, tile_size: float) -> int:
+	var tile_position: Vector3 = get_parent().position if get_parent() is Node3D else global_position
+	var grid_x := roundi(tile_position.x / tile_size) if tile_size > 0.0 else 0
+	var grid_y := roundi(tile_position.z / tile_size) if tile_size > 0.0 else 0
+	return grid_x * 101 + grid_y * 211 + roundi(direction.x) * 307 + roundi(direction.y) * 401
+
+
+func _road_edge_jitter(seed: int, sample: int, side: int, amount: float) -> float:
+	if sample == 0 or sample == ROAD_EDGE_SAMPLES - 1:
+		return 0.0
+	var hash_value := posmod(seed + sample * 97 + side * 193 + sample * sample * 17, 101)
+	return (float(hash_value) / 50.0 - 1.0) * amount
+
+
+func _make_road_material(color: Color) -> StandardMaterial3D:
+	var material := _make_material(color)
+	material.albedo_texture = _get_road_texture()
+	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	material.roughness = 1.0
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	return material
+
+
+func _get_road_texture() -> ImageTexture:
+	if _road_texture != null:
+		return _road_texture
+	var image := Image.create(ROAD_TEXTURE_SIZE, ROAD_TEXTURE_SIZE, false, Image.FORMAT_RGBA8)
+	for y in ROAD_TEXTURE_SIZE:
+		for x in ROAD_TEXTURE_SIZE:
+			var value := 0.96
+			var grain := posmod(x * 17 + y * 31 + x * y * 7, 29)
+			if grain == 0:
+				value = 0.72
+			elif grain <= 3:
+				value = 0.84
+			elif grain >= 27:
+				value = 1.0
+			image.set_pixel(x, y, Color(value, value, value, 1.0))
+	_road_texture = ImageTexture.create_from_image(image)
+	return _road_texture
 
 
 func _draw_visual_identity(identity: String, openings: Dictionary, tile_size: float) -> void:
@@ -103,22 +231,30 @@ func _draw_reward_encounter(encounter: Dictionary, tile_size: float) -> void:
 
 
 func _add_road_tile_trees(openings: Dictionary, tile_size: float) -> void:
-	var slots := [
-		Vector2(-0.38, -0.38),
-		Vector2(0.38, -0.38),
-		Vector2(-0.38, 0.38),
-		Vector2(0.38, 0.38),
-		Vector2(-0.40, 0.0),
-		Vector2(0.40, 0.0),
-	]
 	var added := 0
-	for slot in slots:
+	var seed := _tree_layout_seed(openings, tile_size)
+	for index in ROAD_TREE_SLOTS.size():
+		var slot: Vector2 = ROAD_TREE_SLOTS[posmod(index * 5 + seed, ROAD_TREE_SLOTS.size())]
 		if _slot_touches_road(slot, openings):
 			continue
-		_add_tree(tile_size, Vector3(slot.x * tile_size, 0.0, slot.y * tile_size), 0.82 + float(added) * 0.08)
+		var scale_factor := 0.70 + float(posmod(seed + added * 5, 7)) * 0.055
+		var width_factor := 0.86 + float(posmod(seed + added * 3, 5)) * 0.055
+		var rotation_y := float(posmod(seed * 13 + added * 71, 360))
+		_add_tree(tile_size, Vector3(slot.x * tile_size, 0.0, slot.y * tile_size), scale_factor, width_factor, rotation_y)
 		added += 1
-		if added >= 3:
+		if added >= 6:
 			return
+
+
+func _tree_layout_seed(openings: Dictionary, tile_size: float) -> int:
+	var grid_x := floori(position.x / tile_size) if tile_size > 0.0 else 0
+	var grid_y := floori(position.z / tile_size) if tile_size > 0.0 else 0
+	var seed := grid_x * 11 + grid_y * 7
+	seed += 1 if openings.get("north", false) == true else 0
+	seed += 3 if openings.get("east", false) == true else 0
+	seed += 5 if openings.get("south", false) == true else 0
+	seed += 7 if openings.get("west", false) == true else 0
+	return seed
 
 
 func _slot_touches_road(slot: Vector2, openings: Dictionary) -> bool:
@@ -143,9 +279,12 @@ func _slot_touches_road(slot: Vector2, openings: Dictionary) -> bool:
 	return false
 
 
-func _add_tree(tile_size: float, offset: Vector3, scale_factor: float = 1.0) -> void:
+func _add_tree(tile_size: float, offset: Vector3, scale_factor: float = 1.0, width_factor: float = 1.0, rotation_y := 0.0) -> void:
 	var model := ModelAssets.instantiate_model(ModelAssets.TREE_MODEL, "Tree", offset, tile_size * scale_factor)
 	if model != null:
+		model.scale.x *= width_factor
+		model.scale.z *= width_factor
+		model.rotation_degrees.y = rotation_y
 		add_child(model)
 
 

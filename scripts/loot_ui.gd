@@ -108,6 +108,8 @@ func take_all() -> void:
 		if _collect_loot_entry(entry):
 			loot.remove_at(index)
 	_refresh_loot()
+	if _inventory != null:
+		_inventory.set_inventory_open(false)
 	if loot.is_empty():
 		close_loot()
 

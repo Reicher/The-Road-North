@@ -23,7 +23,19 @@ func _initialize() -> void:
 		_assert(tile is RoadTile, "Expected tile scene to instantiate RoadTile")
 		tile.definition = definition
 		tile.tile_size = TILE_SIZE
+		get_root().add_child(tile)
+		await process_frame
 		_assert(is_equal_approx(tile.tile_size, TILE_SIZE), "Expected tile size to remain grid aligned")
+		_assert(_count_named_children(tile.get_node("Visuals"), "RoadCenter") == 1, "Expected roads to render without a second shoulder frame: %s" % path)
+		var road_center := tile.get_node("Visuals/RoadCenter") as MeshInstance3D
+		var road_material := road_center.material_override as StandardMaterial3D
+		_assert(road_material.albedo_texture != null, "Expected roads to use a subtle gravel texture: %s" % path)
+		_assert(road_material.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED, "Expected flat roads to render without lighting shadows: %s" % path)
+		_assert(road_center.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, "Expected flat roads not to cast shadows: %s" % path)
+		_assert(road_center.mesh is ArrayMesh, "Expected each road tile to use one continuous generated mesh: %s" % path)
+		for direction in ["North", "East", "South", "West"]:
+			var road_arm := tile.get_node_or_null("Visuals/Road%s" % direction) as MeshInstance3D
+			_assert(road_arm == null, "Expected road center and arms to share one continuous mesh: %s" % path)
 		tile.queue_free()
 
 	var straight := load("res://data/road_straight.tres")
@@ -81,6 +93,14 @@ func _initialize() -> void:
 	_assert(goal_town.get("road_visible") != false, "Expected goal tile road art to show under the house")
 
 	quit()
+
+
+func _count_named_children(parent: Node, child_name: String) -> int:
+	var count := 0
+	for child in parent.get_children():
+		if child.name == child_name and not child.is_queued_for_deletion():
+			count += 1
+	return count
 
 
 func _assert(condition: bool, message: String) -> void:

@@ -202,34 +202,7 @@ func _title_from_definition() -> String:
 func _card_header_text() -> String:
 	if category != DeckController.ROAD_CATEGORY or tile_definition == null:
 		return title
-
-	var road_type := _title_from_definition()
-	var modifier := _road_modifier_title()
-	if modifier.is_empty():
-		return road_type
-	return "%s\n%s" % [modifier, _compact_road_type_title(road_type)]
-
-
-func _road_modifier_title() -> String:
-	if encounter_data.is_empty():
-		return ""
-
-	var kind := _encounter_type()
-	if kind == GameMap.ENCOUNTER_ENEMY:
-		return "Danger"
-	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
-		return "Berry"
-	if kind == GameMap.ENCOUNTER_CACHE:
-		return "Cache"
-	return "Reward"
-
-
-func _compact_road_type_title(road_type: String) -> String:
-	if road_type.ends_with(" Road"):
-		return road_type.trim_suffix(" Road")
-	if road_type.ends_with(" Intersection"):
-		return road_type.trim_suffix(" Intersection")
-	return road_type
+	return _title_from_definition()
 
 
 func _detail_from_definition() -> String:
@@ -294,7 +267,11 @@ func _category_badge_text() -> String:
 	if category == DeckController.EVENT_CATEGORY:
 		return "EVENT"
 	if _encounter_type() == GameMap.ENCOUNTER_ENEMY:
-		return "ROAD + RISK"
+		return "ROAD + ENEMY"
+	if _encounter_type() == GameMap.ENCOUNTER_BERRY_BUSH:
+		return "ROAD + FOOD"
+	if _encounter_type() == GameMap.ENCOUNTER_CACHE:
+		return "ROAD + LOOT"
 	if not encounter_data.is_empty():
 		return "ROAD + LOOT"
 	return "ROAD"
