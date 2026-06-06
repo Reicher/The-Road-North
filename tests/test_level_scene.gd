@@ -20,6 +20,7 @@ func run() -> void:
 	var loot := level.get_node("UI/Loot")
 	var inventory := level.get_node("UI/Inventory")
 	var player := level.get_node("Player") as GamePlayer
+	var camera := level.get_node("Camera3D") as Camera3D
 	var typed_level := level as Level
 
 	_assert(map != null, "Expected level scene to include a GameMap")
@@ -63,9 +64,16 @@ func run() -> void:
 	player.move_started.emit(Vector2i(4, 7))
 	_assert(typed_level.state == Level.RunState.PLAYER_MOVING, "Expected level to own player moving state")
 	_assert(not player.input_enabled, "Expected level to disable player input while moving")
+	_assert(camera.get("_following_player"), "Expected camera to follow the player while movement is active")
+	var movement_midpoint := map.grid_to_world(Vector2i(2, 3))
+	player.position = movement_midpoint
+	camera.call("_process", 0.0)
+	var expected_follow_target: Vector2 = camera.call("_get_clamped_target_for_world_position", movement_midpoint)
+	_assert((camera.get("_target_xz") as Vector2).is_equal_approx(expected_follow_target), "Expected camera to track the player's tweened world position")
 	player.moved.emit(Vector2i(4, 7))
 	_assert(typed_level.state == Level.RunState.IDLE, "Expected level to return idle after movement")
 	_assert(player.input_enabled, "Expected level to re-enable player input after movement")
+	_assert(not camera.get("_following_player"), "Expected camera to stop continuously following after movement")
 
 	var level_002 := LEVEL_002.instantiate()
 	get_root().add_child(level_002)
@@ -83,6 +91,7 @@ func run() -> void:
 	_assert(second_camera.reserved_bottom_path == NodePath("../UI/Hand"), "Expected camera to reserve the card hand area when sizing the map viewport")
 	_assert(is_equal_approx(second_camera.pan_margin_x_tiles, 3.0), "Expected camera to allow visual forest margin beyond the left and right edges")
 	_assert(is_equal_approx(second_camera.pan_margin_z_tiles, 3.0), "Expected camera to allow visual forest margin beyond the top and bottom edges")
+	_assert(is_equal_approx(second_camera.zoom_in_visible_tile_width, 3.5), "Expected maximum zoom-in to keep adjacent placement tiles fully visible")
 	var second_start_world := second_map.grid_to_world(second_map.get_start_position())
 	var second_intro_size: float = second_camera.call("_get_initial_zoom_target")
 	var second_intro_target: Vector2 = second_camera.call("_get_clamped_target_for_world_position", second_start_world, second_intro_size)

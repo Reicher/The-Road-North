@@ -10,11 +10,12 @@ signal card_use_requested(card: CardView)
 @export var card_scene: PackedScene = preload("res://ui/card.tscn")
 @export var demo_cards_enabled := true
 @export var card_size := Vector2(174.0, 250.0)
+@export var side_margin := 16.0
 @export var bottom_margin := 20.0
 @export var show_panel_background := false
 @export var panel_color := Color.TRANSPARENT
 @export_range(0.0, 1.0, 0.01) var focused_lift_ratio := 0.28
-@export var focused_scale := 1.12
+@export var focused_scale := 1.18
 @export var arc_depth := 34.0
 @export var preferred_spacing := 180.0
 @export var minimum_spacing := 48.0
@@ -149,7 +150,7 @@ func get_card_spacing() -> float:
 	if count <= 1:
 		return 0.0
 
-	var available_width := _available_width()
+	var available_width := maxf(0.0, _available_width() - side_margin * 2.0)
 	var max_spacing := (available_width - card_size.x) / float(count - 1)
 	return minf(preferred_spacing, maxf(0.0, max_spacing))
 
@@ -166,7 +167,7 @@ func _layout_cards(animated := true) -> void:
 	var spacing := get_card_spacing()
 	var count := cards.size()
 	var hand_width := card_size.x + spacing * float(count - 1)
-	var start_x := (_available_width() - hand_width) * 0.5
+	var start_x := side_margin + (maxf(0.0, _available_width() - side_margin * 2.0) - hand_width) * 0.5
 	var base_y := _available_height() - card_size.y - bottom_margin
 	var focused_card_position := Vector2.ZERO
 	var focused_card_scale := Vector2.ONE
@@ -194,6 +195,7 @@ func _layout_cards(animated := true) -> void:
 			var distance_from_focus := absf(float(index - focused_index))
 			target_position.x += direction * focused_side_shift / distance_from_focus
 
+		target_position.x = _clamp_card_x(target_position.x, target_scale.x)
 		card.z_index = target_z
 		if animated and layout_duration > 0.0:
 			_layout_tween.tween_property(card, "position", target_position, layout_duration)
@@ -242,6 +244,13 @@ func _available_height() -> float:
 	if size.y > 0.0:
 		return size.y
 	return get_viewport_rect().size.y
+
+
+func _clamp_card_x(card_x: float, card_scale: float) -> float:
+	var scale_overhang := card_size.x * maxf(0.0, card_scale - 1.0) * 0.5
+	var minimum_x := side_margin + scale_overhang
+	var maximum_x := _available_width() - side_margin - card_size.x - scale_overhang
+	return clampf(card_x, minimum_x, maxf(minimum_x, maximum_x))
 
 
 func _is_canvas_position_over_card(canvas_position: Vector2) -> bool:

@@ -49,8 +49,8 @@ func _initialize() -> void:
 	_assert(hand.cards.size() == 5, "Expected hand to display five cards")
 	_assert(hand.get_card_spacing() < hand.preferred_spacing, "Expected mobile-width hand spacing to compress")
 	for card in hand.cards:
-		_assert(card.position.x >= 0.0, "Expected cards to stay inside the left screen edge")
-		_assert(card.position.x + card.size.x <= root.size.x, "Expected cards to stay inside the right screen edge")
+		_assert(card.position.x >= hand.side_margin, "Expected cards to keep a margin from the left screen edge")
+		_assert(card.position.x + card.size.x <= root.size.x - hand.side_margin, "Expected cards to keep a margin from the right screen edge")
 		_assert(not card.focused, "Expected cards to start unfocused")
 
 	var wide_hand = HAND_SCENE.instantiate() as HandUI
@@ -67,13 +67,15 @@ func _initialize() -> void:
 	])
 	var wide_hand_left: float = wide_hand.cards[0].position.x
 	var wide_hand_right: float = wide_hand.cards[3].position.x + wide_hand.cards[3].size.x
-	_assert(wide_hand_left <= 6.0 and wide_hand_right >= 714.0, "Expected a four-card hand to use nearly the full mobile viewport width")
+	_assert(is_equal_approx(wide_hand_left, wide_hand.side_margin), "Expected a wide four-card hand to keep its left margin")
+	_assert(is_equal_approx(wide_hand_right, wide_hand.size.x - wide_hand.side_margin), "Expected a wide four-card hand to keep its right margin")
 	wide_hand.queue_free()
 
 	var focused_card = hand.cards[2]
 	hand.call("focus_card", focused_card)
 	_assert(hand.call("get_focused_card") == focused_card, "Expected tapped card to become focused")
 	_assert(focused_card.focused, "Expected focused card state to update")
+	_assert(focused_card.scale.x > hand.cards[1].scale.x, "Expected focused card to grow larger than surrounding cards")
 	var hand_use_button := hand.get_node("UseButton") as Button
 	_assert(hand_use_button.visible, "Expected Use button to appear below the focused card")
 	_assert(not focused_card.get_node("UseButton").visible, "Expected focused card to keep its internal Use button hidden")
@@ -111,6 +113,10 @@ func _initialize() -> void:
 	_assert(focused_card.position.y < hand.cards[1].position.y, "Expected focused card to lift above surrounding cards")
 	_assert(hand.cards[1].position.y <= hand.cards[0].position.y, "Expected neighboring cards to keep the hand arc height")
 	_assert(hand.cards[3].position.y <= hand.cards[4].position.y, "Expected neighboring cards to keep the hand arc height")
+	for card in hand.cards:
+		var scale_overhang: float = card.size.x * maxf(0.0, card.scale.x - 1.0) * 0.5
+		_assert(card.position.x - scale_overhang >= hand.side_margin, "Expected focused hand layout to keep its left margin")
+		_assert(card.position.x + card.size.x + scale_overhang <= hand.size.x - hand.side_margin, "Expected focused hand layout to keep its right margin")
 
 	hand.call("_on_card_focus_requested", focused_card)
 	_assert(hand.call("get_focused_card") == null, "Expected tapping the focused card again to clear focus")

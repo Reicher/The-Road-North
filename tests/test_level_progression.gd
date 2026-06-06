@@ -32,7 +32,32 @@ func run() -> void:
 	_send_key(main, KEY_D)
 	await process_frame
 	_assert(debug_label.visible, "Expected D to enable debug mode")
-	_assert(debug_label.text == "debugg", "Expected debug mode to show a small debugg label")
+	_assert(debug_label.text == "Debug", "Expected debug mode to show a clear Debug label")
+
+	_send_key(main, KEY_Q)
+	await process_frame
+	_assert(first_hand.cards.size() == 4, "Expected debug Q to show the most likely normal-sized hand")
+
+	_send_key(main, KEY_W)
+	await process_frame
+	_assert(first_hand.cards.size() == 5, "Expected debug W to show every plain road type")
+	_assert(_all_cards_match(first_hand.cards, "Road", ""), "Expected debug W hand to contain plain road cards")
+
+	_send_key(main, KEY_E)
+	await process_frame
+	_assert(first_hand.cards.size() == 5, "Expected debug E to show every enemy road type")
+	_assert(_all_cards_match(first_hand.cards, "Road", GameMap.ENCOUNTER_ENEMY), "Expected debug E hand to contain enemy road cards")
+
+	_send_key(main, KEY_R)
+	await process_frame
+	_assert(first_hand.cards.size() == 10, "Expected debug R to ignore max hand size and show every road with both reward types")
+	_assert(_count_encounters(first_hand.cards, GameMap.ENCOUNTER_BERRY_BUSH) == 5, "Expected debug R hand to include berry roads")
+	_assert(_count_encounters(first_hand.cards, GameMap.ENCOUNTER_CACHE) == 5, "Expected debug R hand to include cache roads")
+
+	_send_key(main, KEY_T)
+	await process_frame
+	_assert(first_hand.cards.size() == 4, "Expected debug T to show every event type")
+	_assert(_all_cards_match(first_hand.cards, "Event", ""), "Expected debug T hand to contain event cards")
 	_send_key(main, KEY_ENTER)
 	await process_frame
 	_assert(first_screen.visible, "Expected debug Enter to complete the current level")
@@ -129,6 +154,25 @@ func _assert(condition: bool, message: String) -> void:
 		return
 	push_error(message)
 	quit(1)
+
+
+func _all_cards_match(cards: Array[CardView], category: String, encounter_type: String) -> bool:
+	for card in cards:
+		if card.category != category:
+			return false
+		if not encounter_type.is_empty() and str(card.encounter_data.get("type", "")) != encounter_type:
+			return false
+		if encounter_type.is_empty() and category == "Road" and not card.encounter_data.is_empty():
+			return false
+	return true
+
+
+func _count_encounters(cards: Array[CardView], encounter_type: String) -> int:
+	var count := 0
+	for card in cards:
+		if str(card.encounter_data.get("type", "")) == encounter_type:
+			count += 1
+	return count
 
 
 func _send_key(target: Node, keycode: int) -> void:

@@ -40,6 +40,7 @@ const ROAD_DISTRIBUTION := {
 @export var dead_end_definition: Resource = preload("res://data/road_dead_end.tres")
 
 var deck: Array[Dictionary] = []
+var starting_deck: Array[Dictionary] = []
 var drawn_count := 0
 
 var _map: GameMap
@@ -80,6 +81,7 @@ func start_run() -> void:
 
 func generate_deck() -> void:
 	deck = _deck_builder.make_deck(_get_deck_size(), _rng, _deck_config())
+	starting_deck = deck.duplicate(true)
 
 
 func shuffle_deck() -> void:
@@ -135,6 +137,21 @@ func draw_extra_cards(count: int) -> int:
 
 func cards_remaining() -> int:
 	return deck.size()
+
+
+func show_debug_hand(kind: String) -> bool:
+	if _hand == null or _deck_builder == null:
+		return false
+	var debug_cards: Array[Dictionary]
+	if kind == "likely":
+		debug_cards = _deck_builder.make_most_likely_hand(starting_deck, hand_size)
+	else:
+		debug_cards = _deck_builder.make_debug_hand(kind, _deck_config())
+	if debug_cards.is_empty():
+		return false
+	_hand.visible = true
+	_hand.set_cards(debug_cards)
+	return true
 
 
 func consume_card(card: CardView) -> bool:

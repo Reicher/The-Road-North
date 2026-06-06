@@ -4,6 +4,8 @@ const MAP_SCENE := preload("res://scenes/map.tscn")
 const HAND_SCENE := preload("res://ui/hand.tscn")
 const DECK_CONTROLLER_SCENE := preload("res://scenes/deck_controller.tscn")
 const CARD_DEFINITION_SCRIPT := preload("res://scripts/card_definition.gd")
+const STRAIGHT_DEFINITION := preload("res://data/road_straight.tres")
+const CORNER_DEFINITION := preload("res://data/road_corner.tres")
 
 
 func _initialize() -> void:
@@ -98,6 +100,17 @@ func _initialize() -> void:
 	_assert(cache_count > 0, "Expected reward road cards to include treasure caches")
 	_assert(caches_have_item_and_gold, "Expected every treasure cache to contain an item and zero to five gold")
 
+	var modal_source: Array[Dictionary] = []
+	for _index in 5:
+		modal_source.append({"category": "Road", "tile_definition": STRAIGHT_DEFINITION})
+	for _index in 3:
+		modal_source.append({"category": "Road", "tile_definition": CORNER_DEFINITION})
+	for _index in 2:
+		modal_source.append({"category": "Event", "event_type": DeckController.EVENT_DRAW_TWO})
+	var modal_hand: Array[Dictionary] = deck_controller.get_node("DeckBuilder").make_most_likely_hand(modal_source, 2)
+	_assert(modal_hand.size() == 2, "Expected modal hand calculation to preserve requested hand size")
+	_assert(_has_definition(modal_hand, STRAIGHT_DEFINITION) and _has_definition(modal_hand, CORNER_DEFINITION), "Expected modal hand calculation to maximize combinations without replacement")
+
 	var first_card = hand.cards[0]
 	deck_controller.consume_card(first_card)
 	_assert(hand.cards.size() == 4, "Expected using a card to draw one replacement")
@@ -134,3 +147,10 @@ func _cache_has_item_and_valid_gold(encounter: Dictionary) -> bool:
 			var amount := int(entry.get("amount", -1))
 			has_valid_gold = amount >= DeckBuilder.CACHE_GOLD_MIN and amount <= DeckBuilder.CACHE_GOLD_MAX
 	return has_item and has_valid_gold
+
+
+func _has_definition(cards: Array[Dictionary], definition: Resource) -> bool:
+	for card in cards:
+		if card.get("tile_definition") == definition:
+			return true
+	return false

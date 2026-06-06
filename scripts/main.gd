@@ -5,7 +5,14 @@ const LEVEL_SCENES: Array[PackedScene] = [
 	preload("res://levels/level_002.tscn"),
 ]
 
-const DEBUG_LABEL_TEXT := "debugg"
+const DEBUG_LABEL_TEXT := "Debug"
+const DEBUG_HAND_SHORTCUTS := {
+	KEY_Q: "likely",
+	KEY_W: "roads",
+	KEY_E: "enemies",
+	KEY_R: "rewards",
+	KEY_T: "events",
+}
 
 var _current_level_index := 0
 var _current_level: Node
@@ -39,6 +46,9 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
 		_complete_current_level()
+		get_viewport().set_input_as_handled()
+	elif DEBUG_HAND_SHORTCUTS.has(event.keycode):
+		_show_debug_hand(DEBUG_HAND_SHORTCUTS[event.keycode])
 		get_viewport().set_input_as_handled()
 
 
@@ -86,9 +96,9 @@ func _ensure_debug_overlay() -> void:
 	_debug_label.text = DEBUG_LABEL_TEXT
 	_debug_label.visible = false
 	_debug_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_debug_label.add_theme_font_size_override("font_size", 10)
+	_debug_label.add_theme_font_size_override("font_size", 18)
 	_debug_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	_debug_label.position = Vector2(6.0, -18.0)
+	_debug_label.position = Vector2(8.0, -28.0)
 	_debug_layer.add_child(_debug_label)
 
 
@@ -107,6 +117,14 @@ func _complete_current_level() -> void:
 		return
 	player.grid_position = map.get_goal_position()
 	player.call("_check_run_won")
+
+
+func _show_debug_hand(kind: String) -> void:
+	if _current_level == null:
+		return
+	var deck_controller := _current_level.get_node_or_null("DeckController") as DeckController
+	if deck_controller != null:
+		deck_controller.show_debug_hand(kind)
 
 
 func _on_next_level_requested() -> void:

@@ -171,9 +171,9 @@ func _bind_scene_nodes() -> void:
 	_title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_category_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_detail_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_title_label.add_theme_color_override("font_color", UIStyle.text(self))
-	_category_label.add_theme_color_override("font_color", UIStyle.muted_text(self))
-	_detail_label.add_theme_color_override("font_color", UIStyle.text(self))
+	_title_label.add_theme_color_override("font_color", UIStyle.card_text(self))
+	_category_label.add_theme_color_override("font_color", UIStyle.card_muted_text(self))
+	_detail_label.add_theme_color_override("font_color", UIStyle.card_text(self))
 	_category_label.add_theme_font_size_override("font_size", CATEGORY_FONT_SIZE)
 	if not _use_button.pressed.is_connected(_on_use_button_pressed):
 		_use_button.pressed.connect(_on_use_button_pressed)

@@ -21,7 +21,7 @@ func _initialize() -> void:
 	var tooltip := inventory.get_node("ItemTooltip") as PanelContainer
 
 	_assert(backpack_button != null, "Expected inventory to create a backpack button")
-	_assert(inventory.button_size == Vector2(195.0, 195.0), "Expected configured backpack button to be fifty percent larger for mobile")
+	_assert(inventory.button_size == Vector2(144.0, 144.0), "Expected backpack button to fit closely around its icon")
 	_assert(inventory.slot_size == Vector2(93.0, 93.0), "Expected configured inventory slots to be fifty percent larger for mobile")
 	_assert(backpack_button.text == "", "Expected backpack button to use the painted bag icon instead of text")
 	_assert(backpack_button.icon != null, "Expected backpack button to use a replaceable image texture")
@@ -44,7 +44,9 @@ func _initialize() -> void:
 	_assert(overlay.position.y == backpack_button.position.y, "Expected inventory overlay to share the backpack button top edge")
 	_assert(is_equal_approx(overlay.size.y, backpack_button.size.y), "Expected inventory overlay height %s to share backpack button height %s" % [overlay.size.y, backpack_button.size.y])
 	_assert(overlay.pivot_offset.x == overlay.size.x, "Expected inventory overlay to animate from its right edge")
-	_assert(title.text == "Inventory", "Expected expanded inventory area to show a small title")
+	_assert(title.text == "Inventory", "Expected expanded inventory area to show its title")
+	_assert(title.get_theme_font_size("font_size") == 18, "Expected inventory title to be clearly readable")
+	_assert(title.get_theme_color("font_color") == UIStyle.text(inventory), "Expected inventory title to use the clear primary text color")
 	_assert(frame.position == overlay.position, "Expected shared inventory frame to start at the expanded slot area")
 	_assert(frame.size.x == overlay.size.x + backpack_button.size.x, "Expected shared inventory frame to wrap slots and backpack as one control")
 	_assert(frame.size.y == backpack_button.size.y, "Expected shared inventory frame to match backpack height")
@@ -61,6 +63,8 @@ func _initialize() -> void:
 	_assert(first_slot.custom_minimum_size.is_equal_approx(inventory.get_slot_size()), "Expected inventory item slots to use the shared item slot size")
 	_assert(second_slot.disabled, "Expected second slot to be empty")
 	_assert(empty_slot.disabled, "Expected empty inventory slots to be disabled")
+	var empty_slot_style := empty_slot.get_theme_stylebox("disabled") as StyleBoxFlat
+	_assert(empty_slot_style.bg_color == InventoryUI.SLOT_DISABLED_FILL, "Expected empty inventory slots to use a light parchment background")
 	_assert(first_slot.self_modulate == InventoryUI.EQUIPPED_SLOT_TINT, "Expected strongest weapon slot to be tinted")
 
 	inventory._on_item_pressed(0, first_slot)

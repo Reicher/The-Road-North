@@ -13,8 +13,12 @@ signal stats_changed
 const SLOT_COUNT := 3
 const EQUIPPED_SLOT_TINT := Color(1.0, 0.86, 0.45)
 const NORMAL_SLOT_TINT := Color.WHITE
+const SLOT_FILL := Color(1.0, 0.94, 0.78)
+const SLOT_HOVER_FILL := Color(1.0, 0.86, 0.56)
+const SLOT_PRESSED_FILL := Color(0.90, 0.72, 0.40)
+const SLOT_DISABLED_FILL := Color(0.86, 0.80, 0.66)
 
-@export var button_size := Vector2(195.0, 195.0)
+@export var button_size := Vector2(144.0, 144.0)
 @export var slot_size := Vector2(93.0, 93.0)
 @export var top_margin := 18.0
 @export var right_margin := 18.0
@@ -298,14 +302,14 @@ func _bind_scene_nodes() -> void:
 	if not _backpack_button.pressed.is_connected(toggle_inventory):
 		_backpack_button.pressed.connect(toggle_inventory)
 	_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_frame.add_theme_stylebox_override("panel", UIStyle.rounded_box(self, UIStyle.panel_fill(self), UIStyle.panel_border(self), 10, 3))
+	_frame.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, UIStyle.panel_fill(self), UIStyle.panel_border(self), 10, 3))
 	_overlay.visible = false
 	_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	_overlay.scale = Vector2.ONE
 	_overlay.modulate.a = 1.0
 	_overlay.add_theme_stylebox_override("panel", _transparent_stylebox())
-	_overlay_title.add_theme_color_override("font_color", UIStyle.muted_text(self))
-	_overlay_title.add_theme_font_size_override("font_size", 13)
+	_overlay_title.add_theme_color_override("font_color", UIStyle.text(self))
+	_overlay_title.add_theme_font_size_override("font_size", 18)
 	_slot_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_slot_row.add_theme_constant_override("separation", int(slot_spacing))
 	_tooltip.visible = false
@@ -351,6 +355,7 @@ func _refresh_slots() -> void:
 		slot_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		slot_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		slot_button.add_theme_constant_override("icon_max_width", int(active_slot_size.x))
+		_apply_slot_style(slot_button)
 		if not items[slot_index].is_empty():
 			var item := items[slot_index]
 			slot_button.text = ""
@@ -366,6 +371,14 @@ func _refresh_slots() -> void:
 			slot_button.icon = null
 			slot_button.disabled = true
 			slot_button.self_modulate = NORMAL_SLOT_TINT
+
+
+func _apply_slot_style(slot_button: Button) -> void:
+	var border := UIStyle.panel_border(self)
+	slot_button.add_theme_stylebox_override("normal", UIStyle.rounded_box(self, SLOT_FILL, border, 10, 2))
+	slot_button.add_theme_stylebox_override("hover", UIStyle.rounded_box(self, SLOT_HOVER_FILL, border, 10, 2))
+	slot_button.add_theme_stylebox_override("pressed", UIStyle.rounded_box(self, SLOT_PRESSED_FILL, border, 10, 2))
+	slot_button.add_theme_stylebox_override("disabled", UIStyle.rounded_box(self, SLOT_DISABLED_FILL, border, 10, 2))
 
 
 func _handle_drag_input(event: InputEvent) -> void:

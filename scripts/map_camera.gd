@@ -4,7 +4,7 @@ extends Camera3D
 @export var player_path: NodePath
 @export var reserved_bottom_path: NodePath
 @export var initial_visible_tile_width := 5.0
-@export var zoom_in_visible_tile_width := 3.0
+@export var zoom_in_visible_tile_width := 3.5
 @export_range(0.0, 10.0, 0.1) var start_zoom_hold_duration := 2.0
 @export_range(0.0, 5.0, 0.05) var start_zoom_duration := 0.85
 @export_range(0.0, 2.0, 0.01) var move_focus_duration := 0.18
@@ -23,6 +23,7 @@ var _last_pinch_center := Vector2.ZERO
 var _target_xz := Vector2.ZERO
 var _start_zoom_tween: Tween
 var _move_focus_tween: Tween
+var _following_player := false
 var _mouse_pan_button := MOUSE_BUTTON_NONE
 var _mouse_pan_start_position := Vector2.ZERO
 var _mouse_pan_dragging := false
@@ -37,6 +38,9 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_refresh_limits)
 	if _reserved_bottom_control != null:
 		_reserved_bottom_control.resized.connect(_refresh_limits)
+	var move_started_callback := Callable(self, "_on_player_move_started")
+	if _player != null and _player.has_signal("move_started") and not _player.is_connected("move_started", move_started_callback):
+		_player.connect("move_started", move_started_callback)
 	var moved_callback := Callable(self, "_on_player_moved")
 	if _player != null and _player.has_signal("moved") and not _player.is_connected("moved", moved_callback):
 		_player.connect("moved", moved_callback)
@@ -46,6 +50,11 @@ func _ready() -> void:
 		_clamp_target()
 		_apply_camera_transform()
 		call_deferred("_play_start_zoom_sequence")
+
+
+func _process(_delta: float) -> void:
+	if _following_player:
+		_follow_player_position()
 
 
 func _exit_tree() -> void:
@@ -324,8 +333,27 @@ func _play_start_zoom_sequence() -> void:
 	, 0.0, 1.0, start_zoom_duration)
 
 
+func _on_player_move_started(_target_position: Vector2i) -> void:
+	_following_player = true
+	if _start_zoom_tween != null:
+		_start_zoom_tween.kill()
+		_start_zoom_tween = null
+	if _move_focus_tween != null:
+		_move_focus_tween.kill()
+		_move_focus_tween = null
+	_follow_player_position()
+
+
 func _on_player_moved(grid_position: Vector2i) -> void:
+	_following_player = false
 	_focus_on_grid_position(grid_position)
+
+
+func _follow_player_position() -> void:
+	if _map == null or _player == null:
+		return
+	_target_xz = _get_clamped_target_for_world_position(_player.global_position)
+	_apply_camera_transform()
 
 
 func _focus_on_grid_position(grid_position: Vector2i) -> void:
