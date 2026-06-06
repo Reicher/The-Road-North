@@ -38,7 +38,7 @@ func _initialize() -> void:
 	deck_controller._ready()
 
 	_assert(hand.cards.size() == 4, "Expected the opening hand to contain four cards")
-	_assert(deck_controller.cards_remaining() == 77, "Expected a 9x9 deck to draw four cards from eighty-one")
+	_assert(deck_controller.cards_remaining() == 28, "Expected a level one 9x9 formula deck to draw four cards from thirty-two")
 	_assert(deck_controller.drawn_count == 4, "Expected opening hand draw count to be tracked")
 
 	var category_counts := {"Road": 0, "Event": 0}
@@ -49,7 +49,7 @@ func _initialize() -> void:
 	var reward_road_count := 0
 	var reward_road_has_clear_label := false
 	var cache_count := 0
-	var caches_have_item_and_gold := true
+	var caches_have_valid_gold := true
 	var event_types := {}
 	for card in hand.cards:
 		category_counts[card.category] += 1
@@ -63,7 +63,7 @@ func _initialize() -> void:
 			reward_road_has_clear_label = reward_road_has_clear_label or card.detail in ["Plus food", "Plus treasure"]
 			if card.encounter_data.get("type", "") == GameMap.ENCOUNTER_CACHE:
 				cache_count += 1
-				caches_have_item_and_gold = caches_have_item_and_gold and _cache_has_item_and_valid_gold(card.encounter_data)
+				caches_have_valid_gold = caches_have_valid_gold and _cache_has_valid_gold(card.encounter_data)
 		elif card.category == "Event":
 			event_types[card.event_type] = true
 	for card_data in deck_controller.deck:
@@ -81,24 +81,24 @@ func _initialize() -> void:
 			reward_road_has_clear_label = reward_road_has_clear_label or str(card_data.get("detail", "")) in ["Plus food", "Plus treasure"]
 			if encounter.get("type", "") == GameMap.ENCOUNTER_CACHE:
 				cache_count += 1
-				caches_have_item_and_gold = caches_have_item_and_gold and _cache_has_item_and_valid_gold(encounter)
+				caches_have_valid_gold = caches_have_valid_gold and _cache_has_valid_gold(encounter)
 		elif card_data["category"] == "Event":
 			event_types[str(card_data.get("event_type", ""))] = true
-	_assert(category_counts["Road"] == 61, "Expected 75 percent of an 81 card deck to round to 61 road cards")
-	_assert(category_counts["Event"] == 20, "Expected the remaining deck cards to be events")
+	_assert(category_counts["Road"] == 24, "Expected 75 percent of the formula deck to be road cards")
+	_assert(category_counts["Event"] == 8, "Expected the remaining formula deck cards to be events")
 	_assert(not event_types.has("restart_map"), "Expected event deck not to include removed restart event")
 	_assert(event_types.has(DeckController.EVENT_DESTROY_TILE), "Expected event deck to include Mirage")
 	_assert(event_types.has(DeckController.EVENT_DRAW_TWO), "Expected event deck to include Idea")
 	_assert(event_types.has(DeckController.EVENT_ROTATE_TILE), "Expected event deck to include Doubt")
 	_assert(event_types.has(DeckController.EVENT_LUCKY_FIND), "Expected event deck to include Lucky Find")
 	_assert(typed_definition_count == deck_controller.deck.size(), "Expected generated draw pile cards to keep typed card definitions")
-	_assert(enemy_road_count == 12, "Expected one fifth of road cards to carry hidden enemies")
+	_assert(enemy_road_count == 5, "Expected enemy road count to use level and map size")
 	_assert(enemy_power_values_are_level_scaled, "Expected level one enemy power to stay between one and three")
 	_assert(enemy_road_has_clear_label, "Expected enemy road cards to be clearly named and described")
-	_assert(reward_road_count == 9, "Expected fifteen percent of road cards to carry reward encounters")
+	_assert(reward_road_count == 8, "Expected four berry roads and four loot roads on a 9x9 level one map")
 	_assert(reward_road_has_clear_label, "Expected reward encounter road cards to be clearly described")
 	_assert(cache_count > 0, "Expected reward road cards to include treasure caches")
-	_assert(caches_have_item_and_gold, "Expected every treasure cache to contain an item and zero to five gold")
+	_assert(caches_have_valid_gold, "Expected every treasure cache to contain level-scaled gold")
 
 	var modal_source: Array[Dictionary] = []
 	for _index in 5:
@@ -114,7 +114,7 @@ func _initialize() -> void:
 	var first_card = hand.cards[0]
 	deck_controller.consume_card(first_card)
 	_assert(hand.cards.size() == 4, "Expected using a card to draw one replacement")
-	_assert(deck_controller.cards_remaining() == 76, "Expected replacement draw to remove one card from the deck")
+	_assert(deck_controller.cards_remaining() == 27, "Expected replacement draw to remove one card from the deck")
 	_assert(not hand.cards.has(first_card), "Expected used card to leave the hand")
 
 	deck_controller.deck.clear()
@@ -133,20 +133,17 @@ func _assert(condition: bool, message: String) -> void:
 	quit(1)
 
 
-func _cache_has_item_and_valid_gold(encounter: Dictionary) -> bool:
-	var has_item := false
+func _cache_has_valid_gold(encounter: Dictionary) -> bool:
 	var has_valid_gold := false
 	var loot: Array = encounter.get("loot", [])
 	for entry in loot:
 		if not entry is Dictionary:
 			continue
 		var kind := str(entry.get("kind", ""))
-		if kind == "item":
-			has_item = true
-		elif kind == "gold":
+		if kind == "gold":
 			var amount := int(entry.get("amount", -1))
-			has_valid_gold = amount >= DeckBuilder.CACHE_GOLD_MIN and amount <= DeckBuilder.CACHE_GOLD_MAX
-	return has_item and has_valid_gold
+			has_valid_gold = amount >= 2 and amount <= 4
+	return has_valid_gold
 
 
 func _has_definition(cards: Array[Dictionary], definition: Resource) -> bool:

@@ -42,9 +42,9 @@ func _initialize() -> void:
 
 	_assert(player.grid_position == Vector2i(4, 8), "Expected player to start at the requested grid position")
 	_assert(player.food == 5, "Expected player to start with configured food")
-	_assert(player.health == 3, "Expected player to start with default health")
-	_assert(player.max_health == 3, "Expected player to start with default max health")
-	_assert(health_label.text == "Health: 3/3", "Expected health label to show current and max health")
+	_assert(player.health == 4, "Expected player to start with default health")
+	_assert(player.max_health == 4, "Expected player to start with default max health")
+	_assert(health_label.text == "Health: 4/4", "Expected health label to show current and max health")
 
 	var hop_start: Vector3 = player.position
 	var hop_target: Vector3 = map.grid_to_world(Vector2i(4, 7))
@@ -60,7 +60,7 @@ func _initialize() -> void:
 	_assert(player.move_to(Vector2i(4, 7)), "Expected player to move north onto connected road")
 	_assert(player.grid_position == Vector2i(4, 7), "Expected player grid position to update after movement")
 	_assert(player.food == 4, "Expected valid movement to consume one food")
-	_assert(player.health == 3, "Expected movement not to change health")
+	_assert(player.health == 4, "Expected movement not to change health")
 	_assert(player.move_to(Vector2i(4, 8)), "Expected player to backtrack south onto the connected start road")
 	_assert(player.grid_position == Vector2i(4, 8), "Expected backtracking to update player grid position")
 	_assert(player.food == 3, "Expected backtracking to consume one food")
@@ -105,7 +105,7 @@ func _initialize() -> void:
 	_assert(player.grid_position == Vector2i(6, 6), "Expected no-food movement to leave player in place")
 
 	player.set_health(4)
-	_assert(player.health == 3, "Expected player health not to exceed max health")
+	_assert(player.health == 4, "Expected player health not to exceed max health")
 	player.set_max_health(5)
 	player.set_health(4)
 	_assert(player.health == 4, "Expected player health to increase after max health is raised")
@@ -118,7 +118,7 @@ func _initialize() -> void:
 	default_food_player.map_path = NodePath("../Map")
 	root.add_child(default_food_player)
 	default_food_player._ready()
-	_assert(default_food_player.food == 20, "Expected default starting food to be about a quarter of the 9x9 map area")
+	_assert(default_food_player.food == 10, "Expected default starting food to be ten")
 
 	quit()
 

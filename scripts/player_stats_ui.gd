@@ -54,11 +54,11 @@ func _ready() -> void:
 
 
 func _draw() -> void:
-	_draw_stat_row(0, "food", _get_food())
-	_draw_stat_row(1, "gold", _get_gold())
-	_draw_stat_row(2, "health", _get_health_display())
-	_draw_stat_row(3, "power", _get_power())
-	_draw_stat_row(4, "deck", _get_deck_display())
+	_draw_stat_row(0, "deck", _get_deck_display())
+	_draw_stat_row(1, "food", _get_food())
+	_draw_stat_row(2, "gold", _get_gold())
+	_draw_stat_row(3, "health", _get_health_display())
+	_draw_stat_row(4, "power", _get_power())
 
 
 func _draw_stat_row(index: int, stat_name: String, value: Variant) -> void:

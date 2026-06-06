@@ -1,8 +1,8 @@
 class_name GamePlayer
 extends Node3D
 
-const DEFAULT_FOOD_MAP_AREA_DIVISOR := 4.0
 const PLAYER_MODEL_SCALE := 0.5
+const GameBalance = preload("res://scripts/game_balance.gd")
 const ModelAssets = preload("res://scripts/model_assets.gd")
 
 signal food_changed(food: int)
@@ -23,11 +23,11 @@ signal run_won
 @export var rewards_path: NodePath = NodePath("Rewards")
 @export var combat_path: NodePath = NodePath("Combat")
 @export var start_position := Vector2i(-1, -1)
-@export var starting_food := -1
+@export var starting_food := GameBalance.STARTING_FOOD
 @export var starting_gold := 0
-@export var starting_health := 3
-@export var starting_max_health := 3
-@export var base_power := 0
+@export var starting_health := GameBalance.STARTING_HEALTH
+@export var starting_max_health := GameBalance.STARTING_HEALTH
+@export var base_power := GameBalance.BASE_POWER
 @export_range(0.0, 2.0, 0.01) var move_duration := 0.85
 @export_range(1, 8, 1) var move_hop_count := 5
 @export_range(0.0, 1.0, 0.01) var move_hop_height_tiles := 0.16
@@ -228,7 +228,7 @@ func add_gold(amount: int) -> void:
 
 
 func _get_default_starting_food() -> int:
-	return maxi(1, roundi(float(_map.playable_width * _map.playable_height) / DEFAULT_FOOD_MAP_AREA_DIVISOR))
+	return GameBalance.STARTING_FOOD
 
 
 func _ensure_visuals() -> void:

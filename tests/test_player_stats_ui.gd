@@ -39,7 +39,7 @@ func _initialize() -> void:
 	_assert(is_equal_approx(stats.gain_pulse_duration, 2.0), "Expected resource gain feedback to remain visible for two seconds")
 	for stat_name in ["food", "gold", "health", "deck", "power"]:
 		_assert(stats._get_stat_icon(stat_name) != null, "Expected exported stat texture to load for %s" % stat_name)
-	_assert(stats._get_health_display() == "3/3", "Expected stats HUD to show full starting health")
+	_assert(stats._get_health_display() == "4/4", "Expected stats HUD to show full starting health")
 	_assert(stats._get_deck_display() == "2/3", "Expected stats HUD to show remaining cards out of the level deck total")
 
 	deck_controller.draw_card()
@@ -64,7 +64,7 @@ func _initialize() -> void:
 	_assert(stats._get_stat_glow_color("food", -1) == Color(1.0, 0.32, 0.22), "Expected resource losses to flash red")
 
 	player.set_health(2)
-	_assert(stats._gain_amounts.get("health", 0) == -1, "Expected lost health to show the amount lost")
+	_assert(stats._gain_amounts.get("health", 0) == -2, "Expected lost health to show the amount lost")
 	_assert(stats._pulse_sign.get("health", 0) == -1, "Expected lost health to use negative feedback")
 	_assert(stats._pulse_strength.get("health", 0.0) > 0.0, "Expected lost health feedback to remain visible")
 

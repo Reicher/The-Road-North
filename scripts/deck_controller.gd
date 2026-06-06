@@ -9,19 +9,9 @@ const EVENT_DESTROY_TILE := "destroy_tile"
 const EVENT_DRAW_TWO := "draw_two"
 const EVENT_ROTATE_TILE := "rotate_tile"
 const EVENT_LUCKY_FIND := "lucky_find"
+const GameBalance = preload("res://scripts/game_balance.gd")
 
-const ROAD_CARD_RATIO := 0.75
-const ENEMY_ROAD_CARD_RATIO := 0.20
-const REWARD_ROAD_CARD_RATIO := 0.15
 const HAND_SIZE := 4
-
-const ROAD_DISTRIBUTION := {
-	"straight": 30.0,
-	"corner": 30.0,
-	"t_junction": 20.0,
-	"four_way": 10.0,
-	"dead_end": 10.0,
-}
 
 @export var map_path: NodePath
 @export var hand_path: NodePath
@@ -29,11 +19,7 @@ const ROAD_DISTRIBUTION := {
 @export var deck_builder_path: NodePath = NodePath("DeckBuilder")
 @export var hand_size := HAND_SIZE
 @export var shuffle_seed := 0
-@export_range(0.0, 1.0, 0.01) var road_card_ratio := ROAD_CARD_RATIO
-@export_range(0.0, 1.0, 0.01) var enemy_road_card_ratio := ENEMY_ROAD_CARD_RATIO
-@export_range(0.0, 1.0, 0.01) var reward_road_card_ratio := REWARD_ROAD_CARD_RATIO
 @export var level := 1
-@export var road_distribution := ROAD_DISTRIBUTION.duplicate()
 
 @export var straight_definition: Resource = preload("res://data/road_straight.tres")
 @export var corner_definition: Resource = preload("res://data/road_corner.tres")
@@ -195,7 +181,7 @@ func _apply_lucky_find() -> void:
 func _get_deck_size() -> int:
 	if _map == null:
 		return 0
-	return _map.playable_width * _map.playable_height
+	return int(GameBalance.deck_counts(level, _get_map_size())["total_cards"])
 
 
 func _prepare_rng() -> void:
@@ -210,12 +196,14 @@ func _emit_deck_count_changed() -> void:
 
 
 func _deck_config() -> Dictionary:
+	var map_size := _get_map_size()
+	var counts := GameBalance.deck_counts(level, map_size)
 	return {
-		"road_card_ratio": road_card_ratio,
-		"enemy_road_card_ratio": enemy_road_card_ratio,
 		"level": level,
-		"reward_road_card_ratio": reward_road_card_ratio,
-		"road_distribution": road_distribution,
+		"map_size": map_size,
+		"road_count": counts["road_cards"],
+		"road_distribution": counts["road_distribution"],
+		"special_roads": counts["special_roads"],
 		"road_definitions": {
 			"straight": straight_definition,
 			"corner": corner_definition,
@@ -224,3 +212,9 @@ func _deck_config() -> Dictionary:
 			"dead_end": dead_end_definition,
 		},
 	}
+
+
+func _get_map_size() -> int:
+	if _map == null:
+		return 0
+	return mini(_map.playable_width, _map.playable_height)

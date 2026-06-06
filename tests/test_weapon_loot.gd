@@ -47,7 +47,6 @@ func _test_enemy_power_ranges() -> void:
 
 
 func _test_enemy_drop_chances_and_gold() -> void:
-	var expected_drop_chances := [0.45, 0.65, 0.85]
 	for enemy_rank in range(3):
 		var rewards = PLAYER_REWARDS_SCRIPT.new()
 		rewards.set_loot_seed(20000 + enemy_rank)
@@ -59,10 +58,10 @@ func _test_enemy_drop_chances_and_gold() -> void:
 				"enemy_min_power": 1,
 			})
 			var gold_amount := _gold_amount(loot)
-			_assert(gold_amount >= enemy_power and gold_amount <= enemy_power * 2, "Expected enemy gold to scale from enemy power")
+			_assert(gold_amount >= 2 and gold_amount <= 5, "Expected level one enemy gold range")
 			if not _item_from_loot(loot).is_empty():
 				drop_count += 1
-		_assert(_ratio_is_close(drop_count, expected_drop_chances[enemy_rank]), "Expected enemy weapon drop chance to depend on enemy rank")
+		_assert(_ratio_is_close(drop_count, 0.35), "Expected enemy item chance to scale from level")
 		rewards.free()
 
 
@@ -95,14 +94,20 @@ func _test_cache_loot_distribution() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 56789
 	var counts := {2: 0, 3: 0, 4: 0}
+	var item_count := 0
 	for _index in SAMPLE_COUNT:
 		var encounter: Dictionary = builder._make_reward_encounter(1, rng, 1)
 		var loot: Array = encounter["loot"]
-		_assert(_item_count(loot) == 1, "Expected every cache to contain exactly one item")
-		counts[int(_item_from_loot(loot)["power_bonus"])] += 1
-	_assert(_ratio_is_close(counts[2], 0.55), "Expected level one cache Dagger chance to be 55 percent")
-	_assert(_ratio_is_close(counts[3], 0.30), "Expected level one cache Machete chance to be 30 percent")
-	_assert(_ratio_is_close(counts[4], 0.15), "Expected level one cache Sword chance to be 15 percent")
+		var gold_amount := _gold_amount(loot)
+		_assert(gold_amount >= 2 and gold_amount <= 4, "Expected level one cache gold range")
+		var item := _item_from_loot(loot)
+		if not item.is_empty():
+			item_count += 1
+			counts[int(item["power_bonus"])] += 1
+	_assert(_ratio_is_close(item_count, 0.25), "Expected level one cache item chance")
+	_assert(_conditional_ratio_is_close(counts[2], item_count, 0.55), "Expected level one cache Dagger chance to be 55 percent when an item drops")
+	_assert(_conditional_ratio_is_close(counts[3], item_count, 0.30), "Expected level one cache Machete chance to be 30 percent when an item drops")
+	_assert(_conditional_ratio_is_close(counts[4], item_count, 0.15), "Expected level one cache Sword chance to be 15 percent when an item drops")
 	builder.free()
 
 
@@ -144,6 +149,10 @@ func _item_count(loot: Array) -> int:
 
 func _ratio_is_close(count: int, expected: float) -> bool:
 	return absf(float(count) / float(SAMPLE_COUNT) - expected) < 0.02
+
+
+func _conditional_ratio_is_close(count: int, total: int, expected: float) -> bool:
+	return total > 0 and absf(float(count) / float(total) - expected) < 0.03
 
 
 func _assert(condition: bool, message: String) -> void:

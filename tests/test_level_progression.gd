@@ -92,7 +92,7 @@ func run() -> void:
 	_assert(first_player.call("_check_run_won"), "Expected reaching the first goal to complete the level")
 	_assert(first_screen.visible, "Expected the completion screen to show after the first goal")
 	_assert(not first_hand.visible, "Expected the card hand to hide on the completion screen")
-	_assert(first_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "Level completed", "Expected first completion text")
+	_assert(first_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "Nån typ av shop", "Expected between-level shop placeholder text")
 	_assert(first_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Next level", "Expected first completion button to advance")
 
 	first_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").pressed.emit()
@@ -142,7 +142,7 @@ func run() -> void:
 	var restarted_map := main.get_node("Level/Map") as GameMap
 	var restarted_player := main.get_node("Level/Player") as GamePlayer
 	_assert(restarted_map.playable_width == 5 and restarted_map.playable_height == 5, "Expected Restart game to return to the first level")
-	_assert(restarted_player.gold == 0 and restarted_player.max_health == 3 and restarted_player.base_power == 0, "Expected Restart game to reset progression to initial values")
+	_assert(restarted_player.gold == 0 and restarted_player.max_health == 4 and restarted_player.base_power == 1, "Expected Restart game to reset progression to initial values")
 
 	main.queue_free()
 	await process_frame

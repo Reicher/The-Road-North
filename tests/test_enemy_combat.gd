@@ -132,7 +132,7 @@ func run() -> void:
 
 	loot_ui.take_all()
 	_assert(player.food == 2, "Expected enemy loot not to add food")
-	_assert(player.gold >= 1 and player.gold <= 2, "Expected enemy gold loot to scale from enemy power")
+	_assert(player.gold >= 2 and player.gold <= 5, "Expected enemy gold loot to scale from enemy level")
 	_assert(inventory.get_active_items().size() == 2, "Expected enemy item loot to move into one backpack slot")
 	_assert(player.input_enabled, "Expected player input to resume after enemy combat movement")
 	_assert(player.move_to(Vector2i(4, 8)), "Expected player to backtrack after enemy combat")

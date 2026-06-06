@@ -3,6 +3,7 @@ extends Node
 
 const CARD_DEFINITION_SCRIPT := preload("res://scripts/card_definition.gd")
 const WeaponCatalog = preload("res://scripts/weapon_catalog.gd")
+const GameBalance = preload("res://scripts/game_balance.gd")
 
 const ROAD_CATEGORY := "Road"
 const EVENT_CATEGORY := "Event"
@@ -11,14 +12,11 @@ const EVENT_DRAW_TWO := "draw_two"
 const EVENT_ROTATE_TILE := "rotate_tile"
 const EVENT_LUCKY_FIND := "lucky_find"
 const ENCOUNTER_ENEMY := "enemy"
-const CACHE_GOLD_MIN := 0
-const CACHE_GOLD_MAX := 5
 const ROAD_SUBTYPES: Array[String] = ["straight", "corner", "t_junction", "four_way", "dead_end"]
 
 
 func make_deck(deck_size: int, rng: RandomNumberGenerator, config: Dictionary) -> Array[Dictionary]:
-	var road_ratio := float(config.get("road_card_ratio", 0.75))
-	var road_count := roundi(float(deck_size) * road_ratio)
+	var road_count := int(config.get("road_count", roundi(float(deck_size) * 0.75)))
 	var event_count: int = maxi(0, deck_size - road_count)
 
 	var cards: Array[Dictionary] = []
@@ -37,7 +35,7 @@ func make_debug_hand(kind: String, config: Dictionary) -> Array[Dictionary]:
 		"enemies":
 			return _make_debug_enemy_roads(roads, int(config.get("level", 1)))
 		"rewards":
-			return _make_debug_reward_roads(roads, int(config.get("level", 1)))
+			return _make_debug_reward_roads(roads, int(config.get("level", 1)), int(config.get("map_size", 1)))
 		"events":
 			return _make_event_cards(4)
 	return []
@@ -102,7 +100,7 @@ func _debug_card_signature(card: Dictionary) -> String:
 func _make_road_cards(count: int, rng: RandomNumberGenerator, config: Dictionary) -> Array[Dictionary]:
 	var definitions: Dictionary = config.get("road_definitions", {})
 	var road_distribution: Dictionary = config.get("road_distribution", {})
-	var counts := _counts_from_distribution(count, road_distribution)
+	var counts: Dictionary = road_distribution
 	var cards: Array[Dictionary] = []
 	for subtype in counts:
 		if not definitions.has(subtype):
@@ -111,8 +109,10 @@ func _make_road_cards(count: int, rng: RandomNumberGenerator, config: Dictionary
 		for _index in card_count:
 			cards.append(_make_road_card(definitions[subtype]))
 	var level := int(config.get("level", 1))
-	_add_enemy_encounters_to_road_cards(cards, rng, float(config.get("enemy_road_card_ratio", 0.0)), level)
-	_add_reward_encounters_to_road_cards(cards, rng, float(config.get("reward_road_card_ratio", 0.0)), level)
+	var map_size := int(config.get("map_size", 1))
+	var special_roads: Dictionary = config.get("special_roads", {})
+	_add_enemy_encounters_to_road_cards(cards, rng, int(special_roads.get("enemy", 0)), level)
+	_add_reward_encounters_to_road_cards(cards, rng, int(special_roads.get("berry", 0)), int(special_roads.get("loot", 0)), level, map_size)
 	return cards
 
 
@@ -143,14 +143,14 @@ func _make_debug_enemy_roads(roads: Array[Dictionary], level: int) -> Array[Dict
 	return cards
 
 
-func _make_debug_reward_roads(roads: Array[Dictionary], level: int) -> Array[Dictionary]:
+func _make_debug_reward_roads(roads: Array[Dictionary], level: int, map_size: int) -> Array[Dictionary]:
 	var cards: Array[Dictionary] = []
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1
 	for road in roads:
 		for reward_index in 2:
 			var card: Dictionary = road.duplicate(true)
-			_set_card_encounter(card, _make_reward_encounter(reward_index, rng, level))
+			_set_card_encounter(card, _make_reward_encounter(reward_index, rng, level, map_size))
 			card["detail"] = _encounter_detail(card["encounter"])
 			cards.append(card)
 	return cards
@@ -186,39 +186,7 @@ func _make_event_card(title: String, detail: String, event_type: String) -> Dict
 	return definition.to_card_data()
 
 
-func _counts_from_distribution(total: int, distribution: Dictionary) -> Dictionary:
-	var counts: Dictionary = {}
-	var fractions: Array[Dictionary] = []
-	var assigned := 0
-	var weight_total := 0.0
-
-	for key in distribution:
-		weight_total += float(distribution[key])
-	if is_zero_approx(weight_total):
-		return counts
-
-	for key in distribution:
-		var exact_count := float(total) * float(distribution[key]) / weight_total
-		var base_count := floori(exact_count)
-		counts[key] = base_count
-		fractions.append({
-			"key": key,
-			"fraction": exact_count - float(base_count),
-		})
-		assigned += base_count
-
-	fractions.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["fraction"]) > float(b["fraction"]))
-
-	var remaining := total - assigned
-	for index in remaining:
-		var key: String = fractions[index % fractions.size()]["key"]
-		counts[key] += 1
-
-	return counts
-
-
-func _add_enemy_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, enemy_ratio: float, level: int) -> void:
-	var enemy_count := roundi(float(cards.size()) * enemy_ratio)
+func _add_enemy_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, enemy_count: int, level: int) -> void:
 	_shuffle_cards(cards, rng)
 
 	for index in mini(enemy_count, cards.size()):
@@ -229,31 +197,34 @@ func _add_enemy_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNu
 
 
 func _make_enemy_encounter(rng: RandomNumberGenerator, level: int) -> Dictionary:
-	var level_number := maxi(1, level)
-	var enemy_max_power := level_number * 3
-	var enemy_min_power := enemy_max_power - 2
+	var power_range := GameBalance.enemy_power_range(level)
+	var rewards := GameBalance.enemy_rewards(level)
 	return {
 		"type": ENCOUNTER_ENEMY,
 		"revealed": false,
 		"health": 1,
 		"max_health": 1,
-		"power": rng.randi_range(enemy_min_power, enemy_max_power),
-		"enemy_min_power": enemy_min_power,
+		"power": rng.randi_range(power_range.x, power_range.y),
+		"enemy_min_power": power_range.x,
+		"gold_min": rewards["gold_min"],
+		"gold_max": rewards["gold_max"],
+		"item_chance": rewards["item_chance"],
 	}
 
 
-func _add_reward_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, reward_ratio: float, level: int) -> void:
-	var reward_count := roundi(float(cards.size()) * reward_ratio)
+func _add_reward_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, berry_count: int, loot_count: int, level: int, map_size: int) -> void:
 	var eligible_indices: Array[int] = []
 	for index in cards.size():
 		if not cards[index].has("encounter"):
 			eligible_indices.append(index)
 	_shuffle_ints(eligible_indices, rng)
 
+	var reward_count := berry_count + loot_count
 	for index in mini(reward_count, eligible_indices.size()):
 		var card_index := eligible_indices[index]
 		var card: Dictionary = cards[card_index]
-		_set_card_encounter(card, _make_reward_encounter(index, rng, level))
+		var reward_kind := GameMap.ENCOUNTER_BERRY_BUSH if index < berry_count else GameMap.ENCOUNTER_CACHE
+		_set_card_encounter(card, _make_reward_encounter(reward_kind, rng, level, map_size))
 		card["detail"] = _encounter_detail(card["encounter"])
 		cards[card_index] = card
 
@@ -265,30 +236,31 @@ func _set_card_encounter(card: Dictionary, encounter: Dictionary) -> void:
 		definition.encounter = encounter.duplicate(true)
 
 
-func _make_reward_encounter(index: int, rng: RandomNumberGenerator, level: int) -> Dictionary:
-	var reward_types: Array[String] = [GameMap.ENCOUNTER_BERRY_BUSH, GameMap.ENCOUNTER_CACHE]
-	var kind: String = reward_types[index % reward_types.size()]
+func _make_reward_encounter(kind: Variant, rng: RandomNumberGenerator, level: int, map_size := 1) -> Dictionary:
+	if kind is int:
+		kind = GameMap.ENCOUNTER_BERRY_BUSH if int(kind) % 2 == 0 else GameMap.ENCOUNTER_CACHE
 	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
 		return {
 			"type": kind,
-			"loot": [{"kind": "food", "amount": 3}],
+			"loot": [{"kind": "food", "amount": GameBalance.berry_food(map_size)}],
 		}
+	var rewards := GameBalance.loot_road_rewards(level)
+	var loot: Array[Dictionary] = [{
+		"kind": "gold",
+		"amount": rng.randi_range(int(rewards["gold_min"]), int(rewards["gold_max"])),
+	}]
+	if rng.randf() < float(rewards["item_chance"]):
+		loot.push_front({
+			"kind": "item",
+			"item": WeaponCatalog.roll_weapon(rng, maxi(1, level) + 1, {
+				0: 0.55,
+				1: 0.30,
+				2: 0.15,
+			}),
+		})
 	return {
 		"type": kind,
-		"loot": [
-			{
-				"kind": "item",
-				"item": WeaponCatalog.roll_weapon(rng, maxi(1, level) + 1, {
-					0: 0.55,
-					1: 0.30,
-					2: 0.15,
-				}),
-			},
-			{
-				"kind": "gold",
-				"amount": rng.randi_range(CACHE_GOLD_MIN, CACHE_GOLD_MAX),
-			},
-		],
+		"loot": loot,
 	}
 
 

@@ -61,7 +61,7 @@ func _on_game_over(_reason: String) -> void:
 
 func _on_run_won() -> void:
 	if has_next_level:
-		_show_end_screen("Level completed", "Next level", "next_level")
+		_show_end_screen("Nån typ av shop", "Next level", "next_level")
 	else:
 		_show_end_screen("You won", "Restart game", "restart_game")
 

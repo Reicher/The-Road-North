@@ -2,8 +2,7 @@ class_name PlayerRewards
 extends Node
 
 const WeaponCatalog = preload("res://scripts/weapon_catalog.gd")
-
-const ENEMY_WEAPON_DROP_CHANCES: Array[float] = [0.45, 0.65, 0.85]
+const GameBalance = preload("res://scripts/game_balance.gd")
 
 var _player: GamePlayer
 var _inventory: InventoryUI
@@ -76,11 +75,13 @@ func _collect_loot_entry(entry: Dictionary) -> void:
 func _make_enemy_loot(enemy_data: Dictionary) -> Array[Dictionary]:
 	var loot: Array[Dictionary] = []
 	var enemy_power := maxi(1, int(enemy_data.get("power", 1)))
+	var default_level := floori(float(enemy_power - 1) / 3.0) + 1
+	var level_rewards := GameBalance.enemy_rewards(default_level)
 	loot.append({
 		"kind": "gold",
-		"amount": _loot_rng.randi_range(enemy_power, enemy_power * 2),
+		"amount": _loot_rng.randi_range(int(enemy_data.get("gold_min", level_rewards["gold_min"])), int(enemy_data.get("gold_max", level_rewards["gold_max"]))),
 	})
-	if _loot_rng.randf() < _get_enemy_weapon_drop_chance(enemy_data):
+	if _loot_rng.randf() < float(enemy_data.get("item_chance", level_rewards["item_chance"])):
 		loot.append({
 			"kind": "item",
 			"item": _make_enemy_item(enemy_data),
@@ -95,11 +96,3 @@ func _make_enemy_item(enemy_data: Dictionary) -> Dictionary:
 		0: 0.50,
 		1: 0.20,
 	})
-
-
-func _get_enemy_weapon_drop_chance(enemy_data: Dictionary) -> float:
-	var enemy_power := maxi(1, int(enemy_data.get("power", 1)))
-	var default_min_power := floori(float(enemy_power - 1) / 3.0) * 3 + 1
-	var enemy_min_power := int(enemy_data.get("enemy_min_power", default_min_power))
-	var enemy_rank := clampi(enemy_power - enemy_min_power, 0, ENEMY_WEAPON_DROP_CHANCES.size() - 1)
-	return ENEMY_WEAPON_DROP_CHANCES[enemy_rank]
