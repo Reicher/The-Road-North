@@ -1,6 +1,8 @@
 class_name DeckController
 extends Node
 
+signal deck_count_changed(cards_remaining: int, total_cards: int)
+
 const ROAD_CATEGORY := "Road"
 const EVENT_CATEGORY := "Event"
 const EVENT_DESTROY_TILE := "destroy_tile"
@@ -77,6 +79,7 @@ func start_run() -> void:
 	drawn_count = 0
 	if _hand != null:
 		_hand.set_cards(draw_cards(hand_size))
+	_emit_deck_count_changed()
 
 
 func generate_deck() -> void:
@@ -97,7 +100,9 @@ func draw_card() -> Dictionary:
 		return {}
 
 	drawn_count += 1
-	return deck.pop_back()
+	var card: Dictionary = deck.pop_back()
+	_emit_deck_count_changed()
+	return card
 
 
 func draw_cards(count: int) -> Array[Dictionary]:
@@ -137,6 +142,10 @@ func draw_extra_cards(count: int) -> int:
 
 func cards_remaining() -> int:
 	return deck.size()
+
+
+func total_cards() -> int:
+	return starting_deck.size()
 
 
 func show_debug_hand(kind: String) -> bool:
@@ -194,6 +203,10 @@ func _prepare_rng() -> void:
 		_rng.randomize()
 	else:
 		_rng.seed = shuffle_seed
+
+
+func _emit_deck_count_changed() -> void:
+	deck_count_changed.emit(cards_remaining(), total_cards())
 
 
 func _deck_config() -> Dictionary:

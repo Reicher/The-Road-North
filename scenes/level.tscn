@@ -69,6 +69,7 @@ inventory_path = NodePath("../Inventory")
 
 [node name="PlayerStats" parent="UI" instance=ExtResource("2_f2udl")]
 player_path = NodePath("../../Player")
+deck_controller_path = NodePath("../../DeckController")
 
 [node name="GameOver" parent="UI" instance=ExtResource("3_prl4n")]
 player_path = NodePath("../../Player")

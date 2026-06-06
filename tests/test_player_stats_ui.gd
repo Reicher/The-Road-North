@@ -26,9 +26,24 @@ func _initialize() -> void:
 	stats.player_path = NodePath("../Player")
 	root.add_child(stats)
 	stats._ready()
+
+	var deck_controller := DeckController.new()
+	deck_controller.deck.append({"category": "Road"})
+	deck_controller.deck.append({"category": "Road"})
+	deck_controller.starting_deck.append({"category": "Road"})
+	deck_controller.starting_deck.append({"category": "Road"})
+	deck_controller.starting_deck.append({"category": "Road"})
+	stats._deck_controller = deck_controller
+	deck_controller.deck_count_changed.connect(stats._on_deck_count_changed)
+
 	_assert(is_equal_approx(stats.gain_pulse_duration, 2.0), "Expected resource gain feedback to remain visible for two seconds")
-	for stat_name in ["food", "gold", "health", "power"]:
+	for stat_name in ["food", "gold", "health", "deck", "power"]:
 		_assert(stats._get_stat_icon(stat_name) != null, "Expected exported stat texture to load for %s" % stat_name)
+	_assert(stats._get_health_display() == "3/3", "Expected stats HUD to show full starting health")
+	_assert(stats._get_deck_display() == "2/3", "Expected stats HUD to show remaining cards out of the level deck total")
+
+	deck_controller.draw_card()
+	_assert(stats._get_deck_display() == "1/3", "Expected stats HUD deck count to update after drawing a card")
 
 	player.add_food(3)
 	_assert(stats._gain_amounts.get("food", 0) == 3, "Expected food gains to show their amount in the stats HUD")
@@ -57,6 +72,7 @@ func _initialize() -> void:
 	_assert(stats._gain_amounts.get("health", 0) == 1, "Expected gained health to show the amount gained")
 	_assert(stats._pulse_sign.get("health", 0) == 1, "Expected gained health to use positive feedback")
 
+	deck_controller.free()
 	quit()
 
 

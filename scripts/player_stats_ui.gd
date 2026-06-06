@@ -4,11 +4,13 @@ extends Control
 const ICON_PATHS := {
 	"food": "res://assets/images/stat_food.png",
 	"gold": "res://assets/images/stat_gold.png",
-	"health": "res://assets/images/stat_health.png",
-	"power": "res://assets/images/stat_power.png",
+	"health": "res://assets/images/stat_power.png",
+	"deck": "res://assets/images/stat_deck.png",
+	"power": "res://assets/images/stat_health.png",
 }
 
 @export var player_path: NodePath
+@export var deck_controller_path: NodePath
 @export var top_margin := 10.0
 @export var left_margin := 10.0
 @export var icon_size := 48.0
@@ -18,6 +20,7 @@ const ICON_PATHS := {
 @export var gain_pulse_duration := 2.0
 
 var _player: GamePlayer
+var _deck_controller: DeckController
 var _last_values: Dictionary = {}
 var _pulse_strength: Dictionary = {}
 var _pulse_sign: Dictionary = {}
@@ -29,7 +32,8 @@ var _icon_cache: Dictionary = {}
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_player = get_node_or_null(player_path) as GamePlayer
-	custom_minimum_size = Vector2(210.0, row_height * 4.0 + 10.0)
+	_deck_controller = get_node_or_null(deck_controller_path) as DeckController
+	custom_minimum_size = Vector2(240.0, row_height * 5.0 + 10.0)
 	size = custom_minimum_size
 	position = Vector2(left_margin, top_margin)
 	if _player != null and not _player.health_changed.is_connected(_on_player_health_changed):
@@ -40,6 +44,8 @@ func _ready() -> void:
 		_player.food_changed.connect(_on_player_food_changed)
 	if _player != null and not _player.gold_changed.is_connected(_on_player_gold_changed):
 		_player.gold_changed.connect(_on_player_gold_changed)
+	if _deck_controller != null and not _deck_controller.deck_count_changed.is_connected(_on_deck_count_changed):
+		_deck_controller.deck_count_changed.connect(_on_deck_count_changed)
 	var inventory := _get_inventory()
 	if inventory != null and not inventory.stats_changed.is_connected(_on_inventory_stats_changed):
 		inventory.stats_changed.connect(_on_inventory_stats_changed)
@@ -52,6 +58,7 @@ func _draw() -> void:
 	_draw_stat_row(1, "gold", _get_gold())
 	_draw_stat_row(2, "health", _get_health_display())
 	_draw_stat_row(3, "power", _get_power())
+	_draw_stat_row(4, "deck", _get_deck_display())
 
 
 func _draw_stat_row(index: int, stat_name: String, value: Variant) -> void:
@@ -77,11 +84,11 @@ func _draw_stat_row(index: int, stat_name: String, value: Variant) -> void:
 	var font: Font = ThemeDB.fallback_font
 	var font_size := 34
 	var text_position := Vector2(70.0, row_center.y + 13.0)
-	draw_string_outline(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 72.0, font_size, 7, Color(0.10, 0.08, 0.05, 0.92))
+	draw_string_outline(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, 7, Color(0.10, 0.08, 0.05, 0.92))
 	var value_color := Color(1.0, 0.96, 0.84)
 	if pulse > 0.0:
 		value_color = value_color.lerp(change_color, 0.86 * pulse)
-	draw_string(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, 72.0, font_size, value_color)
+	draw_string(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, value_color)
 	if pulse > 0.0 and change_amount != 0:
 		var value_width := font.get_string_size(str(value), HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
 		var gain_position := text_position + Vector2(value_width + 8.0, 0.0)
@@ -120,6 +127,12 @@ func _get_power() -> int:
 	return _player.get_total_power()
 
 
+func _get_deck_display() -> String:
+	if _deck_controller == null:
+		return "0/0"
+	return "%d/%d" % [_deck_controller.cards_remaining(), _deck_controller.total_cards()]
+
+
 func _on_player_health_changed(_health: int) -> void:
 	_handle_value_change("health", _health)
 
@@ -130,6 +143,10 @@ func _on_player_food_changed(_food: int) -> void:
 
 func _on_player_gold_changed(_gold: int) -> void:
 	_handle_value_change("gold", _gold)
+
+
+func _on_deck_count_changed(_cards_remaining: int, _total_cards: int) -> void:
+	queue_redraw()
 
 
 func _on_inventory_stats_changed() -> void:
