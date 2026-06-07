@@ -40,13 +40,15 @@ The 3D presentation must not change any placement, movement, deck, encounter, or
 
 # Map Structure
 
-The prototype supports multiple square levels. The base run target remains a compact square grid, with the current level set including a small 5x5 introductory map and a larger 7x7 map.
+The prototype currently contains two authored square levels:
+- Level 1 is a 5x5 introductory map with a mountain in the center.
+- Level 2 is a 7x7 map with a horizontal river and two fixed bridge crossings.
 
 The playable area has no surrounding gameplay padding border.
 
 The 3D world should show dense forest outside all four edges of the playable grid so angled camera views never reveal an empty void beyond small maps. This surrounding forest is visual only and does not add playable tiles.
 
-The camera must never show outside the playable map area.
+The camera may show the surrounding visual forest, but it cannot be panned beyond that authored margin.
 
 The grid itself should not be rendered visually as debug lines. The playable area should have a thin visible outline around its outer edge so the player can read the boundary without seeing internal grid lines.
 
@@ -58,9 +60,9 @@ Both the start and goal positions are T-crossings rotated so their open side fac
 
 The start position is at the bottom center of the playable area. The goal position is at the top center.
 
-For a 9x9 map:
-- Start position = `(4, 8)`
-- Goal position = `(4, 0)`
+For the current levels:
+- 5x5 start position = `(2, 4)`, goal position = `(2, 0)`
+- 7x7 start position = `(3, 6)`, goal position = `(3, 0)`
 
 Coordinates use:
 - X increasing left to right
@@ -89,9 +91,9 @@ The player can:
 
 Zoom is clamped between a minimum zoom level and a maximum that shows the full playable area.
 
-The camera briefly focuses on the player after movement resolves so the pawn stays readable during play. It should not continuously follow the player while the player is idle or manually panning.
+The camera starts by showing the full map, then zooms toward the start position. It follows the pawn while a movement tween is active and briefly settles on the destination after movement resolves. It does not continuously follow the player while idle or manually panning.
 
-The camera position must be clamped so the player can never pan outside the playable map boundaries.
+The camera position is clamped to the playable map plus a visual forest margin.
 
 All interaction should work entirely through touch.
 
@@ -120,7 +122,14 @@ Connections are fully bidirectional.
 
 The player may freely backtrack if valid roads and food exist.
 
-The player starts each run with food equal to approximately one quarter of the playable map area. On a 9x9 map this is 20 food.
+The player starts a new game with:
+- 10 food
+- 4 health
+- 0 gold
+- 1 base power
+- a Knife that adds 1 power
+
+Food, gold, health, max health, base power, and backpack contents carry from one completed level into the next. Restarting a level restores the values held when that level began. Restarting the game resets all progression.
 
 The movement itself should be tweened/interpolated over a short duration so the marker appears to travel along the road rather than teleport instantly.
 
@@ -132,11 +141,19 @@ Gameplay interaction should be temporarily disabled during movement tweening.
 
 # Cards and Decks
 
-Version 1 uses a single shared deck per run.
+Version 1 uses one generated deck per level.
 
-There is no persistent personal deck or meta-progression between runs. The prototype may include a short sequence of authored levels during one play session; completing a level advances to the next level, while restarting the game returns to the first level.
+There is no persistent personal deck or progression between games. The current run is a sequence of two authored levels. Completing level 1 advances to level 2 while carrying player resources and inventory. Restarting the game returns to level 1 with the initial player values.
 
-The deck contains one card per playable tile — on a 9x9 map that is 81 cards total.
+Deck size is based on map size and level:
+- shortest path steps = map size - 1
+- base card count = round(map size * 3.5 + 0.5)
+- every three levels remove one card as a difficulty penalty
+- total card count is never lower than three times the shortest path length
+
+The current decks contain:
+- Level 1, 5x5: 18 cards
+- Level 2, 7x7: 25 cards
 
 The deck composition is:
 - 75% road cards
@@ -146,7 +163,7 @@ Road card subtype distribution applies only within the road card category.
 
 The deck is shuffled randomly at the start of each level.
 
-The player always has 4 cards in hand.
+The hand is normally maintained at 4 cards. Idea can temporarily increase it above that size.
 
 When a card is used:
 - it disappears from the hand
@@ -179,7 +196,7 @@ When the player taps a card:
 - that card moves upward and toward the center
 - the surrounding cards compress slightly outward
 - the selected card becomes larger and easier to read
-- a "Use" button appears on the lower part of the focused card
+- a "Use" button appears directly below the focused card
 
 The Use button is only visible when a card is focused.
 
@@ -229,9 +246,9 @@ Road cards can be rotated before placement.
 
 Some road cards contain a hidden enemy or reward encounter.
 
-Suggested encounter distribution within road cards:
-- Enemy encounter: 20%
-- Reward encounter: 15%
+Special road counts scale from map size and level. The current decks contain:
+- Level 1: 3 enemy roads, 2 berry-bush roads, and 2 cache roads
+- Level 2: 5 enemy roads, 3 berry-bush roads, and 3 cache roads
 
 Encounter road cards:
 - still place normal road tiles
@@ -241,7 +258,7 @@ Encounter road cards:
 
 Enemy encounters are revealed when placed so the player can see the threat on the map.
 
-Reward encounters may grant food or an item when the player reaches the tile.
+Berry-bush encounters grant food when reached. Cache encounters grant gold and may also contain a weapon.
 
 When the player selects a road card from their hand, the game enters placement mode.
 
@@ -280,7 +297,11 @@ A connection is only valid if both tiles connect toward each other.
 
 # Event Cards
 
-Version 1 contains a small set of simple event cards.
+Version 1 contains four event cards. Event cards repeat in order as needed when a deck contains more than four events:
+- Mirage destroys a placed tile.
+- Idea draws two extra cards.
+- Doubt rotates a placed tile.
+- Lucky Find grants either 3 food or 4 gold.
 
 One event destroys a placed tile.
 
@@ -306,14 +327,11 @@ Future event cards may use different targeting rules such as:
 - random tile targeting
 - unrestricted map targeting
 
-Another event draws two extra cards immediately. If fewer than two cards remain in the deck, it draws whatever is left.
+Idea draws two extra cards immediately after its normal replacement card is drawn. If fewer than two additional cards remain in the deck, it draws whatever is left. This can temporarily increase the hand above four cards.
 
-Additional prototype event cards may:
-- restart the current map
-- rotate a placed tile
-- grant a small random food or gold reward
+Doubt uses the same targeting restrictions as Mirage. Selecting a road previews clockwise rotation; confirming requires a changed rotation, and cancelling restores the original rotation.
 
-These events should stay small and explicit. They should not grow into a generic effect system for version 1.
+These events stay small and explicit rather than using a generic effect system.
 
 ---
 
@@ -331,7 +349,7 @@ Enemy encounters:
 - cost the normal 1 food movement cost before combat resolves
 - damage the player by max(0, enemy power - player power)
 - are removed from the tile after combat resolves
-- may open a loot screen after defeat
+- open a loot screen after defeat
 
 The player has:
 - food
@@ -345,28 +363,25 @@ Health is lost through combat. Reaching 0 health ends the run.
 
 Gold is a simple collected resource for the prototype.
 
-Power comes from the player's base value plus the strongest equipped weapon bonus.
+Power comes from the player's base value plus the strongest carried weapon bonus.
 
-Loot may contain:
-- food
-- gold
-- items
+Berry bushes contain food. Caches and defeated enemies always grant gold and may also contain a weapon.
 
 Food and gold loot are collected directly.
 
 Items go into the inventory if there is space.
 
-The inventory is a small fixed-size backpack. Weapons may provide power. For version 1, only the strongest weapon contributes to the player's power. Weapons range from +1 power for a knife to +5 power for a katana.
+The inventory is a three-slot backpack that starts with a Knife. Weapons may provide power. Only the strongest carried weapon contributes to the player's power. Weapons range from +1 power for a Knife to +5 power for a Katana.
 
-The loot and inventory UI should stay simple and touch-friendly. They should support direct collection and basic drag/drop backpack interaction, but should not grow into a full equipment or economy system in version 1.
+Food and gold are collected immediately when loot opens. Item loot can be dragged into the backpack, swapped with carried items, or collected with Take All when enough slots are free. Backpack items can also be reordered by drag and drop.
 
 ---
 
 # Win Condition
 
-The run is won immediately when the player moves onto the goal tile at the top of the map.
+Moving onto level 1's goal opens a placeholder between-level shop screen with a Next level action. No shop interaction is implemented yet.
 
-A simple placeholder message such as "You won" is sufficient.
+Moving onto level 2's goal wins the game and shows a Restart game action.
 
 ---
 
@@ -376,7 +391,7 @@ Movement consumes food.
 
 Every movement action costs 1 food.
 
-The run ends when the player has no food remaining or health reaches 0.
+The current level is lost when the player has no food remaining after movement resolves or health reaches 0. The loss screen restarts the current level from its captured level-start progression.
 
 Soft-lock detection, such as ending the run because no valid movement is available, is intentionally deferred.
 

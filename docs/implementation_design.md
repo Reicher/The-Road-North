@@ -26,14 +26,15 @@ The project should feel like a small focused game rather than a reusable engine.
 The game starts from a single root scene.
 
 Main scene:
-- Main
+- `scenes/main.tscn`
 
-Responsibilities:
-- loading levels
-- global game startup
-- scene transitions if needed later
-
-Version 1 should stay minimal.
+Current responsibilities:
+- load the two authored levels in sequence
+- capture player and inventory progression at level start
+- carry progression into the next level
+- restore level-start progression when restarting a level
+- reset progression when restarting the game
+- provide keyboard-only debug shortcuts
 
 ---
 
@@ -47,13 +48,11 @@ Example:
 Shared level plumbing should live in a reusable base scene:
 - scenes/level.tscn
 
-Individual level scenes should inherit from the base scene and override level-specific data such as:
+Individual level scenes inherit from the base scene and currently override:
 - map size
-- initial seeded tiles
 - fixed terrain features
-- deck ratios and card distribution
 - hand size
-- starting player values
+- balance level used by deck and encounter generation
 
 The Level scene is responsible for:
 - map state
@@ -64,24 +63,25 @@ The Level scene is responsible for:
 - game state
 - win/loss handling
 
-Suggested Level scene structure:
+Current shared Level scene structure:
 
-- Level (Node2D)
-  - Map
-  - Roads
-  - Player
-  - DeckController
-  - PlacementController
-  - Camera
-  - UI
+- Level (Node)
+  - Map (Node3D)
+    - MapVisuals
+  - Roads (Node3D)
+  - Player (Node3D)
+  - PlacementController (Node3D)
+  - Camera3D
+  - Sun
+  - UI (CanvasLayer)
     - Hand
     - Loot
     - Inventory
-    - HUD
+    - PlayerStats
+    - GameOver
+  - DeckController
 
-The Level scene should contain very little direct gameplay logic itself.
-
-Most logic should live in dedicated child nodes and scripts.
+The Level script owns the high-level run state and input coordination. Gameplay rules remain in dedicated child nodes and scripts.
 
 There should only be one PlacementController in the scene.
 
@@ -129,7 +129,7 @@ The Map node should expose helper methods such as:
 - world_to_grid(position)
 - grid_to_world(position)
 
-The Map should not know anything about cards or UI.
+The Map does not know anything about cards or UI.
 
 It only understands tiles, coordinate helpers, movement and placement rules, and lightweight tile metadata such as an encounter dictionary attached to a placed tile.
 
@@ -141,7 +141,7 @@ Authored levels may also define fixed terrain features owned by the Map:
 - mountains and rivers block road placement
 - bridges occupy their tile and expose fixed road connections
 
-These features should stay as lightweight map metadata rather than becoming a separate terrain system.
+These features are lightweight map metadata rather than a separate terrain system. Mountains and rivers block placement and movement. Bridges are fixed crossings with road connections.
 
 ---
 
@@ -193,11 +193,7 @@ Avoid duplicating connection logic across scenes or scripts.
 
 Road tiles should use a reusable Tile scene.
 
-Suggested structure:
-
-- Tile (Node2D)
-  - Sprite2D
-  - Highlight
+The reusable Tile scene is a `Node3D` that builds simple road, landmark, encounter, and highlight visuals.
 
 The Tile scene should:
 - display visuals
@@ -220,10 +216,7 @@ Preview tiles should use light tinting to indicate valid or invalid placement.
 
 The Player scene represents the pawn on the map.
 
-Suggested structure:
-
-- Player (Node2D)
-  - Sprite2D
+The Player is a `Node3D` with separate `Combat`, `Rewards`, and `Visuals` children.
 
 Responsibilities:
 - current grid position
@@ -234,9 +227,7 @@ Responsibilities:
 The player should expose:
 - move_to(grid_position)
 
-The Player scene asks the Map to validate movement before spending food or starting a move.
-
-The Map handles validation.
+The Player asks the Map to validate movement before spending food or starting a move. Movement is animated as a short multi-hop tween.
 
 Movement should always resolve one step at a time.
 
@@ -244,7 +235,7 @@ The player pawn itself visually indicates the current tile.
 
 The Player emits movement and run outcome signals upward. Level uses those signals to update the high-level run state.
 
-Player child helpers may handle narrow combat and reward responsibilities:
+Player child helpers handle narrow combat and reward responsibilities:
 - Combat: reads enemy encounter data and computes damage
 - Rewards: collects resource loot and inventory item loot
 
@@ -255,16 +246,24 @@ These helpers should remain small and direct. They should not become generic eff
 # DeckController
 
 DeckController owns:
-- deck generation
 - deck shuffling
 - draw pile
 - draw logic
 - hand refill
-- encounter ratios for road cards
+- event-card execution for Idea and Lucky Find
+- deck-count reporting
+
+DeckBuilder owns:
+- road and event card generation
+- road subtype distribution
+- enemy, berry-bush, and cache encounter attachment
+- debug hand generation
+
+GameBalance is the shared source for starting values, deck-size formulas, encounter counts, enemy power ranges, reward values, and future shop values.
 
 The DeckController should not contain hand UI logic.
 
-The Hand node only displays cards.
+The Hand node displays cards and owns focus/use interaction, but does not execute card effects.
 
 ---
 
@@ -272,13 +271,14 @@ The Hand node only displays cards.
 
 The hand is its own isolated UI system.
 
-Suggested structure:
+Current structure:
 
 - Hand (Control)
   - CardContainer
+  - UseButton
 
 Cards:
-- ui/hand/card.tscn
+- ui/card.tscn
 
 The Hand system owns:
 - card selection
@@ -288,9 +288,13 @@ The Hand system owns:
 
 Cards are not manually reorderable in version 1.
 
-The Level scene should only receive high-level signals such as:
-- card_selected
-- card_used
+The Level scene receives high-level interaction and outcome signals such as:
+- card_focused
+- card_unfocused
+- placement_started
+- placement_confirmed
+- movement_finished
+- run_won
 
 The hand should not directly manipulate map state.
 
@@ -298,13 +302,14 @@ The hand should not directly manipulate map state.
 
 # Card Scene
 
-Suggested structure:
+Current structure:
 
 - Card (Control)
-  - Background
-  - Icon
-  - Label
+  - Title
+  - Category
+  - Detail
   - UseButton
+  - TouchButton
 
 Responsibilities:
 - displaying card visuals
@@ -317,10 +322,11 @@ It only knows:
 - card category
 - visual state
 
-CardDefinition resources should minimally contain:
-- card_category
+CardDefinition resources contain:
+- category
 - tile_definition for road cards
 - event_type for event cards
+- optional encounter data
 
 ---
 
@@ -371,13 +377,11 @@ The difference should primarily exist in:
 
 Avoid generic effect systems in version 1.
 
-Examples:
-- road cards enter placement mode
-- destroy cards enter target selection mode
-- draw cards immediately draw cards
-- rotate cards enter target selection mode and rotate one placed tile
-- restart-map cards request a level reload
-- lucky-find cards grant a small food or gold reward
+Current events:
+- Mirage enters target selection mode and destroys one placed tile.
+- Idea consumes itself, draws its normal replacement, then draws up to two extra cards.
+- Doubt enters target selection mode and previews rotation of one placed road tile.
+- Lucky Find consumes itself and grants either 3 food or 4 gold.
 
 Future event cards may use different targeting patterns.
 
@@ -391,7 +395,7 @@ Combat, loot, and inventory are part of the current version 1 prototype structur
 
 They should stay layered on top of the road-card loop:
 - DeckBuilder may attach enemy or reward encounter data to road cards.
-- DeckController exposes encounter ratios so levels can tune encounter density.
+- GameBalance calculates encounter counts from level and map size.
 - Roads stores encounter data on the placed tile and passes it to the visual tile.
 - Player resolves encounters when entering a tile.
 - PlayerRewards handles resource/item collection.
@@ -402,7 +406,7 @@ They should stay layered on top of the road-card loop:
 The structure should remain simple:
 - no generic effect engine
 - no economy system
-- no persistent item progression
+- no progression persisted between separate games
 - no equipment slot framework beyond the strongest weapon power bonus
 - no separate encounter scene hierarchy unless the current tile drawing becomes unmanageable
 
@@ -412,19 +416,19 @@ The Level scene may include Loot and Inventory under UI, but those systems shoul
 
 # Camera
 
-The Camera node should:
+The Camera3D node:
 - support pinch zoom
 - support two-finger pan
-- clamp to playable map bounds
-- briefly focus on the player after movement resolves
+- support mouse/trackpad pan and zoom during desktop development
+- reserve the hand area when calculating the visible map viewport
+- clamp to the playable map plus a three-tile visual forest margin
+- show the full map, then zoom toward the start position
+- follow the pawn while movement is active
+- briefly settle on the player after movement resolves
 
-The camera should not continuously follow the player while idle. Movement focus is a short recentering action after the player moves.
+The camera does not continuously follow the player while idle.
 
-Suggested structure:
-
-- Camera3D
-
-Prefer implementing touch handling in a dedicated camera controller script.
+The dedicated camera controller script is attached directly to `Camera3D`.
 
 When placement mode is active:
 - single finger controls placement
