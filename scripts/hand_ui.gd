@@ -309,6 +309,23 @@ func get_activation_boundary_y() -> float:
 	return get_global_rect().position.y - activation_margin
 
 
+func get_card_top_screen_y() -> float:
+	if cards.is_empty():
+		return get_global_rect().position.y
+
+	var card_top := INF
+	for card in cards:
+		var canvas_transform := card.get_global_transform_with_canvas()
+		for corner in [
+			Vector2.ZERO,
+			Vector2(card.size.x, 0.0),
+			Vector2(0.0, card.size.y),
+			card.size,
+		]:
+			card_top = minf(card_top, (canvas_transform * corner).y)
+	return card_top
+
+
 func is_canvas_position_over_hand(canvas_position: Vector2) -> bool:
 	return get_global_rect().has_point(canvas_position)
 

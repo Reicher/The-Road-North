@@ -13,6 +13,15 @@ const MODE_NONE := ""
 const MODE_ROAD_PLACEMENT := "road_placement"
 const MODE_DESTROY_TARGETING := "destroy_targeting"
 const MODE_ROTATE_TARGETING := "rotate_targeting"
+const HINT_TOO_FAR := "Too far away"
+const HINT_STANDING_HERE := "You're standing here"
+const HINT_OCCUPIED := "Tile already occupied"
+const HINT_CANT_TARGET := "Can't target this tile"
+const HINT_TERRAIN_BLOCKS := "Terrain blocks placement"
+const HINT_ROAD_OFF_MAP := "Road leads off map"
+const HINT_CONNECT_TO_PLAYER := "Connect to your tile"
+const HINT_ROAD_DOESNT_FIT := "Road doesn't fit"
+const HINT_NO_TILE := "No tile to target"
 
 class TargetPreview extends Node3D:
 	var preview_color := Color.TRANSPARENT
@@ -332,18 +341,20 @@ func _refresh_preview() -> void:
 	_preview_tile.visible = true
 
 	var tile_data := _roads.make_tile_data(active_definition, rotation_steps)
-	_placement_valid = _is_valid_placement(preview_position, tile_data.get("connections", {}))
+	var connections: Dictionary = tile_data.get("connections", {})
+	var invalid_hint := _get_road_placement_hint(preview_position, connections)
+	_placement_valid = invalid_hint.is_empty()
 	_preview_tile.tile_tint = Color(1.08, 1.08, 1.04, 0.98)
 	_preview_tile.set_highlight(true, VALID_COLOR if _placement_valid else INVALID_COLOR)
 	if not _card_drag_in_progress:
-		_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid)
+		_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, true, invalid_hint)
+	else:
+		_controls_layer.show_hint(invalid_hint, _hand)
 	set_process(true)
 
 
 func _is_valid_placement(grid_position: Vector2i, connections: Dictionary) -> bool:
-	if not _is_in_target_range(grid_position):
-		return false
-	return _map.can_place_tile(grid_position, connections)
+	return _get_road_placement_hint(grid_position, connections).is_empty()
 
 
 func _is_valid_destroy_target(grid_position: Vector2i) -> bool:
@@ -406,6 +417,7 @@ func _confirm_rotate_target() -> bool:
 
 func _refresh_tile_target() -> void:
 	var valid_target := _is_valid_tile_target(preview_position)
+	var invalid_hint := _get_tile_target_hint(preview_position)
 	if active_mode == MODE_ROTATE_TARGETING and valid_target:
 		_capture_rotate_target()
 		_placement_valid = _rotate_target_has_changed()
@@ -414,7 +426,9 @@ func _refresh_tile_target() -> void:
 	else:
 		_placement_valid = valid_target
 		if not _card_drag_in_progress:
-			_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, false)
+			_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, false, invalid_hint)
+	if _card_drag_in_progress:
+		_controls_layer.show_hint(invalid_hint, _hand)
 	_refresh_target_preview(valid_target)
 	set_process(true)
 
@@ -514,6 +528,73 @@ func _is_valid_tile_target(grid_position: Vector2i) -> bool:
 	if active_mode == MODE_ROTATE_TARGETING:
 		return _is_valid_rotate_target(grid_position)
 	return _is_valid_destroy_target(grid_position)
+
+
+func _get_road_placement_hint(grid_position: Vector2i, connections: Dictionary) -> String:
+	if _is_too_far_away(grid_position):
+		return HINT_TOO_FAR
+	if grid_position == _player.grid_position:
+		return HINT_STANDING_HERE
+	if _map.get_tile(grid_position) != null:
+		return HINT_OCCUPIED
+	if not _map.can_build_on_fixed_feature(grid_position):
+		return HINT_TERRAIN_BLOCKS
+	if _road_leads_off_map(grid_position, connections):
+		return HINT_ROAD_OFF_MAP
+	if _road_mismatches_player_tile(grid_position, connections):
+		return HINT_CONNECT_TO_PLAYER
+	if not _map.can_place_tile(grid_position, connections):
+		return HINT_ROAD_DOESNT_FIT
+	return ""
+
+
+func _get_tile_target_hint(grid_position: Vector2i) -> String:
+	if _is_too_far_away(grid_position):
+		return HINT_TOO_FAR
+	if grid_position == _player.grid_position:
+		return HINT_STANDING_HERE
+	if grid_position == _map.get_start_position() or grid_position == _map.get_goal_position():
+		return HINT_CANT_TARGET
+	if _map.get_tile(grid_position) == null:
+		return HINT_NO_TILE
+	return ""
+
+
+func _is_too_far_away(grid_position: Vector2i) -> bool:
+	var delta: Vector2i = grid_position - _player.grid_position
+	return absi(delta.x) + absi(delta.y) > get_target_range()
+
+
+func _road_leads_off_map(grid_position: Vector2i, connections: Dictionary) -> bool:
+	for direction_name in GameMap.DIRECTIONS:
+		if connections.get(direction_name, false) != true:
+			continue
+		var direction: Vector2i = GameMap.DIRECTIONS[direction_name]
+		if not _map.is_inside_playable_area(grid_position + direction):
+			return true
+	return false
+
+
+func _road_mismatches_player_tile(grid_position: Vector2i, connections: Dictionary) -> bool:
+	var delta: Vector2i = _player.grid_position - grid_position
+	if absi(delta.x) + absi(delta.y) != 1:
+		return false
+	var direction_name: String = _direction_name_for_delta(delta)
+	var opposite_direction: String = GameMap.OPPOSITE_DIRECTIONS[direction_name]
+	var player_tile: Variant = _map.get_tile(_player.grid_position)
+	if not (player_tile is Dictionary):
+		return false
+	var player_connections: Dictionary = player_tile.get("connections", {})
+	var opens_to_player: bool = connections.get(direction_name, false) == true
+	var player_opens_back: bool = player_connections.get(opposite_direction, false) == true
+	return opens_to_player != player_opens_back
+
+
+func _direction_name_for_delta(delta: Vector2i) -> String:
+	for direction_name in GameMap.DIRECTIONS:
+		if GameMap.DIRECTIONS[direction_name] == delta:
+			return direction_name
+	return ""
 
 
 func _capture_rotate_target() -> void:

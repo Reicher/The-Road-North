@@ -9,7 +9,11 @@ script = ExtResource("1_x2qxl")
 
 [node name="PromptLabel" type="Label" parent="."]
 visible = false
-custom_minimum_size = Vector2(160, 36)
+custom_minimum_size = Vector2(340, 52)
+theme_override_colors/font_color = Color(1, 0.94, 0.72, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.055, 0.035, 0.96)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 32
 horizontal_alignment = 1
 vertical_alignment = 1
 text = "Place tile"

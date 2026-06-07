@@ -88,6 +88,7 @@ func _test_destroy_tile_event() -> void:
 	_assert(placement.preview_position == Vector2i(-1, -1), "Expected tapping the map not to select an event target")
 	_set_initial_preview(placement, Vector2i(4, 8))
 	_assert(not placement.has_valid_preview(), "Expected start/player tile target to be invalid")
+	_assert(_get_hint(placement) == "You're standing here", "Expected player tile to take priority over protected tile")
 	_assert(not placement.confirm_placement(), "Expected invalid destroy target not to confirm")
 	_assert(map.get_tile(Vector2i(4, 8)) != null, "Expected invalid destroy target to remain placed")
 	_assert(hand.cards.has(destroy_card), "Expected invalid destroy confirm to keep the card")
@@ -99,11 +100,13 @@ func _test_destroy_tile_event() -> void:
 
 	_drag_preview(placement, Vector2i(4, 0), Vector2i(3, 7))
 	_assert(not placement.has_valid_preview(), "Expected diagonal tile target to be outside target range")
+	_assert(_get_hint(placement) == "Too far away", "Expected range to be the highest-priority target hint")
 	var target_preview = placement.get("_target_preview")
 	_assert(target_preview != null and target_preview.preview_color == PlacementController.INVALID_COLOR, "Expected only the selected invalid target to show red")
 
 	_drag_preview(placement, Vector2i(3, 7), Vector2i(4, 7))
 	_assert(placement.has_valid_preview(), "Expected placed tile target to be valid")
+	_assert(_get_hint(placement).is_empty(), "Expected valid event target to hide the helper text")
 	_assert(target_preview.preview_color == PlacementController.VALID_COLOR, "Expected only the selected valid target to show green")
 
 	_drag_preview(placement, Vector2i(4, 7), Vector2i(6, 6))
@@ -457,6 +460,11 @@ func _drag_preview(placement: PlacementController, from: Vector2i, to: Vector2i)
 	_assert(placement.call("_try_start_preview_drag", from, -1), "Expected dragging to start on the active event target")
 	placement.call("_move_preview_drag", to)
 	placement.call("_finish_preview_drag")
+
+
+func _get_hint(placement: PlacementController) -> String:
+	var hint_label := placement.get_node("PlacementControls/PromptLabel") as Label
+	return hint_label.text if hint_label.visible else ""
 
 
 func _assert(condition: bool, message: String) -> void:

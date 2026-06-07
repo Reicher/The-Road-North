@@ -42,14 +42,28 @@ func show_tile_targeting(hand: HandUI) -> void:
 	position_buttons(Vector2i(-1, -1), null, hand)
 
 
-func show_preview_controls(preview_position: Vector2i, map: GameMap, hand: HandUI, valid: bool, rotate_visible := true) -> void:
+func show_preview_controls(
+	preview_position: Vector2i,
+	map: GameMap,
+	hand: HandUI,
+	valid: bool,
+	rotate_visible := true,
+	hint: String = ""
+) -> void:
 	_resolve_nodes()
-	prompt_label.visible = false
+	show_hint(hint, hand)
 	rotate_button.visible = rotate_visible
 	rotate_button.disabled = not rotate_visible
 	confirm_button.disabled = not valid
 	buttons.visible = true
 	position_buttons(preview_position, map, hand)
+
+
+func show_hint(text: String, hand: HandUI) -> void:
+	_resolve_nodes()
+	prompt_label.text = text
+	prompt_label.visible = not text.is_empty()
+	position_prompt(hand)
 
 
 func hide_all() -> void:
@@ -84,10 +98,8 @@ func position_prompt(hand: HandUI) -> void:
 
 	var prompt_size := prompt_label.custom_minimum_size
 	var viewport_width := _get_viewport_size().x
-	var strip_top := _get_map_screen_height(hand)
-	var strip_bottom := _get_hand_card_top_screen_y(hand)
-	var strip_height := maxf(0.0, strip_bottom - strip_top)
-	var prompt_y := strip_top + maxf(8.0, (strip_height - prompt_size.y) * 0.5)
+	var card_top := _get_hand_card_top_screen_y(hand)
+	var prompt_y := maxf(8.0, card_top - prompt_size.y - 6.0)
 	prompt_label.size = prompt_size
 	prompt_label.position = Vector2((viewport_width - prompt_size.x) * 0.5, prompt_y)
 
@@ -103,10 +115,7 @@ func _get_hand_card_top_screen_y(hand: HandUI) -> float:
 	var viewport_height := _get_viewport_size().y
 	if hand == null:
 		return viewport_height
-
-	var hand_rect := hand.get_global_rect()
-	var card_top := hand_rect.position.y + maxf(0.0, hand.size.y - hand.card_size.y - hand.bottom_margin)
-	return clampf(card_top, hand_rect.position.y, viewport_height)
+	return clampf(hand.get_card_top_screen_y(), 1.0, viewport_height)
 
 
 func _resolve_nodes() -> void:

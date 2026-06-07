@@ -80,6 +80,8 @@ func _initialize() -> void:
 	_assert(hand.get_focused_card() == null, "Expected placement mode to clear the focused card")
 	_assert(not placement.has_valid_preview(), "Expected Use to wait for a map tap before showing a preview")
 	_assert(placement.get_node("PlacementControls/PromptLabel").visible, "Expected Use to show placement prompt text")
+	var prompt_label := placement.get_node("PlacementControls/PromptLabel") as Label
+	_assert(prompt_label.get_theme_font_size("font_size") == 32, "Expected placement helper text to be large and readable")
 	_assert(hand.position == hand_rest_position, "Expected placement mode to keep the hand in its separate panel")
 	_assert(placement.get_node("PlacementControls").layer > ui.layer, "Expected placement buttons to appear above the hand UI")
 	_assert(placement.get_node("PlacementControls/Buttons").visible, "Expected placement buttons to show before selecting a preview")
@@ -94,6 +96,13 @@ func _initialize() -> void:
 	_assert(placement.preview_position == Vector2i(-1, -1), "Expected tapping the map not to select a road preview")
 	_set_initial_preview(placement, Vector2i(4, 6))
 	_assert(not placement.has_valid_preview(), "Expected non-adjacent preview to be invalid")
+	_assert(_get_hint(placement) == "Too far away", "Expected range to be the highest-priority placement hint")
+	hand.set_inactive(true, false)
+	placement.get_node("PlacementControls").call("position_prompt", hand)
+	_assert(
+		is_equal_approx(prompt_label.position.y + prompt_label.size.y + 6.0, hand.get_card_top_screen_y()),
+		"Expected placement helper text directly above the retracted cards"
+	)
 	_assert(not map.are_cell_trees_visible(Vector2i(4, 6)), "Expected preview to hide the empty cell's existing trees")
 	_assert(not placement.confirm_placement(), "Expected confirm to reject invalid preview")
 	_assert(map.get_tile(Vector2i(4, 6)) == null, "Expected invalid confirm not to place a tile")
@@ -103,6 +112,7 @@ func _initialize() -> void:
 	_assert(placement.preview_position == Vector2i(4, 6), "Expected tapping another tile not to move the road preview")
 	_drag_preview(placement, Vector2i(4, 6), Vector2i(4, 7))
 	_assert(placement.has_valid_preview(), "Expected adjacent matching road to be valid")
+	_assert(_get_hint(placement).is_empty(), "Expected valid placement to hide the helper text")
 	_assert(map.are_cell_trees_visible(Vector2i(4, 6)), "Expected moving preview to restore the previous cell's trees")
 	_assert(not map.are_cell_trees_visible(Vector2i(4, 7)), "Expected preview to hide trees under the proposed road")
 	_assert(not placement.get_node("PlacementControls/PromptLabel").visible, "Expected placement prompt to hide after preview appears")
@@ -127,6 +137,7 @@ func _initialize() -> void:
 	_assert(cancel_button.position.x - (confirm_button.position.x + confirm_button.size.x) >= 48.0, "Expected a safe gap between confirm and cancel")
 	placement.rotate_preview()
 	_assert(not placement.has_valid_preview(), "Expected rotated mismatch to become invalid")
+	_assert(_get_hint(placement) == "Connect to your tile", "Expected player connection mismatch to explain the invalid rotation")
 	_assert(not placement.confirm_placement(), "Expected confirm to stay disabled for invalid rotation")
 
 	placement.rotate_preview()
@@ -171,6 +182,11 @@ func _drag_preview(placement: PlacementController, from: Vector2i, to: Vector2i)
 	placement.call("_move_preview_drag", to)
 	placement.call("_finish_preview_drag")
 	_assert(not placement.is_in_group("ui_item_drag_active"), "Expected releasing the road preview to restore camera input")
+
+
+func _get_hint(placement: PlacementController) -> String:
+	var hint_label := placement.get_node("PlacementControls/PromptLabel") as Label
+	return hint_label.text if hint_label.visible else ""
 
 
 func _assert(condition: bool, message: String) -> void:
