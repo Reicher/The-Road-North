@@ -9,55 +9,42 @@ signal tile_rotated(grid_position: Vector2i, card: CardView)
 
 const VALID_COLOR := Color(0.10, 0.95, 0.28, 0.34)
 const INVALID_COLOR := Color(1.00, 0.10, 0.08, 0.38)
-const TARGET_COLOR := Color(0.98, 0.83, 0.24, 0.62)
-const PLACEMENT_HINT_COLOR := Color(0.24, 0.88, 0.38, 0.58)
 const MODE_NONE := ""
 const MODE_ROAD_PLACEMENT := "road_placement"
 const MODE_DESTROY_TARGETING := "destroy_targeting"
 const MODE_ROTATE_TARGETING := "rotate_targeting"
 
+class TargetPreview extends Node3D:
+	var preview_color := Color.TRANSPARENT
+	var _mesh_instance: MeshInstance3D
 
-class PlacementHint extends Node3D:
-	var tile_size := 96.0:
-		set(value):
-			tile_size = value
-			_rebuild()
-	var hint_color := PLACEMENT_HINT_COLOR:
-		set(value):
-			hint_color = value
-			_rebuild()
-	var _visual: MeshInstance3D
 
-	func _ready() -> void:
-		_rebuild()
+	func configure(tile_size: float, color: Color) -> void:
+		preview_color = color
+		if _mesh_instance == null:
+			_mesh_instance = MeshInstance3D.new()
+			_mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			add_child(_mesh_instance)
 
-	func _rebuild() -> void:
-		if not is_inside_tree():
-			return
-		if _visual != null:
-			_visual.queue_free()
-		var mesh := CylinderMesh.new()
-		mesh.top_radius = tile_size * 0.17
-		mesh.bottom_radius = tile_size * 0.17
-		mesh.height = tile_size * 0.025
-		mesh.radial_segments = 24
-		_visual = MeshInstance3D.new()
-		_visual.name = "Hint"
-		_visual.mesh = mesh
-		_visual.position = Vector3(0.0, tile_size * 0.05, 0.0)
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(tile_size * 0.88, tile_size * 0.025, tile_size * 0.88)
 		var material := StandardMaterial3D.new()
-		material.albedo_color = hint_color
+		material.albedo_color = color
 		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		_visual.material_override = material
-		add_child(_visual)
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mesh.material = material
+		_mesh_instance.mesh = mesh
+
 
 @export var map_path: NodePath
 @export var roads_path: NodePath
 @export var player_path: NodePath
 @export var hand_path: NodePath
+@export var inventory_path: NodePath
 @export var deck_controller_path: NodePath
 @export var tile_scene: PackedScene = preload("res://scenes/tile.tscn")
 @export var controls_scene: PackedScene = preload("res://ui/placement_controls.tscn")
+@export_range(1, 8, 1) var target_range := 1
 
 var active_card: CardView
 var active_definition: Resource
@@ -69,17 +56,17 @@ var _map: GameMap
 var _roads: Roads
 var _player: GamePlayer
 var _hand: HandUI
+var _inventory: InventoryUI
 var _deck_controller: DeckController
 var _preview_tile: RoadTile
-var _targeted_tiles: Array[Vector2i] = []
+var _target_preview: TargetPreview
 var _controls_layer
 var _placement_valid := false
-var _placement_hints: Dictionary = {}
 var _hidden_preview_trees_position := Vector2i(-1, -1)
-var _hidden_preview_hint_position := Vector2i(-1, -1)
 var _rotate_original_position := Vector2i(-1, -1)
 var _rotate_original_tile_data: Dictionary = {}
 var _rotate_original_rotation := 0
+var _card_drag_in_progress := false
 
 
 func _ready() -> void:
@@ -87,6 +74,7 @@ func _ready() -> void:
 	_roads = get_node_or_null(roads_path) as Roads
 	_player = get_node_or_null(player_path) as GamePlayer
 	_hand = get_node_or_null(hand_path) as HandUI
+	_inventory = get_node_or_null(inventory_path) as InventoryUI
 	_deck_controller = get_node_or_null(deck_controller_path) as DeckController
 
 	if _map == null:
@@ -105,8 +93,10 @@ func _ready() -> void:
 	_ensure_controls()
 	_hide_preview()
 
-	if not _hand.card_use_requested.is_connected(_on_card_use_requested):
-		_hand.card_use_requested.connect(_on_card_use_requested)
+	if not _hand.card_drag_moved.is_connected(_on_card_drag_moved):
+		_hand.card_drag_moved.connect(_on_card_drag_moved)
+	if not _hand.card_drag_finished.is_connected(_on_card_drag_finished):
+		_hand.card_drag_finished.connect(_on_card_drag_finished)
 	if not _map.tile_pressed.is_connected(_on_tile_pressed):
 		_map.tile_pressed.connect(_on_tile_pressed)
 
@@ -146,11 +136,12 @@ func begin_placement(card: CardView) -> bool:
 	rotation_steps = 0
 	_placement_valid = false
 	_player.input_enabled = false
+	_hand.interaction_enabled = false
 	_hand.clear_focus()
 	_hide_preview()
-	_refresh_placement_hints()
-	_show_idle_placement_controls()
-	_show_prompt()
+	if not _card_drag_in_progress:
+		_show_idle_placement_controls()
+		_show_prompt()
 	placement_started.emit(card)
 	return true
 
@@ -177,11 +168,12 @@ func _begin_tile_targeting(card: CardView, mode: String) -> bool:
 	rotation_steps = 0
 	_placement_valid = false
 	_player.input_enabled = false
+	_hand.interaction_enabled = false
 	_hand.clear_focus()
 	_hide_preview()
-	_highlight_tile_targets()
-	_controls_layer.show_tile_targeting(_hand)
-	_show_prompt()
+	if not _card_drag_in_progress:
+		_controls_layer.show_tile_targeting(_hand)
+		_show_prompt()
 	placement_started.emit(card)
 	return true
 
@@ -237,13 +229,45 @@ func has_valid_preview() -> bool:
 	return _placement_valid
 
 
-func _on_card_use_requested(card: CardView) -> void:
+func _begin_for_dragged_card(card: CardView) -> bool:
 	if card.category == DeckController.ROAD_CATEGORY:
-		begin_placement(card)
+		return begin_placement(card)
 	elif card.event_type == DeckController.EVENT_DESTROY_TILE:
-		begin_destroy_targeting(card)
+		return begin_destroy_targeting(card)
 	elif card.event_type == DeckController.EVENT_ROTATE_TILE:
-		begin_rotate_targeting(card)
+		return begin_rotate_targeting(card)
+	return false
+
+
+func _on_card_drag_moved(card: CardView, canvas_position: Vector2, activated: bool) -> void:
+	if not activated:
+		if active_card == card:
+			cancel_placement()
+		return
+	if active_card == null:
+		_card_drag_in_progress = true
+		if not _begin_for_dragged_card(card):
+			_card_drag_in_progress = false
+			return
+	if active_card != card:
+		return
+	var grid_position := _map.screen_to_grid(canvas_position)
+	if _map.is_inside_playable_area(grid_position):
+		if active_mode == MODE_ROTATE_TARGETING:
+			_restore_rotate_target()
+		preview_position = grid_position
+		_refresh_preview()
+
+
+func _on_card_drag_finished(card: CardView, canvas_position: Vector2, activated: bool, released_over_hand: bool) -> void:
+	if active_card != card:
+		return
+	var grid_position := _map.screen_to_grid(canvas_position)
+	if released_over_hand or not activated or not _map.is_inside_playable_area(grid_position):
+		cancel_placement()
+		return
+	_card_drag_in_progress = false
+	_refresh_preview()
 
 
 func _on_tile_pressed(grid_position: Vector2i) -> void:
@@ -261,12 +285,10 @@ func _refresh_preview() -> void:
 		return
 	if active_mode == MODE_DESTROY_TARGETING or active_mode == MODE_ROTATE_TARGETING:
 		_restore_preview_trees()
-		_restore_preview_hint()
 		_refresh_tile_target()
 		return
 
 	_hide_preview_trees(preview_position)
-	_hide_preview_hint(preview_position)
 	_ensure_preview_tile()
 	_preview_tile.definition = active_definition
 	_preview_tile.rotation_steps = rotation_steps
@@ -279,18 +301,20 @@ func _refresh_preview() -> void:
 	_placement_valid = _is_valid_placement(preview_position, tile_data.get("connections", {}))
 	_preview_tile.tile_tint = Color(1.08, 1.08, 1.04, 0.98)
 	_preview_tile.set_highlight(true, VALID_COLOR if _placement_valid else INVALID_COLOR)
-	_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid)
+	if not _card_drag_in_progress:
+		_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid)
 	set_process(true)
 
 
 func _is_valid_placement(grid_position: Vector2i, connections: Dictionary) -> bool:
-	var delta: Vector2i = grid_position - _player.grid_position
-	if abs(delta.x) + abs(delta.y) != 1:
+	if not _is_in_target_range(grid_position):
 		return false
 	return _map.can_place_tile(grid_position, connections)
 
 
 func _is_valid_destroy_target(grid_position: Vector2i) -> bool:
+	if not _is_in_target_range(grid_position):
+		return false
 	if _map.get_tile(grid_position) == null:
 		return false
 	if grid_position == _map.get_start_position() or grid_position == _map.get_goal_position():
@@ -298,6 +322,17 @@ func _is_valid_destroy_target(grid_position: Vector2i) -> bool:
 	if grid_position == _player.grid_position:
 		return false
 	return true
+
+
+func _is_in_target_range(grid_position: Vector2i) -> bool:
+	var delta: Vector2i = grid_position - _player.grid_position
+	var distance: int = absi(delta.x) + absi(delta.y)
+	return distance > 0 and distance <= get_target_range()
+
+
+func get_target_range() -> int:
+	var inventory_bonus := _inventory.get_target_range_bonus() if _inventory != null else 0
+	return target_range + inventory_bonus
 
 
 func _is_valid_rotate_target(grid_position: Vector2i) -> bool:
@@ -340,11 +375,13 @@ func _refresh_tile_target() -> void:
 	if active_mode == MODE_ROTATE_TARGETING and valid_target:
 		_capture_rotate_target()
 		_placement_valid = _rotate_target_has_changed()
-		_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, true)
+		if not _card_drag_in_progress:
+			_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, true)
 	else:
 		_placement_valid = valid_target
-		_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, false)
-	_refresh_target_highlights()
+		if not _card_drag_in_progress:
+			_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, false)
+	_refresh_target_preview(valid_target)
 	set_process(true)
 
 
@@ -356,14 +393,15 @@ func _end_placement(keep_card_focused: bool) -> void:
 	preview_position = Vector2i(-1, -1)
 	rotation_steps = 0
 	_placement_valid = false
+	_card_drag_in_progress = false
 	_clear_rotate_target_snapshot()
 	_player.input_enabled = true
+	_hand.interaction_enabled = true
+	_hand.set_inactive(false)
 	if keep_card_focused and ending_card != null:
 		_hand.focus_card(ending_card)
 	elif not keep_card_focused:
 		_hand.clear_focus()
-	_clear_placement_hints()
-	_clear_target_highlights()
 	_hide_preview()
 
 
@@ -379,9 +417,10 @@ func _ensure_preview_tile() -> void:
 
 func _hide_preview() -> void:
 	_restore_preview_trees()
-	_restore_preview_hint()
 	if _preview_tile != null:
 		_preview_tile.visible = false
+	if _target_preview != null:
+		_target_preview.visible = false
 	if _controls_layer != null:
 		_controls_layer.hide_all()
 	set_process(false)
@@ -400,25 +439,6 @@ func _restore_preview_trees() -> void:
 		return
 	_map.set_cell_trees_visible(_hidden_preview_trees_position, true)
 	_hidden_preview_trees_position = Vector2i(-1, -1)
-
-
-func _hide_preview_hint(grid_position: Vector2i) -> void:
-	if grid_position == _hidden_preview_hint_position:
-		return
-	_restore_preview_hint()
-	var hint: Node3D = _placement_hints.get(grid_position) as Node3D
-	if hint != null:
-		hint.visible = false
-		_hidden_preview_hint_position = grid_position
-
-
-func _restore_preview_hint() -> void:
-	if _hidden_preview_hint_position.x < 0:
-		return
-	var hint: Node3D = _placement_hints.get(_hidden_preview_hint_position) as Node3D
-	if hint != null:
-		hint.visible = true
-	_hidden_preview_hint_position = Vector2i(-1, -1)
 
 
 func _ensure_controls() -> void:
@@ -445,34 +465,14 @@ func _show_idle_placement_controls() -> void:
 	set_process(true)
 
 
-func _highlight_tile_targets() -> void:
-	_targeted_tiles.clear()
-	for grid_position in _map.tiles:
-		if grid_position is Vector2i:
-			_targeted_tiles.append(grid_position)
-	_refresh_target_highlights()
-
-
-func _refresh_target_highlights() -> void:
-	for grid_position in _targeted_tiles:
-		var visual_tile := _roads.get_visual_tile(grid_position)
-		if visual_tile == null:
-			continue
-		var valid := _is_valid_tile_target(grid_position)
-		var color := VALID_COLOR if valid else INVALID_COLOR
-		if grid_position == preview_position:
-			color = VALID_COLOR if valid else INVALID_COLOR
-		elif valid:
-			color = TARGET_COLOR
-		visual_tile.set_highlight(true, color)
-
-
-func _clear_target_highlights() -> void:
-	for grid_position in _targeted_tiles:
-		var visual_tile := _roads.get_visual_tile(grid_position)
-		if visual_tile != null:
-			visual_tile.set_highlight(false)
-	_targeted_tiles.clear()
+func _refresh_target_preview(valid_target: bool) -> void:
+	if _target_preview == null:
+		_target_preview = TargetPreview.new()
+		_target_preview.name = "TargetPreview"
+		add_child(_target_preview)
+	_target_preview.position = _map.grid_to_world(preview_position) + Vector3(0.0, _map.tile_size * 0.07, 0.0)
+	_target_preview.configure(_map.tile_size, VALID_COLOR if valid_target else INVALID_COLOR)
+	_target_preview.visible = true
 
 
 func _is_valid_tile_target(grid_position: Vector2i) -> bool:
@@ -501,7 +501,7 @@ func _rotate_selected_target() -> void:
 	_apply_rotate_target_rotation(rotation_steps)
 	_placement_valid = _rotate_target_has_changed()
 	_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, true)
-	_refresh_target_highlights()
+	_refresh_target_preview(true)
 
 
 func _apply_rotate_target_rotation(new_rotation: int) -> void:
@@ -540,46 +540,3 @@ func _clear_rotate_target_snapshot() -> void:
 	_rotate_original_position = Vector2i(-1, -1)
 	_rotate_original_tile_data.clear()
 	_rotate_original_rotation = 0
-
-
-func _refresh_placement_hints() -> void:
-	_clear_placement_hints()
-	if active_mode != MODE_ROAD_PLACEMENT or active_definition == null:
-		return
-	for grid_position in _map.get_neighbors(_player.grid_position):
-		if _has_valid_rotation_for_hint(grid_position):
-			_add_placement_hint(grid_position)
-
-
-func _has_valid_rotation_for_hint(grid_position: Vector2i) -> bool:
-	for test_rotation in 4:
-		var tile_data := _roads.make_tile_data(active_definition, test_rotation)
-		if _is_valid_placement(grid_position, tile_data.get("connections", {})):
-			return true
-	return false
-
-
-func _add_placement_hint(grid_position: Vector2i) -> void:
-	var hint := PlacementHint.new()
-	hint.name = "PlacementHint_%d_%d" % [grid_position.x, grid_position.y]
-	hint.tile_size = _map.tile_size
-	hint.hint_color = PLACEMENT_HINT_COLOR
-	hint.position = _map.grid_to_world(grid_position)
-	add_child(hint)
-	_placement_hints[grid_position] = hint
-
-
-func _clear_placement_hints() -> void:
-	_hidden_preview_hint_position = Vector2i(-1, -1)
-	for hint in _placement_hints.values():
-		if hint is Node:
-			(hint as Node3D).visible = false
-			hint.queue_free()
-	_placement_hints.clear()
-
-
-func get_placement_hint_positions() -> Array[Vector2i]:
-	var positions: Array[Vector2i] = []
-	for grid_position in _placement_hints:
-		positions.append(grid_position)
-	return positions

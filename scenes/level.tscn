@@ -41,6 +41,7 @@ map_path = NodePath("../Map")
 roads_path = NodePath("../Roads")
 player_path = NodePath("../Player")
 hand_path = NodePath("../UI/Hand")
+inventory_path = NodePath("../UI/Inventory")
 deck_controller_path = NodePath("../DeckController")
 
 [node name="Camera3D" type="Camera3D" parent="."]

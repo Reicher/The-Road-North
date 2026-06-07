@@ -54,8 +54,8 @@ func _ready() -> void:
 		return
 
 	start_run()
-	if not _hand.card_use_requested.is_connected(_on_card_use_requested):
-		_hand.card_use_requested.connect(_on_card_use_requested)
+	if not _hand.card_drag_finished.is_connected(_on_card_drag_finished):
+		_hand.card_drag_finished.connect(_on_card_drag_finished)
 
 
 func start_run() -> void:
@@ -158,15 +158,28 @@ func consume_card(card: CardView) -> bool:
 	return true
 
 
-func _on_card_use_requested(card: CardView) -> void:
+func _on_card_drag_finished(card: CardView, canvas_position: Vector2, activated: bool, released_over_hand: bool) -> void:
 	if card.category == ROAD_CATEGORY:
 		return
+	if not activated or released_over_hand or _map == null:
+		return
+	if not _map.is_inside_playable_area(_map.screen_to_grid(canvas_position)):
+		return
+	play_immediate_event(card)
+
+
+func play_immediate_event(card: CardView) -> bool:
 	if card.event_type == EVENT_DRAW_TWO:
 		if consume_card(card):
 			draw_extra_cards(2)
+			_hand.set_inactive(false)
+			return true
 	elif card.event_type == EVENT_LUCKY_FIND:
 		if consume_card(card):
 			_apply_lucky_find()
+			_hand.set_inactive(false)
+			return true
+	return false
 
 
 func _apply_lucky_find() -> void:

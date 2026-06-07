@@ -3,6 +3,7 @@ extends SceneTree
 const PLAYER_REWARDS_SCRIPT := preload("res://scripts/player_rewards.gd")
 const DECK_BUILDER_SCRIPT := preload("res://scripts/deck_builder.gd")
 const WeaponCatalog := preload("res://scripts/weapon_catalog.gd")
+const ItemCatalog := preload("res://scripts/item_catalog.gd")
 
 const SAMPLE_COUNT := 20000
 
@@ -51,6 +52,7 @@ func _test_enemy_drop_chances_and_gold() -> void:
 		var rewards = PLAYER_REWARDS_SCRIPT.new()
 		rewards.set_loot_seed(20000 + enemy_rank)
 		var drop_count := 0
+		var binoculars_count := 0
 		var enemy_power := enemy_rank + 1
 		for _index in SAMPLE_COUNT:
 			var loot: Array = rewards._make_enemy_loot({
@@ -59,9 +61,12 @@ func _test_enemy_drop_chances_and_gold() -> void:
 			})
 			var gold_amount := _gold_amount(loot)
 			_assert(gold_amount >= 2 and gold_amount <= 5, "Expected level one enemy gold range")
-			if not _item_from_loot(loot).is_empty():
+			if not _weapon_from_loot(loot).is_empty():
 				drop_count += 1
+			if not _binoculars_from_loot(loot).is_empty():
+				binoculars_count += 1
 		_assert(_ratio_is_close(drop_count, 0.35), "Expected enemy item chance to scale from level")
+		_assert(_ratio_is_close(binoculars_count, ItemCatalog.BINOCULARS_DROP_CHANCE), "Expected enemies on every level to have a 15 percent Kikare chance")
 		rewards.free()
 
 
@@ -95,19 +100,23 @@ func _test_cache_loot_distribution() -> void:
 	rng.seed = 56789
 	var counts := {2: 0, 3: 0, 4: 0}
 	var item_count := 0
+	var binoculars_count := 0
 	for _index in SAMPLE_COUNT:
 		var encounter: Dictionary = builder._make_reward_encounter(1, rng, 1)
 		var loot: Array = encounter["loot"]
 		var gold_amount := _gold_amount(loot)
 		_assert(gold_amount >= 2 and gold_amount <= 4, "Expected level one cache gold range")
-		var item := _item_from_loot(loot)
+		var item := _weapon_from_loot(loot)
 		if not item.is_empty():
 			item_count += 1
 			counts[int(item["power_bonus"])] += 1
+		if not _binoculars_from_loot(loot).is_empty():
+			binoculars_count += 1
 	_assert(_ratio_is_close(item_count, 0.25), "Expected level one cache item chance")
 	_assert(_conditional_ratio_is_close(counts[2], item_count, 0.55), "Expected level one cache Dagger chance to be 55 percent when an item drops")
 	_assert(_conditional_ratio_is_close(counts[3], item_count, 0.30), "Expected level one cache Machete chance to be 30 percent when an item drops")
 	_assert(_conditional_ratio_is_close(counts[4], item_count, 0.15), "Expected level one cache Sword chance to be 15 percent when an item drops")
+	_assert(_ratio_is_close(binoculars_count, ItemCatalog.BINOCULARS_DROP_CHANCE), "Expected caches on every level to have a 15 percent Kikare chance")
 	builder.free()
 
 
@@ -136,15 +145,18 @@ func _gold_amount(loot: Array) -> int:
 	return 0
 
 
-func _item_from_loot(loot: Array) -> Dictionary:
+func _weapon_from_loot(loot: Array) -> Dictionary:
 	for entry in loot:
-		if entry is Dictionary and entry.get("kind", "") == "item":
+		if entry is Dictionary and entry.get("kind", "") == "item" and int(entry.get("item", {}).get("power_bonus", 0)) > 0:
 			return entry.get("item", {})
 	return {}
 
 
-func _item_count(loot: Array) -> int:
-	return 0 if _item_from_loot(loot).is_empty() else 1
+func _binoculars_from_loot(loot: Array) -> Dictionary:
+	for entry in loot:
+		if entry is Dictionary and entry.get("kind", "") == "item" and entry.get("item", {}).get("name", "") == "Kikare":
+			return entry.get("item", {})
+	return {}
 
 
 func _ratio_is_close(count: int, expected: float) -> bool:

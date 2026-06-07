@@ -112,6 +112,14 @@ func get_power_bonus() -> int:
 	return highest
 
 
+func get_target_range_bonus() -> int:
+	var bonus := 0
+	for item in items:
+		if not item.is_empty():
+			bonus += int(item.get("target_range_bonus", 0))
+	return bonus
+
+
 func get_active_items() -> Array[Dictionary]:
 	var active_items: Array[Dictionary] = []
 	for item in items:

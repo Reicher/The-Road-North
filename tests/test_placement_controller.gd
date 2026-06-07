@@ -86,18 +86,11 @@ func _initialize() -> void:
 	_assert(placement.get_node("PlacementControls/Buttons/CancelButton").visible, "Expected cancel button to be available before selecting a preview")
 	_assert(placement.get_node("PlacementControls/Buttons/RotateButton").disabled, "Expected rotate button to wait for a preview tile")
 	_assert(placement.get_node("PlacementControls/Buttons/ConfirmButton").disabled, "Expected confirm button to stay disabled before a preview exists")
-	var hint_positions := placement.get_placement_hint_positions()
-	_assert(hint_positions.has(Vector2i(4, 7)), "Expected placement hints to include the adjacent tile above the player")
-	_assert(hint_positions.has(Vector2i(3, 8)), "Expected placement hints to include a left-side tile that is valid after rotation")
-	_assert(hint_positions.has(Vector2i(5, 8)), "Expected placement hints to include a right-side tile that is valid after rotation")
-	_assert(not hint_positions.has(Vector2i(4, 6)), "Expected placement hints to ignore non-adjacent tiles")
-	var confirmed_position_hint := placement.get_node("PlacementHint_4_7") as Node3D
-	var alternate_position_hint := placement.get_node("PlacementHint_3_8") as Node3D
+	_assert(placement.get_node_or_null("PlacementHint_4_7") == null, "Expected road placement not to reveal valid empty tiles")
 
 	map.tile_pressed.emit(Vector2i(4, 6))
 	_assert(not placement.has_valid_preview(), "Expected non-adjacent preview to be invalid")
 	_assert(not map.are_cell_trees_visible(Vector2i(4, 6)), "Expected preview to hide the empty cell's existing trees")
-	_assert(confirmed_position_hint.visible, "Expected preview outside a hinted cell to leave placement hints visible")
 	_assert(not placement.confirm_placement(), "Expected confirm to reject invalid preview")
 	_assert(map.get_tile(Vector2i(4, 6)) == null, "Expected invalid confirm not to place a tile")
 	_assert(hand.cards.has(straight_card), "Expected invalid confirm to keep the card in hand")
@@ -106,8 +99,6 @@ func _initialize() -> void:
 	_assert(placement.has_valid_preview(), "Expected adjacent matching road to be valid")
 	_assert(map.are_cell_trees_visible(Vector2i(4, 6)), "Expected moving preview to restore the previous cell's trees")
 	_assert(not map.are_cell_trees_visible(Vector2i(4, 7)), "Expected preview to hide trees under the proposed road")
-	_assert(not confirmed_position_hint.visible, "Expected preview to hide the selected cell's placement hint")
-	_assert(alternate_position_hint.visible, "Expected preview to leave other placement hints visible")
 	_assert(not placement.get_node("PlacementControls/PromptLabel").visible, "Expected placement prompt to hide after preview appears")
 	_assert(not placement.get_node("PlacementControls/Buttons/RotateButton").disabled, "Expected rotate button to enable after selecting a preview")
 	_assert(not placement.get_node("PlacementControls/Buttons/ConfirmButton").disabled, "Expected confirm button to enable for a valid preview")
@@ -130,24 +121,18 @@ func _initialize() -> void:
 	_assert(not placement.is_placing(), "Expected confirm to exit placement mode")
 	_assert(player.input_enabled, "Expected movement input to resume after confirm")
 	_assert(hand.position == hand_rest_position, "Expected hand to return after confirmed placement")
-	_assert(placement.get_placement_hint_positions().is_empty(), "Expected confirmed placement to clear placement hint markers")
-	_assert(not confirmed_position_hint.visible, "Expected confirmed placement hint to disappear immediately")
 
 	var corner_card = hand.cards[0]
 	_assert(placement.begin_placement(corner_card), "Expected another road card to enter placement mode")
-	var cancelled_position_hint := placement.get_node("PlacementHint_3_8") as Node3D
 	map.tile_pressed.emit(Vector2i(3, 8))
 	_assert(not map.are_cell_trees_visible(Vector2i(3, 8)), "Expected new preview to hide the selected cell's trees")
-	_assert(not cancelled_position_hint.visible, "Expected new preview to hide the selected cell's placement hint")
-	placement.cancel_placement()
+	hand.card_drag_moved.emit(corner_card, Vector2.ZERO, false)
 	_assert(map.are_cell_trees_visible(Vector2i(3, 8)), "Expected cancel to restore previewed cell trees")
-	_assert(not cancelled_position_hint.visible, "Expected cancel to remove placement hints immediately")
-	_assert(hand.cards.has(corner_card), "Expected cancel to keep the card in hand")
+	_assert(hand.cards.has(corner_card), "Expected dragging back into the hand to keep the card")
 	_assert(not placement.is_placing(), "Expected cancel to exit placement mode")
 	_assert(player.input_enabled, "Expected movement input to resume after cancel")
 	_assert(hand.position == hand_rest_position, "Expected hand to return after cancelling placement")
 	_assert(hand.get_focused_card() == null, "Expected cancelled placement to leave the hand unfocused")
-	_assert(placement.get_placement_hint_positions().is_empty(), "Expected cancel to clear placement hint markers")
 
 	quit()
 

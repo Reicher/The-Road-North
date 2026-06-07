@@ -2,6 +2,7 @@ extends SceneTree
 
 const INVENTORY_SCENE := preload("res://ui/inventory.tscn")
 const UIStyle := preload("res://scripts/ui_style.gd")
+const ItemIconLibrary := preload("res://scripts/item_icon_library.gd")
 
 
 func _initialize() -> void:
@@ -30,6 +31,7 @@ func _initialize() -> void:
 	_assert(not overlay.visible, "Expected inventory overlay to start closed")
 	_assert(inventory.get_active_items().size() == 1, "Expected player inventory to start with one visible weapon")
 	_assert(inventory.get_power_bonus() == 1, "Expected Knife to add one power")
+	_assert(inventory.get_target_range_bonus() == 0, "Expected the starting inventory not to increase target range")
 	var stats_signal_result := {"count": 0}
 	inventory.stats_changed.connect(func() -> void:
 		stats_signal_result["count"] += 1
@@ -110,6 +112,7 @@ func _initialize() -> void:
 		"effect": "+2 Power",
 		"power_bonus": 2,
 	}), "Expected adding a test item to succeed")
+	_assert(inventory.get_target_range_bonus() == 0, "Expected weapons not to increase target range")
 	_assert(stats_signal_result["count"] == 1, "Expected adding items to notify stat listeners")
 	inventory.set_inventory_open(true)
 	inventory._layout_inventory()
@@ -140,6 +143,14 @@ func _initialize() -> void:
 	_assert((slots.get_child(1) as Button).disabled, "Expected moving an inventory item to an empty slot to clear the source slot")
 	_assert(not (slots.get_child(2) as Button).disabled, "Expected moving an inventory item to an empty slot to fill the target slot")
 	_assert((slots.get_child(2) as Button).icon != null, "Expected moved inventory item to keep its icon")
+
+	inventory.set_items([
+		{"name": "Knife", "effect": "+1 Power", "power_bonus": 1},
+		{"name": "Kikare", "effect": "Placera kort längre bort.", "target_range_bonus": 1},
+		{},
+	])
+	_assert(inventory.get_target_range_bonus() == 1, "Expected Kikare to increase target range by one")
+	_assert(ItemIconLibrary.get_icon(inventory.get_items()[1]) != null, "Expected Kikare to have an item icon")
 
 	quit()
 

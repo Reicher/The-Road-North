@@ -68,13 +68,16 @@ func _test_destroy_tile_event() -> void:
 	roads.force_place_tile(Vector2i(4, 8), T_JUNCTION, 0)
 	roads.force_place_tile(Vector2i(4, 0), T_JUNCTION, 2)
 	roads.force_place_tile(Vector2i(4, 7), STRAIGHT, 0)
+	roads.force_place_tile(Vector2i(3, 7), STRAIGHT, 0)
 	roads.force_place_tile(Vector2i(6, 6), STRAIGHT, 1)
 	var destroy_card = hand.cards[0]
 
 	_assert(placement.begin_destroy_targeting(destroy_card), "Expected destroy event to enter targeting mode")
 	_assert(not player.input_enabled, "Expected movement input to pause during targeting")
-	_assert(roads.get_visual_tile(Vector2i(4, 7)).highlight_enabled, "Expected placed tiles to be highlighted")
-	_assert(roads.get_visual_tile(Vector2i(6, 6)).highlight_enabled, "Expected remote placed tiles to be highlighted")
+	_assert(not roads.get_visual_tile(Vector2i(4, 7)).highlight_enabled, "Expected valid targets not to be revealed")
+	_assert(not roads.get_visual_tile(Vector2i(3, 7)).highlight_enabled, "Expected diagonal placed tiles not to be highlighted")
+	_assert(not roads.get_visual_tile(Vector2i(6, 6)).highlight_enabled, "Expected remote placed tiles not to be highlighted")
+	_assert(placement.get_node_or_null("TargetPreview") == null, "Expected no target preview before selecting a tile")
 	_assert(placement.get_node("PlacementControls/Buttons").visible, "Expected targeting controls to appear immediately")
 	_assert(not placement.get_node("PlacementControls/Buttons/RotateButton").visible, "Expected targeting controls to hide rotate")
 	_assert(placement.get_node("PlacementControls/Buttons/ConfirmButton").disabled, "Expected target confirm to start disabled")
@@ -88,14 +91,24 @@ func _test_destroy_tile_event() -> void:
 	map.tile_pressed.emit(Vector2i(4, 0))
 	_assert(not placement.has_valid_preview(), "Expected goal tile target to be invalid")
 
+	map.tile_pressed.emit(Vector2i(3, 7))
+	_assert(not placement.has_valid_preview(), "Expected diagonal tile target to be outside target range")
+	var target_preview = placement.get("_target_preview")
+	_assert(target_preview != null and target_preview.preview_color == PlacementController.INVALID_COLOR, "Expected only the selected invalid target to show red")
+
 	map.tile_pressed.emit(Vector2i(4, 7))
 	_assert(placement.has_valid_preview(), "Expected placed tile target to be valid")
+	_assert(target_preview.preview_color == PlacementController.VALID_COLOR, "Expected only the selected valid target to show green")
 
 	map.tile_pressed.emit(Vector2i(6, 6))
-	_assert(placement.has_valid_preview(), "Expected remote placed tile target to be valid")
+	_assert(not placement.has_valid_preview(), "Expected remote placed tile target to be outside target range")
+	_assert(not placement.confirm_placement(), "Expected remote destroy target not to confirm")
+	_assert(map.get_tile(Vector2i(6, 6)) != null, "Expected remote tile to remain placed")
+
+	map.tile_pressed.emit(Vector2i(4, 7))
 	_assert(placement.confirm_placement(), "Expected valid destroy target to confirm")
-	_assert(map.get_tile(Vector2i(6, 6)) == null, "Expected destroy event to remove the selected remote tile")
-	_assert(roads.get_visual_tile(Vector2i(6, 6)) == null, "Expected destroy event to remove the remote visual tile")
+	_assert(map.get_tile(Vector2i(4, 7)) == null, "Expected destroy event to remove the selected adjacent tile")
+	_assert(roads.get_visual_tile(Vector2i(4, 7)) == null, "Expected destroy event to remove the adjacent visual tile")
 	_assert(not hand.cards.has(destroy_card), "Expected confirmed destroy event to consume the card")
 	_assert(player.input_enabled, "Expected movement input to resume after destroy")
 
@@ -151,15 +164,21 @@ func _test_rotate_tile_event() -> void:
 
 	roads.force_place_tile(Vector2i(4, 8), T_JUNCTION, 0)
 	roads.force_place_tile(Vector2i(4, 0), T_JUNCTION, 2)
+	roads.force_place_tile(Vector2i(4, 7), STRAIGHT, 1)
 	roads.force_place_tile(Vector2i(6, 6), STRAIGHT, 1)
 	var rotate_card = hand.cards[0]
 
 	_assert(placement.begin_rotate_targeting(rotate_card), "Expected rotate event to enter targeting mode")
-	_assert(roads.get_visual_tile(Vector2i(6, 6)).highlight_enabled, "Expected rotate targets to be highlighted")
+	_assert(not roads.get_visual_tile(Vector2i(4, 7)).highlight_enabled, "Expected valid rotate targets not to be revealed")
+	_assert(not roads.get_visual_tile(Vector2i(6, 6)).highlight_enabled, "Expected remote rotate targets not to be highlighted")
 	map.tile_pressed.emit(Vector2i(4, 8))
 	_assert(not placement.has_valid_preview(), "Expected player tile rotate target to be invalid")
 	map.tile_pressed.emit(Vector2i(6, 6))
+	_assert(not placement.has_valid_preview(), "Expected remote rotate target to be outside target range")
+	map.tile_pressed.emit(Vector2i(4, 7))
 	_assert(not placement.has_valid_preview(), "Expected unchanged rotate target not to be confirmable")
+	var target_preview = placement.get("_target_preview")
+	_assert(target_preview != null and target_preview.preview_color == PlacementController.VALID_COLOR, "Expected selected valid rotate target to show green")
 	_assert(not placement.confirm_placement(), "Expected unchanged rotate target not to confirm")
 	placement.rotate_preview()
 	_assert(placement.has_valid_preview(), "Expected changed rotate target to be confirmable")
@@ -170,10 +189,10 @@ func _test_rotate_tile_event() -> void:
 	placement.rotate_preview()
 	_assert(placement.has_valid_preview(), "Expected rotating away from original again to enable confirm")
 	_assert(placement.confirm_placement(), "Expected changed rotate target to confirm")
-	var rotated_tile: Dictionary = map.get_tile(Vector2i(6, 6))
+	var rotated_tile: Dictionary = map.get_tile(Vector2i(4, 7))
 	_assert(rotated_tile["rotation_steps"] == 2, "Expected rotate event to turn the selected tile clockwise")
 	_assert(rotated_tile["connections"]["north"] == true, "Expected rotated tile connections to update")
-	_assert(roads.get_visual_tile(Vector2i(6, 6)).rotation_steps == 2, "Expected rotate event to update the visual tile")
+	_assert(roads.get_visual_tile(Vector2i(4, 7)).rotation_steps == 2, "Expected rotate event to update the visual tile")
 	_assert(not hand.cards.has(rotate_card), "Expected confirmed rotate event to consume the card")
 
 	root.queue_free()
@@ -192,15 +211,15 @@ func _test_rotate_tile_cancel_restores_original() -> void:
 	var rotate_card: CardView = hand.cards[0]
 
 	placement.begin_rotate_targeting(rotate_card)
-	map.tile_pressed.emit(Vector2i(6, 6))
+	map.tile_pressed.emit(Vector2i(4, 7))
 	placement.rotate_preview()
 	placement.rotate_preview()
-	placement.cancel_placement()
-	var restored_tile: Dictionary = map.get_tile(Vector2i(6, 6))
+	hand.card_drag_moved.emit(rotate_card, Vector2.ZERO, false)
+	var restored_tile: Dictionary = map.get_tile(Vector2i(4, 7))
 	_assert(restored_tile["rotation_steps"] == 1, "Expected cancelling Doubt to restore original rotation")
 	_assert(restored_tile["connections"]["east"] == true, "Expected cancelling Doubt to restore original connections")
-	_assert(roads.get_visual_tile(Vector2i(6, 6)).rotation_steps == 1, "Expected cancelling Doubt to restore visual rotation")
-	_assert(hand.cards.has(rotate_card), "Expected cancelling Doubt to keep the card in hand")
+	_assert(roads.get_visual_tile(Vector2i(4, 7)).rotation_steps == 1, "Expected cancelling Doubt to restore visual rotation")
+	_assert(hand.cards.has(rotate_card), "Expected dragging Doubt back into the hand to keep the card")
 
 	root.queue_free()
 
@@ -214,19 +233,19 @@ func _test_rotate_tile_reselect_restores_original() -> void:
 	var placement: PlacementController = fixture["placement"]
 	var rotate_card: CardView = hand.cards[0]
 
-	roads.force_place_tile(Vector2i(5, 6), STRAIGHT, 0)
+	roads.force_place_tile(Vector2i(3, 8), STRAIGHT, 0)
 	placement.begin_rotate_targeting(rotate_card)
-	map.tile_pressed.emit(Vector2i(6, 6))
+	map.tile_pressed.emit(Vector2i(4, 7))
 	placement.rotate_preview()
-	map.tile_pressed.emit(Vector2i(5, 6))
-	var original_tile: Dictionary = map.get_tile(Vector2i(6, 6))
+	map.tile_pressed.emit(Vector2i(3, 8))
+	var original_tile: Dictionary = map.get_tile(Vector2i(4, 7))
 	_assert(original_tile["rotation_steps"] == 1, "Expected selecting a new Doubt target to restore the previous target")
 	_assert(not placement.has_valid_preview(), "Expected newly selected unchanged target to wait for rotation")
 	placement.rotate_preview()
 	_assert(placement.confirm_placement(), "Expected changed second target to confirm")
-	var second_tile: Dictionary = map.get_tile(Vector2i(5, 6))
+	var second_tile: Dictionary = map.get_tile(Vector2i(3, 8))
 	_assert(second_tile["rotation_steps"] == 1, "Expected second selected tile to keep confirmed rotation")
-	_assert(roads.get_visual_tile(Vector2i(5, 6)).rotation_steps == 1, "Expected second visual tile to keep confirmed rotation")
+	_assert(roads.get_visual_tile(Vector2i(3, 8)).rotation_steps == 1, "Expected second visual tile to keep confirmed rotation")
 	_assert(not hand.cards.has(rotate_card), "Expected confirmed Doubt to consume the card")
 
 	root.queue_free()
@@ -269,8 +288,7 @@ func _test_draw_two_event() -> void:
 	deck_controller.drawn_count = 0
 
 	var draw_card = hand.cards[0]
-	hand.focus_card(draw_card)
-	hand.card_use_requested.emit(draw_card)
+	_assert(deck_controller.play_immediate_event(draw_card), "Expected draw-two to be a playable immediate event")
 	_assert(not hand.cards.has(draw_card), "Expected draw-two card to be consumed")
 	_assert(hand.cards.size() == 3, "Expected draw-two to draw replacement plus two extra cards")
 	_assert(deck_controller.cards_remaining() == 0, "Expected draw-two to draw whatever remains when the deck is short")
@@ -322,7 +340,7 @@ func _test_lucky_find_event() -> void:
 	deck_controller.deck.clear()
 
 	var lucky_card = hand.cards[0]
-	hand.card_use_requested.emit(lucky_card)
+	_assert(deck_controller.play_immediate_event(lucky_card), "Expected lucky find to be a playable immediate event")
 	_assert(not hand.cards.has(lucky_card), "Expected lucky find card to be consumed")
 	_assert(player.food == 8 or player.gold == 5, "Expected lucky find to grant food or gold")
 
@@ -378,7 +396,7 @@ func _make_rotate_fixture() -> Dictionary:
 
 	roads.force_place_tile(Vector2i(4, 8), T_JUNCTION, 0)
 	roads.force_place_tile(Vector2i(4, 0), T_JUNCTION, 2)
-	roads.force_place_tile(Vector2i(6, 6), STRAIGHT, 1)
+	roads.force_place_tile(Vector2i(4, 7), STRAIGHT, 1)
 	return {
 		"root": root,
 		"map": map,

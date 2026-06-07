@@ -76,10 +76,8 @@ func _initialize() -> void:
 	_assert(hand.call("get_focused_card") == focused_card, "Expected tapped card to become focused")
 	_assert(focused_card.focused, "Expected focused card state to update")
 	_assert(focused_card.scale.x > hand.cards[1].scale.x, "Expected focused card to grow larger than surrounding cards")
-	var hand_use_button := hand.get_node("UseButton") as Button
-	_assert(hand_use_button.visible, "Expected Use button to appear below the focused card")
-	_assert(not focused_card.get_node("UseButton").visible, "Expected focused card to keep its internal Use button hidden")
-	_assert(not hand.cards[1].get_node("UseButton").visible, "Expected Use button to stay hidden on unfocused cards")
+	_assert(hand.get_node_or_null("UseButton") == null, "Expected the hand to have no Use button")
+	_assert(focused_card.get_node_or_null("UseButton") == null, "Expected cards to have no Use button")
 	var title_label := focused_card.get_node("Title") as Label
 	var category_label := focused_card.get_node("Category") as Label
 	var plain_title_label := hand.cards[0].get_node("Title") as Label
@@ -91,7 +89,6 @@ func _initialize() -> void:
 	var plain_detail_label := hand.cards[0].get_node("Detail") as Label
 	var berry_detail_label := hand.cards[1].get_node("Detail") as Label
 	var enemy_detail_label := hand.cards[3].get_node("Detail") as Label
-	var focused_card_bottom: float = focused_card.position.y + focused_card.size.y * 0.5 + focused_card.size.y * focused_card.scale.y * 0.5
 	_assert(plain_title_label.text == "Straight Road", "Expected plain road cards to show only the road type")
 	_assert(plain_detail_label.text == "", "Expected plain road cards to leave the detail text empty")
 	_assert(berry_title_label.text == "Corner", "Expected berry road cards to show only the road type")
@@ -108,8 +105,6 @@ func _initialize() -> void:
 	_assert(detail_label.offset_bottom < focused_card.size.y, "Expected focused card detail text to stay inside the card")
 	_assert(title_label.get_theme_font_size("font_size") > CardView.TITLE_FONT_MAX, "Expected larger cards to scale up their title text")
 	_assert(detail_label.get_theme_font_size("font_size") > CardView.DETAIL_FONT_MAX, "Expected larger cards to scale up their detail text")
-	_assert(hand_use_button.position.y >= focused_card_bottom, "Expected focused Use button to sit below the card")
-	_assert(hand_use_button.position.y + hand_use_button.size.y <= hand.size.y, "Expected focused Use button to fit above the bottom of the screen")
 	_assert(focused_card.position.y < hand.cards[1].position.y, "Expected focused card to lift above surrounding cards")
 	_assert(hand.cards[1].position.y <= hand.cards[0].position.y, "Expected neighboring cards to keep the hand arc height")
 	_assert(hand.cards[3].position.y <= hand.cards[4].position.y, "Expected neighboring cards to keep the hand arc height")
@@ -120,26 +115,48 @@ func _initialize() -> void:
 
 	hand.call("_on_card_focus_requested", focused_card)
 	_assert(hand.call("get_focused_card") == null, "Expected tapping the focused card again to clear focus")
-	_assert(not hand_use_button.visible, "Expected Use button to hide after tapping the focused card again")
 
-	var touch := InputEventScreenTouch.new()
-	touch.pressed = true
 	var touch_card: CardView = hand.cards[4]
-	touch.position = touch_card.get_global_transform_with_canvas() * (touch_card.size * 0.5)
 	var touch_button := touch_card.get_node("TouchButton") as Button
 	_assert(touch_button != null and touch_button.flat, "Expected cards to use a transparent native Button touch surface")
-	touch_button.pressed.emit()
+	var touch_position: Vector2 = touch_card.get_global_transform_with_canvas() * (touch_card.size * 0.5)
+	hand.call("_on_card_pointer_pressed", touch_card, touch_position)
+	hand.call("_on_card_pointer_released", touch_card, touch_position)
 	_assert(hand.get_focused_card() == touch_card, "Expected native card button to focus an overlapping card on mobile")
 	_assert((touch_card.get_node("Title") as Label).mouse_filter == Control.MOUSE_FILTER_IGNORE, "Expected card labels not to intercept touch input")
 
-	touch.position = hand_use_button.get_global_rect().get_center()
-	_assert(hand.get_focused_card() == touch_card, "Expected global touch routing to leave the Use button available")
+	var drag_card: CardView = touch_card
+	var drag_started: Array = []
+	var drag_moves: Array = []
+	var drag_finished: Array = []
+	hand.card_drag_started.connect(func(card: CardView, position: Vector2) -> void: drag_started.append([card, position]))
+	hand.card_drag_moved.connect(func(card: CardView, position: Vector2, activated: bool) -> void: drag_moves.append([card, position, activated]))
+	hand.card_drag_finished.connect(func(card: CardView, position: Vector2, activated: bool, over_hand: bool) -> void: drag_finished.append([card, position, activated, over_hand]))
+	hand.call("_on_card_pointer_pressed", drag_card, touch_position)
+	hand.call("_on_card_pointer_moved", drag_card, touch_position + Vector2.UP * (hand.drag_threshold - 1.0))
+	_assert(not hand.is_drag_active(), "Expected movement below the drag threshold to keep the card focused")
+	var resting_card_y: float = hand.cards[0].position.y
+	var activated_position := Vector2(touch_position.x, hand.get_activation_boundary_y() - 8.0)
+	hand.call("_on_card_pointer_moved", drag_card, activated_position)
+	_assert(hand.is_drag_active(), "Expected a deliberate drag to start card dragging")
+	_assert(hand.inactive, "Expected dragging above the hand to make the hand inactive")
+	_assert(is_equal_approx(hand.cards[0].position.y, resting_card_y + hand.card_size.y * hand.inactive_visible_ratio + hand.bottom_margin), "Expected inactive cards to sit half hidden below the screen")
+	_assert(hand.is_in_group("ui_item_drag_active"), "Expected card dragging to block camera input")
+	_assert(drag_started.size() == 1, "Expected card drag start to emit once")
+	_assert(drag_moves[-1][2] == true, "Expected dragging above the hand to activate the card")
+	hand.call("_on_card_pointer_released", drag_card, activated_position)
+	_assert(not hand.is_drag_active(), "Expected releasing to finish card dragging")
+	_assert(hand.inactive, "Expected an activated release to keep the hand inactive for placement")
+	_assert(not hand.is_in_group("ui_item_drag_active"), "Expected releasing a card to restore camera input")
+	_assert(drag_finished.size() == 1 and drag_finished[0][2] == true, "Expected activated release to be reported")
+	_assert(drag_finished[0][3] == false, "Expected release above the hand not to count as returning the card")
+	hand.set_inactive(false, false)
+	_assert(is_equal_approx(hand.cards[0].position.y, resting_card_y), "Expected ending placement to restore the hand")
 
 	hand.call("focus_card", focused_card)
 
 	hand.clear_focus()
 	_assert(hand.call("get_focused_card") == null, "Expected clear_focus to remove the selected card")
-	_assert(not hand_use_button.visible, "Expected Use button to hide when card is unfocused")
 
 	var cache_card := CARD_SCENE.instantiate() as CardView
 	root.add_child(cache_card)

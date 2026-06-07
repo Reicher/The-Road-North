@@ -3,6 +3,7 @@ extends Node
 
 const CARD_DEFINITION_SCRIPT := preload("res://scripts/card_definition.gd")
 const WeaponCatalog = preload("res://scripts/weapon_catalog.gd")
+const ItemCatalog = preload("res://scripts/item_catalog.gd")
 const GameBalance = preload("res://scripts/game_balance.gd")
 
 const ROAD_CATEGORY := "Road"
@@ -257,6 +258,11 @@ func _make_reward_encounter(kind: Variant, rng: RandomNumberGenerator, level: in
 				1: 0.30,
 				2: 0.15,
 			}),
+		})
+	if rng.randf() < ItemCatalog.BINOCULARS_DROP_CHANCE:
+		loot.push_front({
+			"kind": "item",
+			"item": ItemCatalog.make_binoculars(),
 		})
 	return {
 		"type": kind,

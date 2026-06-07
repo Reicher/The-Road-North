@@ -17,6 +17,24 @@ const TREE_SLOTS := [
 	Vector2(0.03, 0.38),
 	Vector2(0.34, 0.30),
 ]
+const OUTSIDE_TREE_SLOTS := [
+	Vector2(-0.44, -0.43),
+	Vector2(-0.18, -0.45),
+	Vector2(0.08, -0.43),
+	Vector2(0.35, -0.44),
+	Vector2(-0.42, -0.18),
+	Vector2(-0.14, -0.17),
+	Vector2(0.15, -0.20),
+	Vector2(0.43, -0.15),
+	Vector2(-0.45, 0.09),
+	Vector2(-0.17, 0.10),
+	Vector2(0.12, 0.08),
+	Vector2(0.42, 0.13),
+	Vector2(-0.40, 0.38),
+	Vector2(-0.12, 0.42),
+	Vector2(0.18, 0.39),
+	Vector2(0.44, 0.40),
+]
 
 var _cell_nodes: Dictionary = {}
 var _hidden_tree_cells: Dictionary = {}
@@ -105,7 +123,7 @@ func _add_border_forest_cell(map: GameMap, grid_position: Vector2i) -> void:
 	_forest_nodes.append(cell)
 
 	_add_box(cell, "ForestGround", Vector3(map.tile_size * 1.08, GROUND_HEIGHT, map.tile_size * 1.08), Vector3(0.0, -GROUND_HEIGHT * 0.65, 0.0), GROUND_LIGHT_COLOR)
-	_add_cell_trees(map, cell, grid_position)
+	_add_outside_forest_trees(map, cell, grid_position)
 
 
 func _add_playable_ground(map: GameMap) -> void:
@@ -174,6 +192,18 @@ func _add_cell_trees(map: GameMap, parent: Node3D, grid_position: Vector2i) -> v
 		var scale_factor := 0.70 + float(posmod(seed + index * 5, 7)) * 0.055
 		var width_factor := 0.86 + float(posmod(seed + index * 3, 5)) * 0.055
 		var rotation_y := float(posmod(seed * 13 + index * 71, 360))
+		_add_tree(map, parent, Vector3(offset.x * map.tile_size, 0.0, offset.y * map.tile_size), scale_factor, width_factor, rotation_y)
+
+
+func _add_outside_forest_trees(map: GameMap, parent: Node3D, grid_position: Vector2i) -> void:
+	var seed := grid_position.x * 17 + grid_position.y * 13
+	var count := 14 + posmod(seed, 3)
+	for index in count:
+		var slot_index := posmod(index * 7 + seed, OUTSIDE_TREE_SLOTS.size())
+		var offset: Vector2 = OUTSIDE_TREE_SLOTS[slot_index]
+		var scale_factor := 0.88 + float(posmod(seed + index * 5, 7)) * 0.055
+		var width_factor := 0.98 + float(posmod(seed + index * 3, 5)) * 0.06
+		var rotation_y := float(posmod(seed * 19 + index * 67, 360))
 		_add_tree(map, parent, Vector3(offset.x * map.tile_size, 0.0, offset.y * map.tile_size), scale_factor, width_factor, rotation_y)
 
 

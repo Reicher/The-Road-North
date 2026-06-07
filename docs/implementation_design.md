@@ -133,6 +133,8 @@ The Map does not know anything about cards or UI.
 
 It only understands tiles, coordinate helpers, movement and placement rules, and lightweight tile metadata such as an encounter dictionary attached to a placed tile.
 
+Placement validation rejects road openings pointing outside the playable area. The surrounding visual forest should be substantially denser than trees on playable empty tiles so the boundary reads as impassable.
+
 The Map should be the single owner of world/grid coordinate conversion.
 
 The Map should own all logical tile data.
@@ -263,7 +265,7 @@ GameBalance is the shared source for starting values, deck-size formulas, encoun
 
 The DeckController should not contain hand UI logic.
 
-The Hand node displays cards and owns focus/use interaction, but does not execute card effects.
+The Hand node displays cards and owns focus/drag interaction, but does not execute card effects.
 
 ---
 
@@ -275,7 +277,6 @@ Current structure:
 
 - Hand (Control)
   - CardContainer
-  - UseButton
 
 Cards:
 - ui/card.tscn
@@ -285,6 +286,9 @@ The Hand system owns:
 - focus state
 - animations
 - dynamic spacing/compression
+- card drag recognition
+- the temporary dragged-card visual
+- the tweened inactive hand position used during placement and targeting
 
 Cards are not manually reorderable in version 1.
 
@@ -308,7 +312,6 @@ Current structure:
   - Title
   - Category
   - Detail
-  - UseButton
   - TouchButton
 
 Responsibilities:
@@ -339,6 +342,8 @@ Responsibilities:
 - moving preview tile
 - rotating preview
 - validating placement
+- applying the player's current orthogonal target range
+- showing one green or red preview for the currently selected targeted-event tile
 - confirming placement
 - cancelling placement
 
@@ -347,19 +352,19 @@ The controller should query the Map for validation.
 The controller should not permanently modify map state until confirmation.
 
 Placement flow:
-- player presses Use on a road card
-- player taps anywhere on the map
-- preview tile snaps to the tapped tile
+- player drags a road card upward from the hand
+- crossing the activation boundary starts placement mode
+- the preview tile follows the drag and snaps to map tiles
+- placement controls stay hidden while the drag remains active
+- releasing over the map leaves the preview selected
+- releasing over the map shows the relevant placement controls
 - preview becomes green or red depending on validity
 - player may rotate the preview
 - player confirms or cancels
 
 The player may tap another tile to move the preview.
 
-There should be:
-- no dragging
-- no follow-finger placement
-- no continuous movement placement
+Dragging only selects the initial preview position. Once released, the existing tap, rotate, confirm, and cancel flow remains active.
 
 Double tapping the preview tile should rotate it.
 
@@ -382,6 +387,16 @@ Current events:
 - Idea consumes itself, draws its normal replacement, then draws up to two extra cards.
 - Doubt enters target selection mode and previews rotation of one placed road tile.
 - Lucky Find consumes itself and grants either 3 food or 4 gold.
+
+All events are dragged onto the map. Idea and Lucky Find resolve immediately when released over the playable map. Mirage and Doubt enter targeting when dragged above the hand, follow the drag for their initial target, and remain in the normal confirm/cancel flow after release.
+
+Road placement and targeted events currently share a simple orthogonal target range of one tile from the player. The range is an explicit PlacementController value so future items can increase it without changing each card's targeting rules.
+
+PlacementController reads target range bonuses from InventoryUI. Kikare contributes `target_range_bonus: 1`, expanding valid targets to Manhattan distance two. Cache and enemy loot each roll an independent 15% Kikare drop chance on every level.
+
+Road placement deliberately does not show valid empty tiles before the player previews them. Only the active road preview communicates validity through its green or red tint.
+
+Targeted events follow the same rule and do not reveal valid targets in advance. Only the currently previewed target tile is marked green or red.
 
 Future event cards may use different targeting patterns.
 

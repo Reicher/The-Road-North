@@ -30,7 +30,8 @@ func _initialize() -> void:
 
 	_assert(roads.place_tile(Vector2i(4, 3), STRAIGHT, 0), "Expected matching north/south connection to place")
 	_assert(not roads.place_tile(Vector2i(5, 4), STRAIGHT, 1), "Expected invalid east/west mismatch to be rejected")
-	_assert(not roads.place_tile(Vector2i(0, 0), STRAIGHT, 0), "Expected road opening outside map to be rejected")
+	_assert(not roads.place_tile(Vector2i(0, 0), STRAIGHT, 0), "Expected road openings outside the map to be rejected")
+	_assert(not roads.place_tile(Vector2i(-1, 0), STRAIGHT, 0), "Expected road tiles outside the map to be rejected")
 	_assert(not roads.place_tile(Vector2i(4, 4), CORNER, 0), "Expected occupied tile placement to be rejected")
 	var fixed_features: Array[Dictionary] = [
 		{"position": Vector2i(6, 4), "type": GameMap.FEATURE_MOUNTAIN},

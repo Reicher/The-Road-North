@@ -21,6 +21,7 @@ func run() -> void:
 	var inventory := level.get_node("UI/Inventory")
 	var player := level.get_node("Player") as GamePlayer
 	var camera := level.get_node("Camera3D") as Camera3D
+	var placement := level.get_node("PlacementController") as PlacementController
 	var typed_level := level as Level
 
 	_assert(map != null, "Expected level scene to include a GameMap")
@@ -46,7 +47,8 @@ func run() -> void:
 	var outside_forest_cell := map_visuals.get_node("Forest/Forest_-1_-1")
 	var outside_ground := outside_forest_cell.get_node("ForestGround") as MeshInstance3D
 	_assert(playable_forest_cell.get_child_count() >= 6, "Expected playable empty cells to show dense forest")
-	_assert(outside_forest_cell.get_child_count() >= 7, "Expected outside cells to use the same dense forest plus forest ground")
+	_assert(outside_forest_cell.get_child_count() >= 15, "Expected outside cells to form a much thicker forest barrier")
+	_assert(outside_forest_cell.get_child_count() > playable_forest_cell.get_child_count(), "Expected outside forest to be denser than playable empty tiles")
 	_assert((outside_ground.material_override as StandardMaterial3D).albedo_texture == null, "Expected outside forest ground to use a clean solid color")
 	_assert(playable_forest_cell.get_child(0).scale != playable_forest_cell.get_child(1).scale, "Expected forest trees to vary in shape and size")
 	_assert(roads.seed_start_and_goal, "Expected level 001 to seed start and goal tiles")
@@ -57,6 +59,11 @@ func run() -> void:
 	_assert(deck_controller.hand_size == 4, "Expected level 001 to configure a four-card hand")
 	_assert(deck_controller.level == 1, "Expected level 001 enemies to use power one through three")
 	_assert(deck_controller.total_cards() == 18, "Expected level 001 deck size to use its authored 5x5 map size")
+	_assert(placement.get_target_range() == 1, "Expected the player to start with target range one")
+	inventory.add_item({"name": "Kikare", "effect": "Placera kort längre bort.", "target_range_bonus": 1})
+	_assert(placement.get_target_range() == 2, "Expected Kikare in the inventory to increase target range")
+	_assert(placement.call("_is_in_target_range", Vector2i(2, 2)), "Expected Kikare to allow two vertical tiles")
+	_assert(placement.call("_is_in_target_range", Vector2i(1, 3)), "Expected Kikare to allow one diagonal tile")
 	_assert(typed_level.state == Level.RunState.IDLE, "Expected level to start idle")
 	player.move_started.emit(Vector2i(4, 7))
 	_assert(typed_level.state == Level.RunState.PLAYER_MOVING, "Expected level to own player moving state")
@@ -71,6 +78,29 @@ func run() -> void:
 	_assert(typed_level.state == Level.RunState.IDLE, "Expected level to return idle after movement")
 	_assert(player.input_enabled, "Expected level to re-enable player input after movement")
 	_assert(not camera.get("_following_player"), "Expected camera to stop continuously following after movement")
+
+	var road_card: CardView
+	for card in hand.cards:
+		if card.category == DeckController.ROAD_CATEGORY:
+			road_card = card
+			break
+	_assert(road_card != null, "Expected the opening hand to include a road card for drag interaction")
+	var card_position: Vector2 = road_card.get_global_transform_with_canvas() * (road_card.size * 0.5)
+	var preview_position := map.grid_to_screen_position(Vector2i(2, 3))
+	hand._on_card_pointer_pressed(road_card, card_position)
+	hand._on_card_pointer_moved(road_card, preview_position)
+	_assert(placement.active_card == road_card, "Expected dragging a road card above the hand to start placement")
+	_assert(placement.preview_position == Vector2i(2, 3), "Expected the initial road preview to follow the dragged card")
+	_assert(hand.inactive, "Expected the hand to move down while dragging a card over the map")
+	_assert(not placement.get_node("PlacementControls/Buttons").visible, "Expected placement buttons to stay hidden while dragging")
+	hand._on_card_pointer_released(road_card, preview_position)
+	_assert(placement.active_card == road_card, "Expected releasing a road card over the map to leave placement active")
+	_assert(not hand.is_drag_active(), "Expected release to finish the hand drag while placement remains active")
+	_assert(hand.inactive, "Expected the hand to remain down after releasing into placement")
+	_assert(placement.get_node("PlacementControls/Buttons").visible, "Expected placement buttons to appear after releasing the card")
+	placement.cancel_placement()
+	_assert(typed_level.state == Level.RunState.IDLE, "Expected cancelling the released preview to return the level to idle")
+	_assert(not hand.inactive, "Expected cancelling placement to restore the hand")
 
 	var level_002 := LEVEL_002.instantiate()
 	get_root().add_child(level_002)

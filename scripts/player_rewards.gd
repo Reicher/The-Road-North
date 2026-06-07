@@ -2,6 +2,7 @@ class_name PlayerRewards
 extends Node
 
 const WeaponCatalog = preload("res://scripts/weapon_catalog.gd")
+const ItemCatalog = preload("res://scripts/item_catalog.gd")
 const GameBalance = preload("res://scripts/game_balance.gd")
 
 var _player: GamePlayer
@@ -85,6 +86,11 @@ func _make_enemy_loot(enemy_data: Dictionary) -> Array[Dictionary]:
 		loot.append({
 			"kind": "item",
 			"item": _make_enemy_item(enemy_data),
+		})
+	if _loot_rng.randf() < ItemCatalog.BINOCULARS_DROP_CHANCE:
+		loot.append({
+			"kind": "item",
+			"item": ItemCatalog.make_binoculars(),
 		})
 	return loot
 

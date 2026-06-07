@@ -46,7 +46,7 @@ The prototype currently contains two authored square levels:
 
 The playable area has no surrounding gameplay padding border.
 
-The 3D world should show dense forest outside all four edges of the playable grid so angled camera views never reveal an empty void beyond small maps. This surrounding forest is visual only and does not add playable tiles.
+The 3D world should show a much thicker forest outside all four edges of the playable grid so angled camera views never reveal an empty void beyond small maps and the boundary reads as impassable. This surrounding forest is visual only and does not add playable tiles.
 
 The camera may show the surrounding visual forest, but it cannot be panned beyond that authored margin.
 
@@ -196,13 +196,22 @@ When the player taps a card:
 - that card moves upward and toward the center
 - the surrounding cards compress slightly outward
 - the selected card becomes larger and easier to read
-- a "Use" button appears directly below the focused card
 
-The Use button is only visible when a card is focused.
+Cards are played by dragging them upward from the hand onto the map.
 
-Tapping the Use button on a road card enters placement mode.
+When a card is dragged:
+- a visual copy follows the finger while it remains near the hand
+- crossing a clear activation boundary above the hand starts road placement or event targeting
+- the rest of the hand tweens downward until the cards are half hidden below the screen
+- road cards change from the card visual into the normal tile preview
+- targeted event cards change from the card visual into their normal target preview
+- placement controls remain hidden until the dragged card is released over the map
+- dragging back into the hand cancels the active placement or targeting mode
+- releasing outside both the hand and playable map cancels the drag
 
-Tapping the Use button on an event card triggers the event immediately or enters targeting mode.
+Releasing a road card or targeted event over the map leaves its preview selected and shows the rotate, confirm, and cancel controls. The hand remains half hidden until the card is confirmed or cancelled.
+
+Events without a target trigger immediately when released over the playable map.
 
 Tapping a different card focuses that card instead.
 
@@ -260,10 +269,11 @@ Enemy encounters are revealed when placed so the player can see the threat on th
 
 Berry-bush encounters grant food when reached. Cache encounters grant gold and may also contain a weapon.
 
-When the player selects a road card from their hand, the game enters placement mode.
+When the player drags a road card above the hand, the game enters placement mode.
 
 In placement mode:
-- the player may tap any tile on the map
+- the initial preview follows the dragged card across map tiles
+- after releasing the card, the player may tap any tile on the map
 - a preview tile snaps to the tapped tile
 - the preview tile is tinted green when placement is valid
 - the preview tile is tinted red when placement is invalid
@@ -276,17 +286,27 @@ In placement mode:
 - tapping another tile moves the preview there
 - the cancel button exits placement mode and returns the card to the hand
 
-There is no dragging, follow-finger behavior, or continuous placement movement.
+Dragging only controls the initial preview selection. After release, placement uses the normal tap, rotate, confirm, and cancel interactions.
 
 A road card may only be legally placed:
 - on an empty playable tile
-- orthogonally adjacent to the player’s current tile
+- within the player's current orthogonal target range
+
+The player currently has a target range of one tile:
+- targeted cards may only affect tiles one orthogonal step from the player
+- diagonal tiles are not in range
+- future items may increase this range
+
+Road cards do not reveal which empty tiles or rotations would be valid. Only the currently previewed road tile is tinted green when valid or red when invalid.
+
+Targeted events do not reveal valid targets in advance. Only the currently previewed target tile is marked green when valid or red when invalid.
 
 A placement is only valid if all of the following are true:
 - the new tile is adjacent to the player's current tile
 - the new tile connects correctly to the player's current tile
 - the new tile connects correctly to all neighboring tiles
 - all neighboring tiles with an opening toward the new tile are matched back
+
 - the tile does not create openings outside the playable map
 
 Neighboring tiles without openings toward the new tile are valid.
@@ -306,13 +326,15 @@ Version 1 contains four event cards. Event cards repeat in order as needed when 
 One event destroys a placed tile.
 
 When this card is played:
-- the player is shown all placed tiles
-- the player selects one tile to destroy
+- the player is shown all placed tiles after dragging the card above the hand
+- the initial selected tile follows the drag
+- after release, the player may select another tile to destroy
 - the start and goal tiles cannot be targeted
 - the tile the player is currently standing on cannot be targeted
+- the tile must be within the player's orthogonal target range
 
 The UI mirrors placement mode:
-- eligible tiles are highlighted
+- only the currently previewed tile is marked green or red
 - confirm and cancel buttons appear
 - there is no rotate button
 - cancelling returns the card to the hand
@@ -372,6 +394,8 @@ Food and gold loot are collected directly.
 Items go into the inventory if there is space.
 
 The inventory is a three-slot backpack that starts with a Knife. Weapons may provide power. Only the strongest carried weapon contributes to the player's power. Weapons range from +1 power for a Knife to +5 power for a Katana.
+
+Kikare is a utility item that increases the player's target range by one. With Kikare, targeted cards can reach Manhattan distance two: two tiles horizontally or vertically, or one tile diagonally. Every cache and defeated enemy has a 15% chance to additionally drop Kikare on every level.
 
 Food and gold are collected immediately when loot opens. Item loot can be dragged into the backpack, swapped with carried items, or collected with Take All when enough slots are free. Backpack items can also be reordered by drag and drop.
 

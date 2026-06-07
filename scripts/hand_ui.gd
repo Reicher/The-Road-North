@@ -5,7 +5,9 @@ const UIStyle = preload("res://scripts/ui_style.gd")
 
 signal card_focused(card: CardView)
 signal card_unfocused
-signal card_use_requested(card: CardView)
+signal card_drag_started(card: CardView, canvas_position: Vector2)
+signal card_drag_moved(card: CardView, canvas_position: Vector2, activated: bool)
+signal card_drag_finished(card: CardView, canvas_position: Vector2, activated: bool, released_over_hand: bool)
 
 @export var card_scene: PackedScene = preload("res://ui/card.tscn")
 @export var demo_cards_enabled := true
@@ -21,17 +23,23 @@ signal card_use_requested(card: CardView)
 @export var minimum_spacing := 48.0
 @export var focused_side_shift := 38.0
 @export var layout_duration := 0.14
-@export var use_button_size := Vector2(116.0, 48.0)
-@export var use_button_gap := 8.0
-@export var use_button_bottom_margin := 8.0
+@export var inactive_visible_ratio := 0.5
+@export var drag_threshold := 12.0
+@export var activation_margin := 20.0
 
 var cards: Array[CardView] = []
 var focused_index := -1
+var interaction_enabled := true
+var inactive := false
 
 var _layout_tween: Tween
 var _ready_completed := false
 var _card_parent: Control
-var _use_button: Button
+var _pressed_card: CardView
+var _press_position := Vector2.ZERO
+var _dragged_card: CardView
+var _drag_ghost: CardView
+var _drag_activated := false
 
 
 func _ready() -> void:
@@ -40,7 +48,6 @@ func _ready() -> void:
 	_ready_completed = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_resolve_card_parent()
-	_resolve_use_button()
 	resized.connect(_on_resized)
 	if demo_cards_enabled and cards.is_empty():
 		set_cards(_make_demo_cards())
@@ -62,7 +69,6 @@ func _gui_input(event: InputEvent) -> void:
 	elif event is InputEventScreenTouch and event.pressed:
 		var touched_card := _card_at_canvas_position(event.position)
 		if touched_card != null:
-			_on_card_focus_requested(touched_card)
 			accept_event()
 		else:
 			clear_focus()
@@ -82,7 +88,6 @@ func set_cards(card_data_list: Array) -> void:
 
 func add_card(card_data: Dictionary, animate := true) -> CardView:
 	_resolve_card_parent()
-	_resolve_use_button()
 	if _card_parent == null:
 		return null
 	var card := card_scene.instantiate() as CardView
@@ -90,8 +95,9 @@ func add_card(card_data: Dictionary, animate := true) -> CardView:
 	card.size = card_size
 	card.pivot_offset = card_size * 0.5
 	card.configure(card_data)
-	card.focus_requested.connect(_on_card_focus_requested)
-	card.use_requested.connect(_on_card_use_requested)
+	card.pointer_pressed.connect(_on_card_pointer_pressed)
+	card.pointer_moved.connect(_on_card_pointer_moved)
+	card.pointer_released.connect(_on_card_pointer_released)
 	_card_parent.add_child(card)
 	cards.append(card)
 	_layout_cards(animate)
@@ -161,7 +167,6 @@ func _layout_cards(animated := true) -> void:
 		_layout_tween = null
 
 	if cards.is_empty():
-		_layout_use_button(false)
 		return
 
 	var spacing := get_card_spacing()
@@ -169,9 +174,8 @@ func _layout_cards(animated := true) -> void:
 	var hand_width := card_size.x + spacing * float(count - 1)
 	var start_x := side_margin + (maxf(0.0, _available_width() - side_margin * 2.0) - hand_width) * 0.5
 	var base_y := _available_height() - card_size.y - bottom_margin
-	var focused_card_position := Vector2.ZERO
-	var focused_card_scale := Vector2.ONE
-
+	if inactive:
+		base_y += card_size.y * inactive_visible_ratio + bottom_margin
 	if animated and layout_duration > 0.0:
 		_layout_tween = create_tween()
 		_layout_tween.set_parallel(true)
@@ -188,8 +192,6 @@ func _layout_cards(animated := true) -> void:
 			target_position += Vector2.UP.rotated(target_rotation) * card_size.y * focused_lift_ratio
 			target_scale = Vector2.ONE * focused_scale
 			target_z = 100
-			focused_card_position = target_position
-			focused_card_scale = target_scale
 		elif focused_index != -1:
 			var direction := signf(float(index - focused_index))
 			var distance_from_focus := absf(float(index - focused_index))
@@ -206,9 +208,6 @@ func _layout_cards(animated := true) -> void:
 			card.rotation = target_rotation
 			card.scale = target_scale
 
-	_layout_use_button(animated, focused_card_position, focused_card_scale)
-
-
 func _on_card_focus_requested(card: CardView) -> void:
 	if card == get_focused_card():
 		clear_focus()
@@ -216,17 +215,121 @@ func _on_card_focus_requested(card: CardView) -> void:
 	focus_card(card)
 
 
-func _on_card_use_requested(card: CardView) -> void:
-	if card != get_focused_card():
+func _on_card_pointer_pressed(card: CardView, canvas_position: Vector2) -> void:
+	if not interaction_enabled or _dragged_card != null:
 		return
-	card_use_requested.emit(card)
+	_pressed_card = card
+	_press_position = canvas_position
 
 
-func _on_use_button_pressed() -> void:
-	var card := get_focused_card()
-	if card == null:
+func _on_card_pointer_moved(card: CardView, canvas_position: Vector2) -> void:
+	if card != _pressed_card:
 		return
-	card_use_requested.emit(card)
+	if _dragged_card == null:
+		if _press_position.distance_to(canvas_position) < drag_threshold:
+			return
+		_start_card_drag(card, canvas_position)
+	_update_card_drag(canvas_position)
+
+
+func _on_card_pointer_released(card: CardView, canvas_position: Vector2) -> void:
+	if card != _pressed_card:
+		return
+	if _dragged_card == null:
+		_pressed_card = null
+		_on_card_focus_requested(card)
+		return
+	_finish_card_drag(canvas_position)
+
+
+func _start_card_drag(card: CardView, canvas_position: Vector2) -> void:
+	_dragged_card = card
+	_drag_activated = false
+	add_to_group("ui_item_drag_active")
+	clear_focus()
+	_show_drag_ghost(card, canvas_position)
+	card.modulate.a = 0.35
+	card_drag_started.emit(card, canvas_position)
+
+
+func _update_card_drag(canvas_position: Vector2) -> void:
+	if _dragged_card == null:
+		return
+	_drag_activated = canvas_position.y < get_activation_boundary_y()
+	set_inactive(_drag_activated)
+	_update_drag_ghost(canvas_position)
+	if _drag_ghost != null:
+		_drag_ghost.visible = not _drag_activated or not _dragged_card_uses_preview()
+	card_drag_moved.emit(_dragged_card, canvas_position, _drag_activated)
+
+
+func _finish_card_drag(canvas_position: Vector2) -> void:
+	var card := _dragged_card
+	var activated := _drag_activated
+	var released_over_hand := is_canvas_position_over_hand(canvas_position)
+	if not activated or released_over_hand:
+		set_inactive(false)
+	_cancel_drag_visual()
+	card_drag_finished.emit(card, canvas_position, activated, released_over_hand)
+
+
+func _cancel_drag_visual() -> void:
+	if _dragged_card != null:
+		_dragged_card.modulate = Color.WHITE
+	_pressed_card = null
+	_dragged_card = null
+	_drag_activated = false
+	remove_from_group("ui_item_drag_active")
+	if _drag_ghost != null:
+		_drag_ghost.queue_free()
+		_drag_ghost = null
+
+
+func _show_drag_ghost(card: CardView, canvas_position: Vector2) -> void:
+	_drag_ghost = card_scene.instantiate() as CardView
+	_drag_ghost.custom_minimum_size = card_size
+	_drag_ghost.size = card_size
+	_drag_ghost.pivot_offset = card_size * 0.5
+	_drag_ghost.configure(card.get_card_data())
+	_drag_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_drag_ghost.modulate.a = 0.88
+	_drag_ghost.z_index = 1000
+	add_child(_drag_ghost)
+	_update_drag_ghost(canvas_position)
+
+
+func _update_drag_ghost(canvas_position: Vector2) -> void:
+	if _drag_ghost == null:
+		return
+	var local_position := get_global_transform_with_canvas().affine_inverse() * canvas_position
+	_drag_ghost.position = local_position - _drag_ghost.size * 0.5
+
+
+func get_activation_boundary_y() -> float:
+	return get_global_rect().position.y - activation_margin
+
+
+func is_canvas_position_over_hand(canvas_position: Vector2) -> bool:
+	return get_global_rect().has_point(canvas_position)
+
+
+func is_drag_active() -> bool:
+	return _dragged_card != null
+
+
+func set_inactive(value: bool, animated := true) -> void:
+	if inactive == value:
+		return
+	inactive = value
+	_layout_cards(animated)
+
+
+func _dragged_card_uses_preview() -> bool:
+	if _dragged_card == null:
+		return false
+	if _dragged_card.category == DeckController.ROAD_CATEGORY:
+		return true
+	return _dragged_card.event_type == DeckController.EVENT_DESTROY_TILE or _dragged_card.event_type == DeckController.EVENT_ROTATE_TILE
 
 
 func _on_resized() -> void:
@@ -275,51 +378,6 @@ func _resolve_card_parent() -> void:
 	_card_parent = get_node_or_null("CardContainer") as Control
 	if _card_parent == null:
 		push_warning("HandUI needs a CardContainer child.")
-
-
-func _resolve_use_button() -> void:
-	if _use_button != null:
-		return
-
-	_use_button = get_node_or_null("UseButton") as Button
-	if _use_button == null:
-		push_warning("HandUI needs a UseButton child.")
-		return
-
-	_use_button.text = "Use"
-	_use_button.focus_mode = Control.FOCUS_NONE
-	_use_button.custom_minimum_size = use_button_size
-	_use_button.size = use_button_size
-	_use_button.visible = false
-	_use_button.z_index = 200
-	if not _use_button.pressed.is_connected(_on_use_button_pressed):
-		_use_button.pressed.connect(_on_use_button_pressed)
-
-
-func _layout_use_button(animated := true, focused_card_position := Vector2.ZERO, focused_card_scale := Vector2.ONE) -> void:
-	_resolve_use_button()
-	if _use_button == null:
-		return
-	if focused_index == -1:
-		_use_button.visible = false
-		return
-
-	_use_button.visible = true
-	_use_button.size = use_button_size
-	var scaled_card_size := card_size * focused_card_scale
-	var card_center_x := focused_card_position.x + card_size.x * 0.5
-	var card_bottom_y := focused_card_position.y + card_size.y * 0.5 + scaled_card_size.y * 0.5
-	var target_position := Vector2(
-		card_center_x - use_button_size.x * 0.5,
-		card_bottom_y + use_button_gap
-	)
-	target_position.x = clampf(target_position.x, 0.0, maxf(0.0, _available_width() - use_button_size.x))
-	target_position.y = clampf(target_position.y, 0.0, maxf(0.0, _available_height() - use_button_bottom_margin - use_button_size.y))
-
-	if animated and layout_duration > 0.0 and _layout_tween != null:
-		_layout_tween.tween_property(_use_button, "position", target_position, layout_duration)
-	else:
-		_use_button.position = target_position
 
 
 func _make_demo_cards() -> Array[Dictionary]:

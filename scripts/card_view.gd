@@ -24,8 +24,9 @@ const ENCOUNTER_MARKER_TEXTURES := {
 	GameMap.ENCOUNTER_CACHE: "res://assets/images/card_marker_cache.png",
 }
 
-signal focus_requested(card: CardView)
-signal use_requested(card: CardView)
+signal pointer_pressed(card: CardView, canvas_position: Vector2)
+signal pointer_moved(card: CardView, canvas_position: Vector2)
+signal pointer_released(card: CardView, canvas_position: Vector2)
 
 @export var title := "Card":
 	set(value):
@@ -81,7 +82,6 @@ signal use_requested(card: CardView)
 var _title_label: Label
 var _category_label: Label
 var _detail_label: Label
-var _use_button: Button
 var _touch_button: Button
 static var _texture_cache := {}
 
@@ -129,12 +129,7 @@ func _draw() -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		focus_requested.emit(self)
-		accept_event()
-	elif event is InputEventScreenTouch and event.pressed:
-		focus_requested.emit(self)
-		accept_event()
+	_handle_pointer_input(event, self)
 
 
 func configure(card_data: Dictionary) -> void:
@@ -166,7 +161,6 @@ func _bind_scene_nodes() -> void:
 	_title_label = get_node("Title") as Label
 	_category_label = get_node("Category") as Label
 	_detail_label = get_node("Detail") as Label
-	_use_button = get_node("UseButton") as Button
 	_touch_button = get_node("TouchButton") as Button
 	_title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_category_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -175,10 +169,8 @@ func _bind_scene_nodes() -> void:
 	_category_label.add_theme_color_override("font_color", UIStyle.card_muted_text(self))
 	_detail_label.add_theme_color_override("font_color", UIStyle.card_text(self))
 	_category_label.add_theme_font_size_override("font_size", CATEGORY_FONT_SIZE)
-	if not _use_button.pressed.is_connected(_on_use_button_pressed):
-		_use_button.pressed.connect(_on_use_button_pressed)
-	if not _touch_button.pressed.is_connected(_on_touch_button_pressed):
-		_touch_button.pressed.connect(_on_touch_button_pressed)
+	if not _touch_button.gui_input.is_connected(_on_touch_button_gui_input):
+		_touch_button.gui_input.connect(_on_touch_button_gui_input)
 
 
 func _layout_content() -> void:
@@ -219,17 +211,45 @@ func _refresh_text() -> void:
 
 
 func _refresh_focus() -> void:
-	if _use_button != null:
-		_use_button.visible = false
 	queue_redraw()
 
 
-func _on_use_button_pressed() -> void:
-	use_requested.emit(self)
+func _on_touch_button_gui_input(event: InputEvent) -> void:
+	_handle_pointer_input(event, _touch_button)
 
 
-func _on_touch_button_pressed() -> void:
-	focus_requested.emit(self)
+func _handle_pointer_input(event: InputEvent, source: Control) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		var canvas_position: Vector2 = source.get_global_transform_with_canvas() * event.position
+		if event.pressed:
+			pointer_pressed.emit(self, canvas_position)
+		else:
+			pointer_released.emit(self, canvas_position)
+		source.accept_event()
+	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+		pointer_moved.emit(self, source.get_global_transform_with_canvas() * event.position)
+		source.accept_event()
+	elif event is InputEventScreenTouch:
+		if event.pressed:
+			pointer_pressed.emit(self, event.position)
+		else:
+			pointer_released.emit(self, event.position)
+		source.accept_event()
+	elif event is InputEventScreenDrag:
+		pointer_moved.emit(self, event.position)
+		source.accept_event()
+
+
+func get_card_data() -> Dictionary:
+	return {
+		"title": title,
+		"category": category,
+		"detail": detail,
+		"tile_definition": tile_definition,
+		"event_type": event_type,
+		"encounter": encounter_data.duplicate(true),
+		"card_color": card_color,
+	}
 
 
 func _title_from_definition() -> String:
