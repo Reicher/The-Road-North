@@ -12,6 +12,10 @@ const EVENT_DESTROY_TILE := "destroy_tile"
 const EVENT_DRAW_TWO := "draw_two"
 const EVENT_ROTATE_TILE := "rotate_tile"
 const EVENT_LUCKY_FIND := "lucky_find"
+const EVENT_CLEAR_PATH := "clear_path"
+const EVENT_AMBUSH := "ambush"
+const EVENT_WILD_BERRIES := "wild_berries"
+const EVENT_LOST_BELONGINGS := "lost_belongings"
 const ENCOUNTER_ENEMY := "enemy"
 const ROAD_SUBTYPES: Array[String] = ["straight", "corner", "t_junction", "four_way", "dead_end"]
 
@@ -23,7 +27,7 @@ func make_deck(deck_size: int, rng: RandomNumberGenerator, config: Dictionary) -
 	var cards: Array[Dictionary] = []
 	for road_card in _make_road_cards(road_count, rng, config):
 		cards.append(road_card)
-	for event_card in _make_event_cards(event_count):
+	for event_card in _make_event_cards(event_count, rng, config):
 		cards.append(event_card)
 	return cards
 
@@ -38,7 +42,9 @@ func make_debug_hand(kind: String, config: Dictionary) -> Array[Dictionary]:
 		"rewards":
 			return _make_debug_reward_roads(roads, int(config.get("level", 1)), int(config.get("map_size", 1)))
 		"events":
-			return _make_event_cards(4)
+			var rng := RandomNumberGenerator.new()
+			rng.seed = 1
+			return _make_event_cards(8, rng, config)
 	return []
 
 
@@ -157,17 +163,32 @@ func _make_debug_reward_roads(roads: Array[Dictionary], level: int, map_size: in
 	return cards
 
 
-func _make_event_cards(count: int) -> Array[Dictionary]:
+func _make_event_cards(count: int, rng: RandomNumberGenerator, config: Dictionary) -> Array[Dictionary]:
 	var event_templates: Array[Dictionary] = [
 		{"title": "Mirage", "detail": "Destroy a placed tile.", "event_type": EVENT_DESTROY_TILE},
 		{"title": "Idea", "detail": "Draw two extra cards.", "event_type": EVENT_DRAW_TWO},
 		{"title": "Doubt", "detail": "Rotate a placed tile.", "event_type": EVENT_ROTATE_TILE},
 		{"title": "Lucky Find", "detail": "Gain food or gold.", "event_type": EVENT_LUCKY_FIND},
+		{"title": "Clear Path", "detail": "Remove an encounter from a road.", "event_type": EVENT_CLEAR_PATH},
+		{"title": "Ambush", "detail": "Add an enemy to a road.", "event_type": EVENT_AMBUSH},
+		{"title": "Wild Berries", "detail": "Add a berry bush to a road.", "event_type": EVENT_WILD_BERRIES},
+		{"title": "Lost Belongings", "detail": "Add a cache to a road.", "event_type": EVENT_LOST_BELONGINGS},
 	]
+	_shuffle_cards(event_templates, rng)
 	var cards: Array[Dictionary] = []
 	for index in count:
 		var template: Dictionary = event_templates[index % event_templates.size()]
-		cards.append(_make_event_card(template["title"], template["detail"], template["event_type"]))
+		var card := _make_event_card(template["title"], template["detail"], template["event_type"])
+		var event_type := str(template["event_type"])
+		var level := int(config.get("level", 1))
+		var map_size := int(config.get("map_size", 1))
+		if event_type == EVENT_AMBUSH:
+			_set_card_encounter(card, _make_enemy_encounter(rng, level))
+		elif event_type == EVENT_WILD_BERRIES:
+			_set_card_encounter(card, _make_reward_encounter(GameMap.ENCOUNTER_BERRY_BUSH, rng, level, map_size))
+		elif event_type == EVENT_LOST_BELONGINGS:
+			_set_card_encounter(card, _make_reward_encounter(GameMap.ENCOUNTER_CACHE, rng, level, map_size))
+		cards.append(card)
 	return cards
 
 

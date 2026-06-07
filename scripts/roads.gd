@@ -85,6 +85,31 @@ func rotate_tile(grid_position: Vector2i) -> bool:
 	return true
 
 
+func set_encounter(grid_position: Vector2i, encounter_data: Dictionary) -> bool:
+	if _map.get_tile(grid_position) == null:
+		return false
+	var stored_encounter := encounter_data.duplicate(true)
+	if str(stored_encounter.get("type", "")) == GameMap.ENCOUNTER_ENEMY:
+		stored_encounter["revealed"] = true
+		stored_encounter["health"] = 1
+		stored_encounter["max_health"] = 1
+	_map.update_encounter_data(grid_position, stored_encounter)
+	var visual_tile := get_visual_tile(grid_position)
+	if visual_tile != null:
+		visual_tile.set_encounter_data(stored_encounter)
+	return true
+
+
+func clear_encounter(grid_position: Vector2i) -> bool:
+	if _map.get_encounter(grid_position).is_empty():
+		return false
+	_map.clear_encounter(grid_position)
+	var visual_tile := get_visual_tile(grid_position)
+	if visual_tile != null:
+		visual_tile.set_encounter_data({})
+	return true
+
+
 func get_visual_tile(grid_position: Vector2i) -> RoadTile:
 	return _visual_tiles.get(grid_position) as RoadTile
 

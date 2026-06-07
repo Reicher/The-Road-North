@@ -346,7 +346,14 @@ func _dragged_card_uses_preview() -> bool:
 		return false
 	if _dragged_card.category == DeckController.ROAD_CATEGORY:
 		return true
-	return _dragged_card.event_type == DeckController.EVENT_DESTROY_TILE or _dragged_card.event_type == DeckController.EVENT_ROTATE_TILE
+	return _dragged_card.event_type in [
+		DeckController.EVENT_DESTROY_TILE,
+		DeckController.EVENT_ROTATE_TILE,
+		DeckController.EVENT_CLEAR_PATH,
+		DeckController.EVENT_AMBUSH,
+		DeckController.EVENT_WILD_BERRIES,
+		DeckController.EVENT_LOST_BELONGINGS,
+	]
 
 
 func _on_resized() -> void:

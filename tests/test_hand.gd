@@ -188,6 +188,15 @@ func _initialize() -> void:
 	_assert(event_detail_label.offset_bottom < event_category_label.offset_top, "Expected event detail text to sit between art and category")
 	_assert(is_equal_approx(event_category_label.offset_top, CardView.CATEGORY_RECT.position.y), "Expected event category badge to use the bottom category position")
 	_assert(is_equal_approx(event_category_label.offset_bottom, CardView.CATEGORY_RECT.end.y), "Expected event category badge to sit at the bottom of the card")
+	for event_type in [
+		DeckController.EVENT_AMBUSH,
+		DeckController.EVENT_WILD_BERRIES,
+		DeckController.EVENT_LOST_BELONGINGS,
+	]:
+		event_card.event_type = event_type
+		_assert(event_card.call("_card_art_texture") == null, "Expected encounter-adding events not to show the fallback event star")
+	event_card.event_type = DeckController.EVENT_CLEAR_PATH
+	_assert(event_card.call("_card_art_texture") != null, "Expected Clear Path to keep the fallback event star")
 	event_card.queue_free()
 
 	quit()

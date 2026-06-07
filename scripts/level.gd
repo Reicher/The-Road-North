@@ -63,6 +63,8 @@ func _connect_placement_controller() -> void:
 		_placement_controller.tile_destroyed.connect(_on_tile_destroyed)
 	if not _placement_controller.tile_rotated.is_connected(_on_tile_rotated):
 		_placement_controller.tile_rotated.connect(_on_tile_rotated)
+	if not _placement_controller.encounter_changed.is_connected(_on_encounter_changed):
+		_placement_controller.encounter_changed.connect(_on_encounter_changed)
 
 
 func _connect_player() -> void:
@@ -90,7 +92,14 @@ func _on_placement_started(card: CardView) -> void:
 	if _is_terminal_state():
 		return
 	_set_player_input_enabled(false)
-	if card.event_type == DeckController.EVENT_DESTROY_TILE or card.event_type == DeckController.EVENT_ROTATE_TILE:
+	if card.event_type in [
+		DeckController.EVENT_DESTROY_TILE,
+		DeckController.EVENT_ROTATE_TILE,
+		DeckController.EVENT_CLEAR_PATH,
+		DeckController.EVENT_AMBUSH,
+		DeckController.EVENT_WILD_BERRIES,
+		DeckController.EVENT_LOST_BELONGINGS,
+	]:
 		state = RunState.EVENT_TARGETING
 	else:
 		state = RunState.PLACEMENT_MODE
@@ -118,6 +127,13 @@ func _on_tile_destroyed(_grid_position: Vector2i, _card: CardView) -> void:
 
 
 func _on_tile_rotated(_grid_position: Vector2i, _card: CardView) -> void:
+	if _is_terminal_state():
+		return
+	state = RunState.IDLE
+	_set_player_input_enabled(true)
+
+
+func _on_encounter_changed(_grid_position: Vector2i, _card: CardView) -> void:
 	if _is_terminal_state():
 		return
 	state = RunState.IDLE

@@ -24,8 +24,12 @@ func _test_deck_formulas() -> void:
 	_assert(int(counts["shortest_path_steps"]) == 4, "Expected shortest path steps to be map size minus one")
 	_assert(int(counts["total_cards"]) == 18, "Expected level one 5x5 deck formula")
 	_assert(int(counts["road_cards"]) == 14 and int(counts["event_cards"]) == 4, "Expected 75 percent road cards and remaining event cards")
-	_assert(counts["road_distribution"] == {"straight": 4, "corner": 4, "t_junction": 3, "four_way": 1, "dead_end": 2}, "Expected road subtype formulas with dead ends receiving the remainder")
-	_assert(counts["special_roads"] == {"enemy": 3, "loot": 2, "berry": 2}, "Expected 5x5 level one encounter counts")
+	_assert(counts["road_distribution"] == {"straight": 3, "corner": 3, "t_junction": 3, "four_way": 2, "dead_end": 3}, "Expected road subtype formulas to include more four-way intersections and dead ends")
+	_assert(counts["special_roads"] == {"enemy": 4, "loot": 2, "berry": 2}, "Expected 5x5 level one encounter counts")
+
+	var level_two := GameBalance.deck_counts(2, 7)
+	_assert(level_two["road_distribution"] == {"straight": 4, "corner": 4, "t_junction": 4, "four_way": 3, "dead_end": 4}, "Expected level two road subtype distribution")
+	_assert(level_two["special_roads"] == {"enemy": 6, "loot": 3, "berry": 3}, "Expected 7x7 level two encounter counts")
 
 
 func _test_level_and_map_size_are_independent_inputs() -> void:

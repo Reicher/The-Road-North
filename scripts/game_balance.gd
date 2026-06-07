@@ -30,21 +30,23 @@ static func deck_counts(level: int, map_size: int) -> Dictionary:
 
 
 static func road_distribution(road_cards: int) -> Dictionary:
-	var straight := roundi(float(road_cards) * 0.30)
-	var corner := roundi(float(road_cards) * 0.30)
 	var t_junction := roundi(float(road_cards) * 0.20)
-	var four_way := roundi(float(road_cards) * 0.10)
+	var four_way := roundi(float(road_cards) * 0.15)
+	var dead_end := roundi(float(road_cards) * 0.20)
+	var simple_roads := maxi(0, road_cards - t_junction - four_way - dead_end)
+	var straight := ceili(float(simple_roads) / 2.0)
+	var corner := simple_roads - straight
 	return {
 		"straight": straight,
 		"corner": corner,
 		"t_junction": t_junction,
 		"four_way": four_way,
-		"dead_end": road_cards - straight - corner - t_junction - four_way,
+		"dead_end": dead_end,
 	}
 
 
 static func special_road_counts(level: int, map_size: int, road_cards: int) -> Dictionary:
-	var enemy_roads := roundi(float(map_size) * 0.45) + level
+	var enemy_roads := roundi(float(map_size) * 0.60) + level
 	var loot_roads := maxi(2, floori(float(map_size + 1) / 2.0) - 1)
 	var berry_roads := maxi(2, floori(float(map_size + 1) / 2.0) - 1)
 	var remaining := maxi(0, road_cards)

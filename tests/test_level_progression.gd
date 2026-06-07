@@ -56,8 +56,9 @@ func run() -> void:
 
 	_send_key(main, KEY_T)
 	await process_frame
-	_assert(first_hand.cards.size() == 4, "Expected debug T to show every event type")
+	_assert(first_hand.cards.size() == 8, "Expected debug T to show every event type")
 	_assert(_all_cards_match(first_hand.cards, "Event", ""), "Expected debug T hand to contain event cards")
+	_assert(_event_types(first_hand.cards).size() == 8, "Expected debug T hand to contain each event type once")
 	_send_key(main, KEY_ENTER)
 	await process_frame
 	_assert(first_screen.visible, "Expected debug Enter to complete the current level")
@@ -173,6 +174,13 @@ func _count_encounters(cards: Array[CardView], encounter_type: String) -> int:
 		if str(card.encounter_data.get("type", "")) == encounter_type:
 			count += 1
 	return count
+
+
+func _event_types(cards: Array[CardView]) -> Dictionary:
+	var event_types := {}
+	for card in cards:
+		event_types[card.event_type] = true
+	return event_types
 
 
 func _send_key(target: Node, keycode: int) -> void:

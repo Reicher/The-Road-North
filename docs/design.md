@@ -245,19 +245,18 @@ The initial road tile types are:
 Dead ends should appear relatively rarely.
 
 Suggested distribution within road cards:
-- Straight: 30%
-- Corner: 30%
+- Straight and Corner: split the cards left after the other road types
 - T-Junction: 20%
-- Four-Way: 10%
-- Dead End: 10%
+- Four-Way: 15%
+- Dead End: 20%
 
 Road cards can be rotated before placement.
 
 Some road cards contain a hidden enemy or reward encounter.
 
 Special road counts scale from map size and level. The current decks contain:
-- Level 1: 3 enemy roads, 2 berry-bush roads, and 2 cache roads
-- Level 2: 5 enemy roads, 3 berry-bush roads, and 3 cache roads
+- Level 1: 4 enemy roads, 2 berry-bush roads, and 2 cache roads
+- Level 2: 6 enemy roads, 3 berry-bush roads, and 3 cache roads
 
 Encounter road cards:
 - still place normal road tiles
@@ -318,11 +317,17 @@ A connection is only valid if both tiles connect toward each other.
 
 # Event Cards
 
-Version 1 contains four event cards. Event cards repeat in order as needed when a deck contains more than four events:
+Version 1 contains eight event card types. Event slots are filled from a shuffled set of all event types before any type repeats:
 - Mirage destroys a placed tile.
 - Idea draws two extra cards.
 - Doubt rotates a placed tile.
 - Lucky Find grants either 3 food or 4 gold.
+- Clear Path removes an enemy, berry bush, or cache from a placed road.
+- Ambush adds a random enemy from the level's power range to a placed road.
+- Wild Berries adds a berry bush to a placed road.
+- Lost Belongings adds a cache to a placed road.
+
+Clear Path targets a placed road that contains an encounter. Ambush, Wild Berries, and Lost Belongings target a placed road without an encounter. These cards use the normal orthogonal target range and do not alter the road itself.
 
 One event destroys a placed tile.
 

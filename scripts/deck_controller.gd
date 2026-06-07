@@ -9,6 +9,10 @@ const EVENT_DESTROY_TILE := "destroy_tile"
 const EVENT_DRAW_TWO := "draw_two"
 const EVENT_ROTATE_TILE := "rotate_tile"
 const EVENT_LUCKY_FIND := "lucky_find"
+const EVENT_CLEAR_PATH := "clear_path"
+const EVENT_AMBUSH := "ambush"
+const EVENT_WILD_BERRIES := "wild_berries"
+const EVENT_LOST_BELONGINGS := "lost_belongings"
 const GameBalance = preload("res://scripts/game_balance.gd")
 
 const HAND_SIZE := 4

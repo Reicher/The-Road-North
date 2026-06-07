@@ -19,6 +19,7 @@ tests=(
 	tests/test_inventory_ui.gd
 	tests/test_game_over.gd
 	tests/test_event_cards.gd
+	tests/test_encounter_event_cards.gd
 	tests/test_level_scene.gd
 	tests/test_level_progression.gd
 )

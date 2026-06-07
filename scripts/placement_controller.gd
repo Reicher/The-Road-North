@@ -6,6 +6,7 @@ signal placement_cancelled(card: CardView)
 signal placement_confirmed(grid_position: Vector2i, card: CardView)
 signal tile_destroyed(grid_position: Vector2i, card: CardView)
 signal tile_rotated(grid_position: Vector2i, card: CardView)
+signal encounter_changed(grid_position: Vector2i, card: CardView)
 
 const VALID_COLOR := Color(0.10, 0.95, 0.28, 0.34)
 const INVALID_COLOR := Color(1.00, 0.10, 0.08, 0.38)
@@ -13,6 +14,7 @@ const MODE_NONE := ""
 const MODE_ROAD_PLACEMENT := "road_placement"
 const MODE_DESTROY_TARGETING := "destroy_targeting"
 const MODE_ROTATE_TARGETING := "rotate_targeting"
+const MODE_ENCOUNTER_TARGETING := "encounter_targeting"
 const HINT_TOO_FAR := "Too far away"
 const HINT_STANDING_HERE := "You're standing here"
 const HINT_OCCUPIED := "Tile already occupied"
@@ -22,6 +24,8 @@ const HINT_ROAD_OFF_MAP := "Road leads off map"
 const HINT_CONNECT_TO_PLAYER := "Connect to your tile"
 const HINT_ROAD_DOESNT_FIT := "Road doesn't fit"
 const HINT_NO_TILE := "No tile to target"
+const HINT_NO_ENCOUNTER := "No encounter here"
+const HINT_HAS_ENCOUNTER := "Road already has an encounter"
 
 class TargetPreview extends Node3D:
 	var preview_color := Color.TRANSPARENT
@@ -186,6 +190,13 @@ func begin_rotate_targeting(card: CardView) -> bool:
 	return _begin_tile_targeting(card, MODE_ROTATE_TARGETING)
 
 
+func begin_encounter_targeting(card: CardView) -> bool:
+	if card == null or card.category != DeckController.EVENT_CATEGORY or not _is_encounter_event(card.event_type):
+		return false
+
+	return _begin_tile_targeting(card, MODE_ENCOUNTER_TARGETING)
+
+
 func _begin_tile_targeting(card: CardView, mode: String) -> bool:
 	active_card = card
 	active_definition = null
@@ -223,6 +234,8 @@ func confirm_placement() -> bool:
 		return _confirm_destroy_target()
 	if active_mode == MODE_ROTATE_TARGETING:
 		return _confirm_rotate_target()
+	if active_mode == MODE_ENCOUNTER_TARGETING:
+		return _confirm_encounter_target()
 	if active_mode != MODE_ROAD_PLACEMENT:
 		return false
 
@@ -262,6 +275,8 @@ func _begin_for_dragged_card(card: CardView) -> bool:
 		return begin_destroy_targeting(card)
 	elif card.event_type == DeckController.EVENT_ROTATE_TILE:
 		return begin_rotate_targeting(card)
+	elif _is_encounter_event(card.event_type):
+		return begin_encounter_targeting(card)
 	return false
 
 
@@ -326,7 +341,7 @@ func _refresh_preview() -> void:
 	if active_card == null or preview_position.x < 0:
 		_hide_preview()
 		return
-	if active_mode == MODE_DESTROY_TARGETING or active_mode == MODE_ROTATE_TARGETING:
+	if active_mode in [MODE_DESTROY_TARGETING, MODE_ROTATE_TARGETING, MODE_ENCOUNTER_TARGETING]:
 		_restore_preview_trees()
 		_refresh_tile_target()
 		return
@@ -387,6 +402,15 @@ func _is_valid_rotate_target(grid_position: Vector2i) -> bool:
 	return tile_data is Dictionary and tile_data.get("definition") != null
 
 
+func _is_valid_encounter_target(grid_position: Vector2i) -> bool:
+	if not _is_valid_destroy_target(grid_position):
+		return false
+	var encounter := _map.get_encounter(grid_position)
+	if active_card.event_type == DeckController.EVENT_CLEAR_PATH:
+		return not encounter.is_empty()
+	return encounter.is_empty()
+
+
 func _confirm_destroy_target() -> bool:
 	var destroyed_card := active_card
 	var destroyed_position := preview_position
@@ -412,6 +436,26 @@ func _confirm_rotate_target() -> bool:
 		_hand.remove_card(rotated_card)
 	_end_placement(false)
 	tile_rotated.emit(rotated_position, rotated_card)
+	return true
+
+
+func _confirm_encounter_target() -> bool:
+	var event_card := active_card
+	var target_position := preview_position
+	var changed := false
+	if event_card.event_type == DeckController.EVENT_CLEAR_PATH:
+		changed = _roads.clear_encounter(target_position)
+	else:
+		changed = _roads.set_encounter(target_position, event_card.encounter_data)
+	if not changed:
+		_refresh_tile_target()
+		return false
+	if _deck_controller != null:
+		_deck_controller.consume_card(event_card)
+	else:
+		_hand.remove_card(event_card)
+	_end_placement(false)
+	encounter_changed.emit(target_position, event_card)
 	return true
 
 
@@ -504,6 +548,8 @@ func _show_prompt() -> void:
 		_controls_layer.show_prompt("Choose tile", _hand)
 	elif active_mode == MODE_ROTATE_TARGETING:
 		_controls_layer.show_prompt("Rotate tile", _hand)
+	elif active_mode == MODE_ENCOUNTER_TARGETING:
+		_controls_layer.show_prompt("Choose road", _hand)
 	else:
 		_controls_layer.show_prompt("Place tile", _hand)
 	set_process(true)
@@ -527,6 +573,8 @@ func _refresh_target_preview(valid_target: bool) -> void:
 func _is_valid_tile_target(grid_position: Vector2i) -> bool:
 	if active_mode == MODE_ROTATE_TARGETING:
 		return _is_valid_rotate_target(grid_position)
+	if active_mode == MODE_ENCOUNTER_TARGETING:
+		return _is_valid_encounter_target(grid_position)
 	return _is_valid_destroy_target(grid_position)
 
 
@@ -557,7 +605,22 @@ func _get_tile_target_hint(grid_position: Vector2i) -> String:
 		return HINT_CANT_TARGET
 	if _map.get_tile(grid_position) == null:
 		return HINT_NO_TILE
+	if active_mode == MODE_ENCOUNTER_TARGETING:
+		var encounter := _map.get_encounter(grid_position)
+		if active_card.event_type == DeckController.EVENT_CLEAR_PATH and encounter.is_empty():
+			return HINT_NO_ENCOUNTER
+		if active_card.event_type != DeckController.EVENT_CLEAR_PATH and not encounter.is_empty():
+			return HINT_HAS_ENCOUNTER
 	return ""
+
+
+func _is_encounter_event(event_type: String) -> bool:
+	return event_type in [
+		DeckController.EVENT_CLEAR_PATH,
+		DeckController.EVENT_AMBUSH,
+		DeckController.EVENT_WILD_BERRIES,
+		DeckController.EVENT_LOST_BELONGINGS,
+	]
 
 
 func _is_too_far_away(grid_position: Vector2i) -> bool:
