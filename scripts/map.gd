@@ -115,6 +115,18 @@ func grid_to_screen_position(grid_position: Vector2i) -> Vector2:
 	return camera.unproject_position(grid_to_world(grid_position))
 
 
+func grid_edge_to_screen_position(grid_position: Vector2i, south_edge: bool) -> Vector2:
+	var edge_sign := 0.5 if south_edge else -0.5
+	var edge_world := grid_to_world(grid_position) + Vector3(0.0, 0.0, tile_size * edge_sign)
+	var viewport := get_viewport()
+	if viewport == null:
+		return grid_to_world_2d(grid_position) + Vector2(0.0, tile_size * edge_sign)
+	var camera := viewport.get_camera_3d()
+	if camera == null:
+		return grid_to_world_2d(grid_position) + Vector2(0.0, tile_size * edge_sign)
+	return camera.unproject_position(edge_world)
+
+
 func get_tile(grid_position: Vector2i) -> Variant:
 	return tiles.get(grid_position)
 

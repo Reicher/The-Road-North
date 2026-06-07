@@ -1,6 +1,10 @@
 class_name PlayerStatsUI
 extends Control
 
+const STAT_ICON_SIZE := 54.0
+const STAT_VALUE_FONT_SIZE := 38
+const STAT_ROW_HEIGHT := 64.0
+
 const ICON_PATHS := {
 	"food": "res://assets/images/stat_food.png",
 	"gold": "res://assets/images/stat_gold.png",
@@ -13,8 +17,8 @@ const ICON_PATHS := {
 @export var deck_controller_path: NodePath
 @export var top_margin := 10.0
 @export var left_margin := 10.0
-@export var icon_size := 48.0
-@export var row_height := 58.0
+@export var icon_size := STAT_ICON_SIZE
+@export var row_height := STAT_ROW_HEIGHT
 @export var panel_color := Color.TRANSPARENT
 @export var border_color := Color.TRANSPARENT
 @export var gain_pulse_duration := 2.0
@@ -62,7 +66,7 @@ func _draw() -> void:
 
 
 func _draw_stat_row(index: int, stat_name: String, value: Variant) -> void:
-	var row_center := Vector2(31.0, 5.0 + row_height * float(index) + row_height * 0.5)
+	var row_center := Vector2(icon_size * 0.5 + 7.0, 5.0 + row_height * float(index) + row_height * 0.5)
 	var pulse := float(_pulse_strength.get(stat_name, 0.0))
 	var sign := int(_pulse_sign.get(stat_name, 1))
 	var change_amount := int(_gain_amounts.get(stat_name, 0))
@@ -82,8 +86,8 @@ func _draw_stat_row(index: int, stat_name: String, value: Variant) -> void:
 		draw_texture_rect(icon, icon_rect, false, icon_color)
 
 	var font: Font = ThemeDB.fallback_font
-	var font_size := 34
-	var text_position := Vector2(70.0, row_center.y + 13.0)
+	var font_size := STAT_VALUE_FONT_SIZE
+	var text_position := Vector2(row_center.x + icon_size * 0.5 + 13.0, row_center.y + 15.0)
 	draw_string_outline(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, 7, Color(0.10, 0.08, 0.05, 0.92))
 	var value_color := Color(1.0, 0.96, 0.84)
 	if pulse > 0.0:

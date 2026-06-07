@@ -98,6 +98,43 @@ func run() -> void:
 	_assert(not hand.is_drag_active(), "Expected release to finish the hand drag while placement remains active")
 	_assert(hand.inactive, "Expected the hand to remain down after releasing into placement")
 	_assert(placement.get_node("PlacementControls/Buttons").visible, "Expected placement buttons to appear after releasing the card")
+	var other_tile_position := map.grid_to_screen_position(Vector2i(1, 3))
+	var mouse_press := InputEventMouseButton.new()
+	mouse_press.button_index = MOUSE_BUTTON_LEFT
+	mouse_press.position = other_tile_position
+	mouse_press.pressed = true
+	placement._unhandled_input(mouse_press)
+	var mouse_release := InputEventMouseButton.new()
+	mouse_release.button_index = MOUSE_BUTTON_LEFT
+	mouse_release.position = other_tile_position
+	mouse_release.pressed = false
+	placement._unhandled_input(mouse_release)
+	_assert(placement.preview_position == Vector2i(2, 3), "Expected clicking another map tile not to move the released preview")
+	mouse_press.position = preview_position
+	mouse_press.pressed = true
+	placement._unhandled_input(mouse_press)
+	var mouse_drag := InputEventMouseMotion.new()
+	mouse_drag.position = other_tile_position
+	mouse_drag.button_mask = MOUSE_BUTTON_MASK_LEFT
+	placement._unhandled_input(mouse_drag)
+	mouse_release.position = other_tile_position
+	placement._unhandled_input(mouse_release)
+	_assert(placement.preview_position == Vector2i(1, 3), "Expected dragging from the released preview to move it")
+	var touch_press := InputEventScreenTouch.new()
+	touch_press.index = 0
+	touch_press.position = other_tile_position
+	touch_press.pressed = true
+	placement._unhandled_input(touch_press)
+	var touch_drag := InputEventScreenDrag.new()
+	touch_drag.index = 0
+	touch_drag.position = preview_position
+	placement._unhandled_input(touch_drag)
+	var touch_release := InputEventScreenTouch.new()
+	touch_release.index = 0
+	touch_release.position = preview_position
+	touch_release.pressed = false
+	placement._unhandled_input(touch_release)
+	_assert(placement.preview_position == Vector2i(2, 3), "Expected touch dragging from the released preview to move it")
 	placement.cancel_placement()
 	_assert(typed_level.state == Level.RunState.IDLE, "Expected cancelling the released preview to return the level to idle")
 	_assert(not hand.inactive, "Expected cancelling placement to restore the hand")

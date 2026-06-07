@@ -81,31 +81,37 @@ func _test_destroy_tile_event() -> void:
 	_assert(placement.get_node("PlacementControls/Buttons").visible, "Expected targeting controls to appear immediately")
 	_assert(not placement.get_node("PlacementControls/Buttons/RotateButton").visible, "Expected targeting controls to hide rotate")
 	_assert(placement.get_node("PlacementControls/Buttons/ConfirmButton").disabled, "Expected target confirm to start disabled")
+	_assert(placement.get_node("PlacementControls/Buttons/ConfirmButton").text.is_empty(), "Expected targeting to reuse icon confirm")
+	_assert(placement.get_node("PlacementControls/Buttons/CancelButton").text.is_empty(), "Expected targeting to reuse icon cancel")
 
 	map.tile_pressed.emit(Vector2i(4, 8))
+	_assert(placement.preview_position == Vector2i(-1, -1), "Expected tapping the map not to select an event target")
+	_set_initial_preview(placement, Vector2i(4, 8))
 	_assert(not placement.has_valid_preview(), "Expected start/player tile target to be invalid")
 	_assert(not placement.confirm_placement(), "Expected invalid destroy target not to confirm")
 	_assert(map.get_tile(Vector2i(4, 8)) != null, "Expected invalid destroy target to remain placed")
 	_assert(hand.cards.has(destroy_card), "Expected invalid destroy confirm to keep the card")
 
 	map.tile_pressed.emit(Vector2i(4, 0))
+	_assert(placement.preview_position == Vector2i(4, 8), "Expected tapping another tile not to move the event target")
+	_drag_preview(placement, Vector2i(4, 8), Vector2i(4, 0))
 	_assert(not placement.has_valid_preview(), "Expected goal tile target to be invalid")
 
-	map.tile_pressed.emit(Vector2i(3, 7))
+	_drag_preview(placement, Vector2i(4, 0), Vector2i(3, 7))
 	_assert(not placement.has_valid_preview(), "Expected diagonal tile target to be outside target range")
 	var target_preview = placement.get("_target_preview")
 	_assert(target_preview != null and target_preview.preview_color == PlacementController.INVALID_COLOR, "Expected only the selected invalid target to show red")
 
-	map.tile_pressed.emit(Vector2i(4, 7))
+	_drag_preview(placement, Vector2i(3, 7), Vector2i(4, 7))
 	_assert(placement.has_valid_preview(), "Expected placed tile target to be valid")
 	_assert(target_preview.preview_color == PlacementController.VALID_COLOR, "Expected only the selected valid target to show green")
 
-	map.tile_pressed.emit(Vector2i(6, 6))
+	_drag_preview(placement, Vector2i(4, 7), Vector2i(6, 6))
 	_assert(not placement.has_valid_preview(), "Expected remote placed tile target to be outside target range")
 	_assert(not placement.confirm_placement(), "Expected remote destroy target not to confirm")
 	_assert(map.get_tile(Vector2i(6, 6)) != null, "Expected remote tile to remain placed")
 
-	map.tile_pressed.emit(Vector2i(4, 7))
+	_drag_preview(placement, Vector2i(6, 6), Vector2i(4, 7))
 	_assert(placement.confirm_placement(), "Expected valid destroy target to confirm")
 	_assert(map.get_tile(Vector2i(4, 7)) == null, "Expected destroy event to remove the selected adjacent tile")
 	_assert(roads.get_visual_tile(Vector2i(4, 7)) == null, "Expected destroy event to remove the adjacent visual tile")
@@ -171,11 +177,11 @@ func _test_rotate_tile_event() -> void:
 	_assert(placement.begin_rotate_targeting(rotate_card), "Expected rotate event to enter targeting mode")
 	_assert(not roads.get_visual_tile(Vector2i(4, 7)).highlight_enabled, "Expected valid rotate targets not to be revealed")
 	_assert(not roads.get_visual_tile(Vector2i(6, 6)).highlight_enabled, "Expected remote rotate targets not to be highlighted")
-	map.tile_pressed.emit(Vector2i(4, 8))
+	_set_initial_preview(placement, Vector2i(4, 8))
 	_assert(not placement.has_valid_preview(), "Expected player tile rotate target to be invalid")
-	map.tile_pressed.emit(Vector2i(6, 6))
+	_drag_preview(placement, Vector2i(4, 8), Vector2i(6, 6))
 	_assert(not placement.has_valid_preview(), "Expected remote rotate target to be outside target range")
-	map.tile_pressed.emit(Vector2i(4, 7))
+	_drag_preview(placement, Vector2i(6, 6), Vector2i(4, 7))
 	_assert(not placement.has_valid_preview(), "Expected unchanged rotate target not to be confirmable")
 	var target_preview = placement.get("_target_preview")
 	_assert(target_preview != null and target_preview.preview_color == PlacementController.VALID_COLOR, "Expected selected valid rotate target to show green")
@@ -211,7 +217,7 @@ func _test_rotate_tile_cancel_restores_original() -> void:
 	var rotate_card: CardView = hand.cards[0]
 
 	placement.begin_rotate_targeting(rotate_card)
-	map.tile_pressed.emit(Vector2i(4, 7))
+	_set_initial_preview(placement, Vector2i(4, 7))
 	placement.rotate_preview()
 	placement.rotate_preview()
 	hand.card_drag_moved.emit(rotate_card, Vector2.ZERO, false)
@@ -235,9 +241,9 @@ func _test_rotate_tile_reselect_restores_original() -> void:
 
 	roads.force_place_tile(Vector2i(3, 8), STRAIGHT, 0)
 	placement.begin_rotate_targeting(rotate_card)
-	map.tile_pressed.emit(Vector2i(4, 7))
+	_set_initial_preview(placement, Vector2i(4, 7))
 	placement.rotate_preview()
-	map.tile_pressed.emit(Vector2i(3, 8))
+	_drag_preview(placement, Vector2i(4, 7), Vector2i(3, 8))
 	var original_tile: Dictionary = map.get_tile(Vector2i(4, 7))
 	_assert(original_tile["rotation_steps"] == 1, "Expected selecting a new Doubt target to restore the previous target")
 	_assert(not placement.has_valid_preview(), "Expected newly selected unchanged target to wait for rotation")
@@ -440,6 +446,17 @@ func _lucky_find_card_data() -> Dictionary:
 		"detail": "Gain food or gold.",
 		"event_type": "lucky_find",
 	}
+
+
+func _set_initial_preview(placement: PlacementController, grid_position: Vector2i) -> void:
+	placement.preview_position = grid_position
+	placement.call("_refresh_preview")
+
+
+func _drag_preview(placement: PlacementController, from: Vector2i, to: Vector2i) -> void:
+	_assert(placement.call("_try_start_preview_drag", from, -1), "Expected dragging to start on the active event target")
+	placement.call("_move_preview_drag", to)
+	placement.call("_finish_preview_drag")
 
 
 func _assert(condition: bool, message: String) -> void:

@@ -86,9 +86,13 @@ func _initialize() -> void:
 	_assert(placement.get_node("PlacementControls/Buttons/CancelButton").visible, "Expected cancel button to be available before selecting a preview")
 	_assert(placement.get_node("PlacementControls/Buttons/RotateButton").disabled, "Expected rotate button to wait for a preview tile")
 	_assert(placement.get_node("PlacementControls/Buttons/ConfirmButton").disabled, "Expected confirm button to stay disabled before a preview exists")
+	_assert(placement.get_node("PlacementControls/Buttons/ConfirmButton").text.is_empty(), "Expected confirm to use an icon instead of text")
+	_assert(placement.get_node("PlacementControls/Buttons/CancelButton").text.is_empty(), "Expected cancel to use an icon instead of text")
 	_assert(placement.get_node_or_null("PlacementHint_4_7") == null, "Expected road placement not to reveal valid empty tiles")
 
 	map.tile_pressed.emit(Vector2i(4, 6))
+	_assert(placement.preview_position == Vector2i(-1, -1), "Expected tapping the map not to select a road preview")
+	_set_initial_preview(placement, Vector2i(4, 6))
 	_assert(not placement.has_valid_preview(), "Expected non-adjacent preview to be invalid")
 	_assert(not map.are_cell_trees_visible(Vector2i(4, 6)), "Expected preview to hide the empty cell's existing trees")
 	_assert(not placement.confirm_placement(), "Expected confirm to reject invalid preview")
@@ -96,12 +100,31 @@ func _initialize() -> void:
 	_assert(hand.cards.has(straight_card), "Expected invalid confirm to keep the card in hand")
 
 	map.tile_pressed.emit(Vector2i(4, 7))
+	_assert(placement.preview_position == Vector2i(4, 6), "Expected tapping another tile not to move the road preview")
+	_drag_preview(placement, Vector2i(4, 6), Vector2i(4, 7))
 	_assert(placement.has_valid_preview(), "Expected adjacent matching road to be valid")
 	_assert(map.are_cell_trees_visible(Vector2i(4, 6)), "Expected moving preview to restore the previous cell's trees")
 	_assert(not map.are_cell_trees_visible(Vector2i(4, 7)), "Expected preview to hide trees under the proposed road")
 	_assert(not placement.get_node("PlacementControls/PromptLabel").visible, "Expected placement prompt to hide after preview appears")
 	_assert(not placement.get_node("PlacementControls/Buttons/RotateButton").disabled, "Expected rotate button to enable after selecting a preview")
 	_assert(not placement.get_node("PlacementControls/Buttons/ConfirmButton").disabled, "Expected confirm button to enable for a valid preview")
+	await process_frame
+	var preview_tile := placement.get_node("PreviewTile") as RoadTile
+	_assert(preview_tile.position == map.grid_to_world(Vector2i(4, 7)), "Expected preview road to align exactly with confirmed roads")
+	_assert(preview_tile.scale == Vector3.ONE, "Expected preview road to use the same scale as confirmed roads")
+	var preview_visuals := placement.get_node("PreviewTile/Visuals")
+	_assert(preview_visuals.get_node_or_null("Highlight") != null, "Expected the road preview to render one colored placement box")
+	_assert(preview_visuals.get_node_or_null("HighlightNorth") == null, "Expected no second border box around the road preview")
+	var rotate_button := placement.get_node("PlacementControls/Buttons/RotateButton") as Button
+	var confirm_button := placement.get_node("PlacementControls/Buttons/ConfirmButton") as Button
+	var cancel_button := placement.get_node("PlacementControls/Buttons/CancelButton") as Button
+	placement.get_node("PlacementControls").call("_position_around_preview", Vector2(180.0, 180.0), Vector2(360.0, 500.0), 132.0, 228.0)
+	_assert(rotate_button.position.y < confirm_button.position.y, "Expected rotate above the road preview controls")
+	_assert(confirm_button.position.y == cancel_button.position.y, "Expected confirm and cancel on the same row below the preview")
+	_assert(confirm_button.position.x < cancel_button.position.x, "Expected confirm to the left of cancel")
+	_assert(is_equal_approx(rotate_button.position.y + rotate_button.size.y * 0.5, 132.0), "Expected rotate centered on the tile's upper edge")
+	_assert(is_equal_approx(confirm_button.position.y + confirm_button.size.y * 0.5, 228.0), "Expected confirm centered on the tile's lower edge")
+	_assert(cancel_button.position.x - (confirm_button.position.x + confirm_button.size.x) >= 48.0, "Expected a safe gap between confirm and cancel")
 	placement.rotate_preview()
 	_assert(not placement.has_valid_preview(), "Expected rotated mismatch to become invalid")
 	_assert(not placement.confirm_placement(), "Expected confirm to stay disabled for invalid rotation")
@@ -124,7 +147,7 @@ func _initialize() -> void:
 
 	var corner_card = hand.cards[0]
 	_assert(placement.begin_placement(corner_card), "Expected another road card to enter placement mode")
-	map.tile_pressed.emit(Vector2i(3, 8))
+	_set_initial_preview(placement, Vector2i(3, 8))
 	_assert(not map.are_cell_trees_visible(Vector2i(3, 8)), "Expected new preview to hide the selected cell's trees")
 	hand.card_drag_moved.emit(corner_card, Vector2.ZERO, false)
 	_assert(map.are_cell_trees_visible(Vector2i(3, 8)), "Expected cancel to restore previewed cell trees")
@@ -135,6 +158,19 @@ func _initialize() -> void:
 	_assert(hand.get_focused_card() == null, "Expected cancelled placement to leave the hand unfocused")
 
 	quit()
+
+
+func _set_initial_preview(placement: PlacementController, grid_position: Vector2i) -> void:
+	placement.preview_position = grid_position
+	placement.call("_refresh_preview")
+
+
+func _drag_preview(placement: PlacementController, from: Vector2i, to: Vector2i) -> void:
+	_assert(placement.call("_try_start_preview_drag", from, -1), "Expected dragging to start on the active road preview")
+	_assert(placement.is_in_group("ui_item_drag_active"), "Expected preview dragging to block camera input")
+	placement.call("_move_preview_drag", to)
+	placement.call("_finish_preview_drag")
+	_assert(not placement.is_in_group("ui_item_drag_active"), "Expected releasing the road preview to restore camera input")
 
 
 func _assert(condition: bool, message: String) -> void:

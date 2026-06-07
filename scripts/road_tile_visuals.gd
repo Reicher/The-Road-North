@@ -271,17 +271,8 @@ func _add_bush(tile_size: float, offset: Vector3, berries := false) -> void:
 
 
 func _add_highlight(tile_size: float, highlight_color: Color) -> void:
-	var fill_y := GROUND_HEIGHT * 0.55
-	_add_box("HighlightFill", Vector3(tile_size * 1.08, 0.018, tile_size * 1.08), Vector3(0.0, fill_y, 0.0), highlight_color)
-	var border_color := highlight_color.lightened(0.35)
-	border_color.a = minf(1.0, highlight_color.a + 0.18)
-	var line_width := tile_size * 0.055
-	var line_length := tile_size * 1.12
-	var border_y := GROUND_HEIGHT + ROAD_HEIGHT + 0.12
-	_add_box("HighlightNorth", Vector3(line_length, line_width, line_width), Vector3(0.0, border_y, -tile_size * 0.56), border_color)
-	_add_box("HighlightEast", Vector3(line_width, line_width, line_length), Vector3(tile_size * 0.56, border_y, 0.0), border_color)
-	_add_box("HighlightSouth", Vector3(line_length, line_width, line_width), Vector3(0.0, border_y, tile_size * 0.56), border_color)
-	_add_box("HighlightWest", Vector3(line_width, line_width, line_length), Vector3(-tile_size * 0.56, border_y, 0.0), border_color)
+	var preview_y := GROUND_HEIGHT * 0.55
+	_add_box("Highlight", Vector3(tile_size * 1.08, 0.018, tile_size * 1.08), Vector3(0.0, preview_y, 0.0), highlight_color)
 
 
 func _refresh_enemy_view(tile_size: float, encounter_data: Dictionary, enemy_offset: Vector3) -> void:

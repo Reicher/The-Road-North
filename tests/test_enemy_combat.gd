@@ -120,7 +120,9 @@ func run() -> void:
 	_assert(player.move_to(Vector2i(4, 7)), "Expected player to enter enemy road tile")
 	_assert(player.is_in_combat(), "Expected combat to stay active while post-combat feedback is visible")
 	_assert(not map.get_tile(Vector2i(4, 7)).has("encounter"), "Expected defeated enemy to be removed before loot opens")
-	_assert(roads.get_visual_tile(Vector2i(4, 7)).enemy_data.is_empty(), "Expected defeated enemy to disappear before loot opens")
+	var defeated_enemy_view := roads.get_visual_tile(Vector2i(4, 7)).get_node("Enemy") as EnemyView
+	_assert(not roads.get_visual_tile(Vector2i(4, 7)).enemy_data.is_empty(), "Expected defeated enemy visual to remain while it falls")
+	_assert(defeated_enemy_view.visible, "Expected defeated enemy to remain visible during its defeat animation")
 	_assert(not loot_ui.is_open(), "Expected loot screen to wait until after post-combat feedback")
 	while player.is_in_combat():
 		await process_frame

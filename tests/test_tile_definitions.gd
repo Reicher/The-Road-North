@@ -66,13 +66,22 @@ func _initialize() -> void:
 	}
 	await process_frame
 	var power_label := enemy_tile.get_node_or_null("Enemy/PowerLabel") as Label3D
+	var power_icon := enemy_tile.get_node_or_null("Enemy/PowerIcon") as Sprite3D
 	_assert(power_label != null, "Expected revealed enemy tiles to show a power label")
+	_assert(power_icon != null, "Expected revealed enemy tiles to show a power icon")
 	_assert(power_label.text == "7", "Expected enemy power label to show the enemy power")
 	_assert(power_label.position.y > TILE_SIZE * 0.45, "Expected enemy power label to sit above the enemy model")
-	_assert(power_label.position.x > TILE_SIZE * 0.08, "Expected enemy power label to sit slightly right of the enemy model center")
+	_assert(power_icon.texture == load("res://assets/images/stat_health.png"), "Expected enemy tiles to use the player's power icon")
+	_assert(power_label.position.x > power_icon.position.x, "Expected the enemy power value to sit right of the power icon")
+	_assert(power_label.position.x - power_icon.position.x > TILE_SIZE * 0.15, "Expected clear spacing between the enemy power icon and value")
+	_assert(is_equal_approx((power_label.position.x + power_icon.position.x) * 0.5, 0.0), "Expected the power value and icon to be centered over the enemy")
+	_assert(is_equal_approx(power_icon.position.y, power_label.position.y), "Expected the power value and icon to share a baseline")
 	_assert(is_equal_approx(power_label.position.z, 0.0), "Expected enemy power label to stay centered above the enemy model")
 	_assert(power_label.fixed_size, "Expected enemy power label to stay readable at camera distance")
-	_assert(power_label.font_size < 24 and power_label.outline_size <= 3, "Expected enemy power label to render smaller and cleaner than the original oversized label")
+	_assert(power_icon.fixed_size, "Expected enemy power icon to stay readable at camera distance")
+	_assert(power_label.font_size == PlayerStatsUI.STAT_VALUE_FONT_SIZE, "Expected enemy power value to follow the player's power stat font size")
+	_assert(is_equal_approx(power_label.pixel_size, power_icon.pixel_size), "Expected the enemy power icon and value to use the same 3D pixel scale")
+	_assert(is_equal_approx(power_icon.scale.x * float(power_icon.texture.get_width()), PlayerStatsUI.STAT_ICON_SIZE), "Expected enemy power icon to follow the player's power stat icon size")
 	enemy_tile.queue_free()
 
 	var start_camp := load("res://data/start_camp.tres")

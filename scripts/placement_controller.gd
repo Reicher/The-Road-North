@@ -67,6 +67,7 @@ var _rotate_original_position := Vector2i(-1, -1)
 var _rotate_original_tile_data: Dictionary = {}
 var _rotate_original_rotation := 0
 var _card_drag_in_progress := false
+var _preview_drag_pointer_id := -2
 
 
 func _ready() -> void:
@@ -97,9 +98,6 @@ func _ready() -> void:
 		_hand.card_drag_moved.connect(_on_card_drag_moved)
 	if not _hand.card_drag_finished.is_connected(_on_card_drag_finished):
 		_hand.card_drag_finished.connect(_on_card_drag_finished)
-	if not _map.tile_pressed.is_connected(_on_tile_pressed):
-		_map.tile_pressed.connect(_on_tile_pressed)
-
 	set_process_unhandled_input(true)
 	set_process(false)
 
@@ -113,12 +111,31 @@ func _unhandled_input(event: InputEvent) -> void:
 	if active_card == null or preview_position.x < 0:
 		return
 
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and event.double_click:
-		if _map.screen_to_grid(event.position) == preview_position:
-			rotate_preview()
-	elif event is InputEventScreenTouch and event.pressed and event.double_tap:
-		if _map.screen_to_grid(event.position) == preview_position:
-			rotate_preview()
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		var mouse_grid_position := _map.screen_to_grid(event.position)
+		if event.pressed:
+			if event.double_click and mouse_grid_position == preview_position:
+				rotate_preview()
+			else:
+				_try_start_preview_drag(mouse_grid_position, -1)
+		elif _preview_drag_pointer_id == -1:
+			_finish_preview_drag()
+	elif event is InputEventMouseMotion and _preview_drag_pointer_id == -1:
+		if event.button_mask & MOUSE_BUTTON_MASK_LEFT:
+			_move_preview_drag(_map.screen_to_grid(event.position))
+		else:
+			_finish_preview_drag()
+	elif event is InputEventScreenTouch:
+		var touch_grid_position := _map.screen_to_grid(event.position)
+		if event.pressed:
+			if event.double_tap and touch_grid_position == preview_position:
+				rotate_preview()
+			else:
+				_try_start_preview_drag(touch_grid_position, event.index)
+		elif _preview_drag_pointer_id == event.index:
+			_finish_preview_drag()
+	elif event is InputEventScreenDrag and _preview_drag_pointer_id == event.index:
+		_move_preview_drag(_map.screen_to_grid(event.position))
 
 
 func is_placing() -> bool:
@@ -270,13 +287,30 @@ func _on_card_drag_finished(card: CardView, canvas_position: Vector2, activated:
 	_refresh_preview()
 
 
-func _on_tile_pressed(grid_position: Vector2i) -> void:
-	if active_card == null:
+func _try_start_preview_drag(grid_position: Vector2i, pointer_id: int) -> bool:
+	if active_card == null or preview_position != grid_position or _preview_drag_pointer_id != -2:
+		return false
+	_preview_drag_pointer_id = pointer_id
+	add_to_group("ui_item_drag_active")
+	return true
+
+
+func _move_preview_drag(grid_position: Vector2i) -> void:
+	if _preview_drag_pointer_id == -2 or not _map.is_inside_playable_area(grid_position):
+		return
+	if grid_position == preview_position:
 		return
 	if active_mode == MODE_ROTATE_TARGETING:
 		_restore_rotate_target()
 	preview_position = grid_position
 	_refresh_preview()
+
+
+func _finish_preview_drag() -> void:
+	if _preview_drag_pointer_id == -2:
+		return
+	_preview_drag_pointer_id = -2
+	remove_from_group("ui_item_drag_active")
 
 
 func _refresh_preview() -> void:
@@ -293,8 +327,8 @@ func _refresh_preview() -> void:
 	_preview_tile.definition = active_definition
 	_preview_tile.rotation_steps = rotation_steps
 	_preview_tile.tile_size = _map.tile_size
-	_preview_tile.position = _map.grid_to_world(preview_position) + Vector3(0.0, _map.tile_size * 0.04, 0.0)
-	_preview_tile.scale = Vector3(1.03, 1.0, 1.03)
+	_preview_tile.position = _map.grid_to_world(preview_position)
+	_preview_tile.scale = Vector3.ONE
 	_preview_tile.visible = true
 
 	var tile_data := _roads.make_tile_data(active_definition, rotation_steps)
@@ -394,6 +428,7 @@ func _end_placement(keep_card_focused: bool) -> void:
 	rotation_steps = 0
 	_placement_valid = false
 	_card_drag_in_progress = false
+	_finish_preview_drag()
 	_clear_rotate_target_snapshot()
 	_player.input_enabled = true
 	_hand.interaction_enabled = true

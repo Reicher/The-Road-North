@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/placement_controls_ui.gd" id="1_x2qxl"]
+[ext_resource type="Script" path="res://scripts/placement_action_button.gd" id="2_action"]
 
 [node name="PlacementControls" type="CanvasLayer"]
 layer = 20
@@ -13,23 +14,33 @@ horizontal_alignment = 1
 vertical_alignment = 1
 text = "Place tile"
 
-[node name="Buttons" type="HBoxContainer" parent="."]
+[node name="Buttons" type="Control" parent="."]
 visible = false
-alignment = 1
-theme_override_constants/separation = 10
+custom_minimum_size = Vector2(128, 128)
+mouse_filter = 2
 
 [node name="RotateButton" type="Button" parent="Buttons"]
-custom_minimum_size = Vector2(96, 44)
-focus_mode = 0
-text = "Rotate"
+layout_mode = 0
+offset_left = 36.0
+offset_right = 92.0
+offset_bottom = 56.0
+script = ExtResource("2_action")
+action = 0
 
 [node name="ConfirmButton" type="Button" parent="Buttons"]
-custom_minimum_size = Vector2(96, 44)
-focus_mode = 0
+layout_mode = 0
+offset_top = 72.0
+offset_right = 56.0
+offset_bottom = 128.0
 disabled = true
-text = "Confirm"
+script = ExtResource("2_action")
+action = 1
 
 [node name="CancelButton" type="Button" parent="Buttons"]
-custom_minimum_size = Vector2(96, 44)
-focus_mode = 0
-text = "Cancel"
+layout_mode = 0
+offset_left = 72.0
+offset_top = 72.0
+offset_right = 128.0
+offset_bottom = 128.0
+script = ExtResource("2_action")
+action = 2

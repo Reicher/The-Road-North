@@ -335,17 +335,18 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previou
 	_set_visual_encounter_data(target_position, enemy_data)
 
 	var target_world_position := _map.grid_to_world(target_position)
+	var combat_direction := target_world_position - position
 	if combat_bump_duration <= 0.0:
 		position = target_world_position
-		_finish_enemy_move(target_position, enemy_data, previous_input_enabled)
+		_finish_enemy_move(target_position, enemy_data, previous_input_enabled, combat_direction)
 		return
 
 	_start_hop_move(target_world_position, combat_bump_duration, func() -> void:
-		_finish_enemy_move(target_position, enemy_data, previous_input_enabled)
+		_finish_enemy_move(target_position, enemy_data, previous_input_enabled, combat_direction)
 	)
 
 
-func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previous_input_enabled: bool) -> void:
+func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previous_input_enabled: bool, combat_direction: Vector3) -> void:
 	var enemy_damage: int = _combat.get_damage_from(enemy_data)
 	set_health(maxi(0, health - enemy_damage), false)
 
@@ -362,6 +363,7 @@ func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previ
 		return
 
 	_combat.clear_enemy_at(target_position)
+	await _play_enemy_defeat(target_position, combat_direction)
 	_clear_visual_encounter_data(target_position)
 
 	if post_combat_loot_delay > 0.0:
@@ -370,6 +372,15 @@ func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previ
 	input_enabled = previous_input_enabled
 	_combat_running = false
 	_check_game_over()
+
+
+func _play_enemy_defeat(target_position: Vector2i, combat_direction: Vector3) -> void:
+	var visual_tile := _find_visual_tile(target_position)
+	if visual_tile == null:
+		return
+	var enemy_view := visual_tile.get_node_or_null("Enemy")
+	if enemy_view != null and enemy_view.has_method("play_defeat"):
+		await enemy_view.play_defeat(combat_direction)
 
 
 func _set_visual_encounter_data(target_position: Vector2i, encounter_data: Dictionary) -> void:

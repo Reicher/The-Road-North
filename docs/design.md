@@ -273,20 +273,21 @@ When the player drags a road card above the hand, the game enters placement mode
 
 In placement mode:
 - the initial preview follows the dragged card across map tiles
-- after releasing the card, the player may tap any tile on the map
-- a preview tile snaps to the tapped tile
+- after releasing the card, the player moves the preview by dragging it from its current tile
+- the preview tile snaps to tiles crossed by the drag
 - the preview tile is tinted green when placement is valid
 - the preview tile is tinted red when placement is invalid
 - the preview tile itself acts as the visual placement hint
-- three buttons appear below the preview: rotate, confirm, and cancel
+- round confirm and cancel icon buttons appear below the preview
+- a round rotate icon button appears above the preview when rotation is available
 - the rotate button turns the tile 90 degrees clockwise
 - double tapping the preview tile also rotates it
 - invalid preview tiles may still be rotated
 - the confirm button is only active while the preview is valid
-- tapping another tile moves the preview there
+- tapping another tile does not move the preview
 - the cancel button exits placement mode and returns the card to the hand
 
-Dragging only controls the initial preview selection. After release, placement uses the normal tap, rotate, confirm, and cancel interactions.
+The preview must always be dragged to move it. After release, rotate, confirm, and cancel remain available.
 
 A road card may only be legally placed:
 - on an empty playable tile
@@ -328,14 +329,14 @@ One event destroys a placed tile.
 When this card is played:
 - the player is shown all placed tiles after dragging the card above the hand
 - the initial selected tile follows the drag
-- after release, the player may select another tile to destroy
+- after release, the player may drag the target preview to another tile
 - the start and goal tiles cannot be targeted
 - the tile the player is currently standing on cannot be targeted
 - the tile must be within the player's orthogonal target range
 
 The UI mirrors placement mode:
 - only the currently previewed tile is marked green or red
-- confirm and cancel buttons appear
+- the same round confirm and cancel icon buttons appear below the preview
 - there is no rotate button
 - cancelling returns the card to the hand
 

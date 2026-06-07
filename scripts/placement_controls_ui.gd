@@ -2,7 +2,7 @@ class_name PlacementControlsUI
 extends CanvasLayer
 
 var prompt_label: Label
-var buttons: HBoxContainer
+var buttons: Control
 var rotate_button: Button
 var confirm_button: Button
 var cancel_button: Button
@@ -67,23 +67,14 @@ func position_buttons(preview_position: Vector2i, map: GameMap, hand: HandUI) ->
 	if not buttons.visible:
 		return
 
-	var controls_size := buttons.size
-	var minimum_size := buttons.get_combined_minimum_size()
-	if controls_size.x < minimum_size.x or controls_size.y < minimum_size.y:
-		buttons.size = minimum_size
-		controls_size = minimum_size
-
 	var viewport_size := Vector2(_get_viewport_size().x, _get_map_screen_height(hand))
-	var preferred_position := Vector2.ZERO
 	if preview_position.x >= 0 and map != null:
 		var canvas_position: Vector2 = map.grid_to_screen_position(preview_position)
-		preferred_position = canvas_position + Vector2(-controls_size.x * 0.5, map.tile_size * 0.56)
+		var top_edge_position := map.grid_edge_to_screen_position(preview_position, false)
+		var bottom_edge_position := map.grid_edge_to_screen_position(preview_position, true)
+		_position_around_preview(canvas_position, viewport_size, top_edge_position.y, bottom_edge_position.y)
 	else:
-		preferred_position = Vector2((viewport_size.x - controls_size.x) * 0.5, viewport_size.y - controls_size.y - 8.0)
-
-	preferred_position.x = clampf(preferred_position.x, 8.0, maxf(8.0, viewport_size.x - controls_size.x - 8.0))
-	preferred_position.y = clampf(preferred_position.y, 8.0, maxf(8.0, viewport_size.y - controls_size.y - 8.0))
-	buttons.position = preferred_position
+		_position_at_bottom(viewport_size)
 
 
 func position_prompt(hand: HandUI) -> void:
@@ -122,10 +113,60 @@ func _resolve_nodes() -> void:
 	if prompt_label != null:
 		return
 	prompt_label = get_node("PromptLabel") as Label
-	buttons = get_node("Buttons") as HBoxContainer
+	buttons = get_node("Buttons") as Control
 	rotate_button = get_node("Buttons/RotateButton") as Button
 	confirm_button = get_node("Buttons/ConfirmButton") as Button
 	cancel_button = get_node("Buttons/CancelButton") as Button
+
+
+func _position_around_preview(
+	canvas_position: Vector2,
+	viewport_size: Vector2,
+	top_edge_y := NAN,
+	bottom_edge_y := NAN
+) -> void:
+	var button_size := Vector2(56.0, 56.0)
+	var side_offset := 52.0
+	if is_nan(top_edge_y):
+		top_edge_y = canvas_position.y - 48.0
+	if is_nan(bottom_edge_y):
+		bottom_edge_y = canvas_position.y + 48.0
+	var bottom_y := bottom_edge_y - button_size.y * 0.5
+	var top_y := top_edge_y - button_size.y * 0.5
+	var center_x := canvas_position.x - button_size.x * 0.5
+
+	rotate_button.position = _clamp_button_position(Vector2(center_x, top_y), button_size, viewport_size)
+	confirm_button.position = _clamp_button_position(
+		Vector2(canvas_position.x - side_offset - button_size.x * 0.5, bottom_y),
+		button_size,
+		viewport_size
+	)
+	cancel_button.position = _clamp_button_position(
+		Vector2(canvas_position.x + side_offset - button_size.x * 0.5, bottom_y),
+		button_size,
+		viewport_size
+	)
+	buttons.position = Vector2.ZERO
+	buttons.size = viewport_size
+
+
+func _position_at_bottom(viewport_size: Vector2) -> void:
+	var button_size := Vector2(56.0, 56.0)
+	var side_gap := 5.0
+	var bottom_y := viewport_size.y - button_size.y - 8.0
+	var center_x := viewport_size.x * 0.5
+	rotate_button.position = Vector2(center_x - button_size.x * 0.5, bottom_y)
+	confirm_button.position = Vector2(center_x - button_size.x - side_gap, bottom_y)
+	cancel_button.position = Vector2(center_x + side_gap, bottom_y)
+	buttons.position = Vector2.ZERO
+	buttons.size = viewport_size
+
+
+func _clamp_button_position(position: Vector2, button_size: Vector2, viewport_size: Vector2) -> Vector2:
+	return Vector2(
+		clampf(position.x, 8.0, maxf(8.0, viewport_size.x - button_size.x - 8.0)),
+		clampf(position.y, 8.0, maxf(8.0, viewport_size.y - button_size.y - 8.0))
+	)
 
 
 func _get_viewport_size() -> Vector2:

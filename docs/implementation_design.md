@@ -362,9 +362,9 @@ Placement flow:
 - player may rotate the preview
 - player confirms or cancels
 
-The player may tap another tile to move the preview.
+The player must drag from the current preview tile to move it. Tapping another tile does not move the preview.
 
-Dragging only selects the initial preview position. Once released, the existing tap, rotate, confirm, and cancel flow remains active.
+Once released, the preview remains draggable while the existing rotate, confirm, and cancel flow remains active.
 
 Double tapping the preview tile should rotate it.
 
@@ -388,7 +388,7 @@ Current events:
 - Doubt enters target selection mode and previews rotation of one placed road tile.
 - Lucky Find consumes itself and grants either 3 food or 4 gold.
 
-All events are dragged onto the map. Idea and Lucky Find resolve immediately when released over the playable map. Mirage and Doubt enter targeting when dragged above the hand, follow the drag for their initial target, and remain in the normal confirm/cancel flow after release.
+All events are dragged onto the map. Idea and Lucky Find resolve immediately when released over the playable map. Mirage and Doubt enter targeting when dragged above the hand, follow the drag for their initial target, and remain draggable in the normal confirm/cancel flow after release.
 
 Road placement and targeted events currently share a simple orthogonal target range of one tile from the player. The range is an explicit PlacementController value so future items can increase it without changing each card's targeting rules.
 
