@@ -1,8 +1,6 @@
 class_name PlayerRewards
 extends Node
 
-const WeaponCatalog = preload("res://scripts/weapon_catalog.gd")
-const ItemCatalog = preload("res://scripts/item_catalog.gd")
 const GameBalance = preload("res://scripts/game_balance.gd")
 
 var _player: GamePlayer
@@ -74,31 +72,10 @@ func _collect_loot_entry(entry: Dictionary) -> void:
 
 
 func _make_enemy_loot(enemy_data: Dictionary) -> Array[Dictionary]:
-	var loot: Array[Dictionary] = []
 	var enemy_power := maxi(1, int(enemy_data.get("power", 1)))
 	var default_level := floori(float(enemy_power - 1) / 3.0) + 1
 	var level_rewards := GameBalance.enemy_rewards(default_level)
-	loot.append({
+	return [{
 		"kind": "gold",
 		"amount": _loot_rng.randi_range(int(enemy_data.get("gold_min", level_rewards["gold_min"])), int(enemy_data.get("gold_max", level_rewards["gold_max"]))),
-	})
-	if _loot_rng.randf() < float(enemy_data.get("item_chance", level_rewards["item_chance"])):
-		loot.append({
-			"kind": "item",
-			"item": _make_enemy_item(enemy_data),
-		})
-	if _loot_rng.randf() < ItemCatalog.BINOCULARS_DROP_CHANCE:
-		loot.append({
-			"kind": "item",
-			"item": ItemCatalog.make_binoculars(),
-		})
-	return loot
-
-
-func _make_enemy_item(enemy_data: Dictionary) -> Dictionary:
-	var enemy_power := maxi(1, int(enemy_data.get("power", 1)))
-	return WeaponCatalog.roll_weapon(_loot_rng, enemy_power, {
-		-1: 0.30,
-		0: 0.50,
-		1: 0.20,
-	})
+	}]

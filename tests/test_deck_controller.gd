@@ -49,7 +49,7 @@ func _initialize() -> void:
 	var reward_road_count := 0
 	var reward_road_has_clear_label := false
 	var cache_count := 0
-	var caches_have_valid_gold := true
+	var caches_have_exactly_one_item := true
 	var event_types := {}
 	for card in hand.cards:
 		category_counts[card.category] += 1
@@ -63,7 +63,7 @@ func _initialize() -> void:
 			reward_road_has_clear_label = reward_road_has_clear_label or card.detail in ["Plus food", "Plus treasure"]
 			if card.encounter_data.get("type", "") == GameMap.ENCOUNTER_CACHE:
 				cache_count += 1
-				caches_have_valid_gold = caches_have_valid_gold and _cache_has_valid_gold(card.encounter_data)
+				caches_have_exactly_one_item = caches_have_exactly_one_item and _cache_has_exactly_one_item(card.encounter_data)
 		elif card.category == "Event":
 			event_types[card.event_type] = true
 	for card_data in deck_controller.deck:
@@ -81,7 +81,7 @@ func _initialize() -> void:
 			reward_road_has_clear_label = reward_road_has_clear_label or str(card_data.get("detail", "")) in ["Plus food", "Plus treasure"]
 			if encounter.get("type", "") == GameMap.ENCOUNTER_CACHE:
 				cache_count += 1
-				caches_have_valid_gold = caches_have_valid_gold and _cache_has_valid_gold(encounter)
+				caches_have_exactly_one_item = caches_have_exactly_one_item and _cache_has_exactly_one_item(encounter)
 		elif card_data["category"] == "Event":
 			event_types[str(card_data.get("event_type", ""))] = true
 	_assert(category_counts["Road"] == 24, "Expected 75 percent of the formula deck to be road cards")
@@ -102,7 +102,7 @@ func _initialize() -> void:
 	_assert(reward_road_count == 8, "Expected four berry roads and four loot roads on a 9x9 level one map")
 	_assert(reward_road_has_clear_label, "Expected reward encounter road cards to be clearly described")
 	_assert(cache_count > 0, "Expected reward road cards to include treasure caches")
-	_assert(caches_have_valid_gold, "Expected every treasure cache to contain level-scaled gold")
+	_assert(caches_have_exactly_one_item, "Expected every treasure cache to contain exactly one item")
 
 	var modal_source: Array[Dictionary] = []
 	for _index in 5:
@@ -137,17 +137,9 @@ func _assert(condition: bool, message: String) -> void:
 	quit(1)
 
 
-func _cache_has_valid_gold(encounter: Dictionary) -> bool:
-	var has_valid_gold := false
+func _cache_has_exactly_one_item(encounter: Dictionary) -> bool:
 	var loot: Array = encounter.get("loot", [])
-	for entry in loot:
-		if not entry is Dictionary:
-			continue
-		var kind := str(entry.get("kind", ""))
-		if kind == "gold":
-			var amount := int(entry.get("amount", -1))
-			has_valid_gold = amount >= 2 and amount <= 4
-	return has_valid_gold
+	return loot.size() == 1 and loot[0] is Dictionary and loot[0].get("kind", "") == "item"
 
 
 func _has_definition(cards: Array[Dictionary], definition: Resource) -> bool:

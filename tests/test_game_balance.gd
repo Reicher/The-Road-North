@@ -43,10 +43,8 @@ func _test_level_and_map_size_are_independent_inputs() -> void:
 
 func _test_reward_formulas() -> void:
 	_assert(GameBalance.berry_food(5) == 3 and GameBalance.berry_food(9) == 5, "Expected berry food to scale from map size")
-	var loot_rewards := GameBalance.loot_road_rewards(2)
-	_assert(int(loot_rewards["gold_min"]) == 3 and int(loot_rewards["gold_max"]) == 6 and is_equal_approx(float(loot_rewards["item_chance"]), 0.30), "Expected level two loot road rewards")
 	var enemy_rewards := GameBalance.enemy_rewards(2)
-	_assert(int(enemy_rewards["gold_min"]) == 4 and int(enemy_rewards["gold_max"]) == 8 and is_equal_approx(float(enemy_rewards["item_chance"]), 0.40), "Expected level two enemy rewards")
+	_assert(int(enemy_rewards["gold_min"]) == 4 and int(enemy_rewards["gold_max"]) == 8, "Expected level two enemy gold rewards")
 
 
 func _test_shop_formulas() -> void:

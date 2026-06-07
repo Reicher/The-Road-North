@@ -392,7 +392,7 @@ All events are dragged onto the map. Idea and Lucky Find resolve immediately whe
 
 Road placement and targeted events currently share a simple orthogonal target range of one tile from the player. The range is an explicit PlacementController value so future items can increase it without changing each card's targeting rules.
 
-PlacementController reads target range bonuses from InventoryUI. Kikare contributes `target_range_bonus: 1`, expanding valid targets to Manhattan distance two. Cache and enemy loot each roll an independent 15% Kikare drop chance on every level.
+PlacementController reads target range bonuses from InventoryUI. Kikare contributes `target_range_bonus: 1`, expanding valid targets to Manhattan distance two. Each cache contains exactly one item and has a 15% chance to contain Kikare instead of a weapon. Enemy loot contains only gold.
 
 Road placement deliberately does not show valid empty tiles before the player previews them. Only the active road preview communicates validity through its green or red tint.
 

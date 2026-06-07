@@ -11,9 +11,7 @@ const SAMPLE_COUNT := 20000
 func _initialize() -> void:
 	_test_weapon_catalog()
 	_test_enemy_power_ranges()
-	_test_enemy_drop_chances_and_gold()
-	_test_enemy_weapon_distribution()
-	_test_enemy_loot_normalizes_missing_power()
+	_test_enemy_loot_is_only_gold()
 	_test_cache_loot_distribution()
 	_test_cache_loot_normalizes_missing_power()
 	_test_cache_loot_falls_back_when_all_weighted_powers_are_missing()
@@ -47,51 +45,20 @@ func _test_enemy_power_ranges() -> void:
 	builder.free()
 
 
-func _test_enemy_drop_chances_and_gold() -> void:
+func _test_enemy_loot_is_only_gold() -> void:
 	for enemy_rank in range(3):
 		var rewards = PLAYER_REWARDS_SCRIPT.new()
 		rewards.set_loot_seed(20000 + enemy_rank)
-		var drop_count := 0
-		var binoculars_count := 0
 		var enemy_power := enemy_rank + 1
 		for _index in SAMPLE_COUNT:
 			var loot: Array = rewards._make_enemy_loot({
 				"power": enemy_power,
 				"enemy_min_power": 1,
 			})
+			_assert(loot.size() == 1 and loot[0].get("kind", "") == "gold", "Expected enemies to drop exactly one gold entry")
 			var gold_amount := _gold_amount(loot)
 			_assert(gold_amount >= 2 and gold_amount <= 5, "Expected level one enemy gold range")
-			if not _weapon_from_loot(loot).is_empty():
-				drop_count += 1
-			if not _binoculars_from_loot(loot).is_empty():
-				binoculars_count += 1
-		_assert(_ratio_is_close(drop_count, 0.35), "Expected enemy item chance to scale from level")
-		_assert(_ratio_is_close(binoculars_count, ItemCatalog.BINOCULARS_DROP_CHANCE), "Expected enemies on every level to have a 15 percent Kikare chance")
 		rewards.free()
-
-
-func _test_enemy_weapon_distribution() -> void:
-	var rewards = PLAYER_REWARDS_SCRIPT.new()
-	rewards.set_loot_seed(34567)
-	var counts := {2: 0, 3: 0, 4: 0}
-	for _index in SAMPLE_COUNT:
-		var weapon: Dictionary = rewards._make_enemy_item({"power": 3})
-		counts[int(weapon["power_bonus"])] += 1
-	_assert(_ratio_is_close(counts[2], 0.30), "Expected enemy weapon target minus one chance to be 30 percent")
-	_assert(_ratio_is_close(counts[3], 0.50), "Expected enemy weapon target chance to be 50 percent")
-	_assert(_ratio_is_close(counts[4], 0.20), "Expected enemy weapon target plus one chance to be 20 percent")
-	rewards.free()
-
-
-func _test_enemy_loot_normalizes_missing_power() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 45678
-	var counts := {4: 0, 5: 0}
-	for _index in SAMPLE_COUNT:
-		var weapon := WeaponCatalog.roll_weapon(rng, 5, {-1: 0.30, 0: 0.50, 1: 0.20})
-		counts[int(weapon["power_bonus"])] += 1
-	_assert(_ratio_is_close(counts[4], 0.30 / 0.80), "Expected missing enemy weapon powers to be ignored and weights normalized")
-	_assert(_ratio_is_close(counts[5], 0.50 / 0.80), "Expected existing enemy weapon weights to retain their relative proportions")
 
 
 func _test_cache_loot_distribution() -> void:
@@ -99,23 +66,22 @@ func _test_cache_loot_distribution() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 56789
 	var counts := {2: 0, 3: 0, 4: 0}
-	var item_count := 0
+	var weapon_count := 0
 	var binoculars_count := 0
 	for _index in SAMPLE_COUNT:
 		var encounter: Dictionary = builder._make_reward_encounter(1, rng, 1)
 		var loot: Array = encounter["loot"]
-		var gold_amount := _gold_amount(loot)
-		_assert(gold_amount >= 2 and gold_amount <= 4, "Expected level one cache gold range")
+		_assert(loot.size() == 1 and loot[0].get("kind", "") == "item", "Expected caches to drop exactly one item")
 		var item := _weapon_from_loot(loot)
 		if not item.is_empty():
-			item_count += 1
+			weapon_count += 1
 			counts[int(item["power_bonus"])] += 1
 		if not _binoculars_from_loot(loot).is_empty():
 			binoculars_count += 1
-	_assert(_ratio_is_close(item_count, 0.25), "Expected level one cache item chance")
-	_assert(_conditional_ratio_is_close(counts[2], item_count, 0.55), "Expected level one cache Dagger chance to be 55 percent when an item drops")
-	_assert(_conditional_ratio_is_close(counts[3], item_count, 0.30), "Expected level one cache Machete chance to be 30 percent when an item drops")
-	_assert(_conditional_ratio_is_close(counts[4], item_count, 0.15), "Expected level one cache Sword chance to be 15 percent when an item drops")
+	_assert(weapon_count + binoculars_count == SAMPLE_COUNT, "Expected every cache item to be a weapon or Kikare")
+	_assert(_conditional_ratio_is_close(counts[2], weapon_count, 0.55), "Expected level one cache Dagger chance to be 55 percent when a weapon drops")
+	_assert(_conditional_ratio_is_close(counts[3], weapon_count, 0.30), "Expected level one cache Machete chance to be 30 percent when a weapon drops")
+	_assert(_conditional_ratio_is_close(counts[4], weapon_count, 0.15), "Expected level one cache Sword chance to be 15 percent when a weapon drops")
 	_assert(_ratio_is_close(binoculars_count, ItemCatalog.BINOCULARS_DROP_CHANCE), "Expected caches on every level to have a 15 percent Kikare chance")
 	builder.free()
 

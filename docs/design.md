@@ -377,7 +377,7 @@ Enemy encounters:
 - cost the normal 1 food movement cost before combat resolves
 - damage the player by max(0, enemy power - player power)
 - are removed from the tile after combat resolves
-- open a loot screen after defeat
+- grant gold directly after defeat
 
 The player has:
 - food
@@ -393,7 +393,7 @@ Gold is a simple collected resource for the prototype.
 
 Power comes from the player's base value plus the strongest carried weapon bonus.
 
-Berry bushes contain food. Caches and defeated enemies always grant gold and may also contain a weapon.
+Berry bushes contain food. Defeated enemies always grant only gold. Caches always contain exactly one item.
 
 Food and gold loot are collected directly.
 
@@ -401,7 +401,7 @@ Items go into the inventory if there is space.
 
 The inventory is a three-slot backpack that starts with a Knife. Weapons may provide power. Only the strongest carried weapon contributes to the player's power. Weapons range from +1 power for a Knife to +5 power for a Katana.
 
-Kikare is a utility item that increases the player's target range by one. With Kikare, targeted cards can reach Manhattan distance two: two tiles horizontally or vertically, or one tile diagonally. Every cache and defeated enemy has a 15% chance to additionally drop Kikare on every level.
+Kikare is a utility item that increases the player's target range by one. With Kikare, targeted cards can reach Manhattan distance two: two tiles horizontally or vertically, or one tile diagonally. Every cache has a 15% chance to contain Kikare instead of a weapon.
 
 Food and gold are collected immediately when loot opens. Item loot can be dragged into the backpack, swapped with carried items, or collected with Take All when enough slots are free. Backpack items can also be reordered by drag and drop.
 

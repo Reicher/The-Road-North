@@ -230,7 +230,6 @@ func _make_enemy_encounter(rng: RandomNumberGenerator, level: int) -> Dictionary
 		"enemy_min_power": power_range.x,
 		"gold_min": rewards["gold_min"],
 		"gold_max": rewards["gold_max"],
-		"item_chance": rewards["item_chance"],
 	}
 
 
@@ -266,28 +265,14 @@ func _make_reward_encounter(kind: Variant, rng: RandomNumberGenerator, level: in
 			"type": kind,
 			"loot": [{"kind": "food", "amount": GameBalance.berry_food(map_size)}],
 		}
-	var rewards := GameBalance.loot_road_rewards(level)
-	var loot: Array[Dictionary] = [{
-		"kind": "gold",
-		"amount": rng.randi_range(int(rewards["gold_min"]), int(rewards["gold_max"])),
-	}]
-	if rng.randf() < float(rewards["item_chance"]):
-		loot.push_front({
-			"kind": "item",
-			"item": WeaponCatalog.roll_weapon(rng, maxi(1, level) + 1, {
-				0: 0.55,
-				1: 0.30,
-				2: 0.15,
-			}),
-		})
-	if rng.randf() < ItemCatalog.BINOCULARS_DROP_CHANCE:
-		loot.push_front({
-			"kind": "item",
-			"item": ItemCatalog.make_binoculars(),
-		})
+	var item := ItemCatalog.make_binoculars() if rng.randf() < ItemCatalog.BINOCULARS_DROP_CHANCE else WeaponCatalog.roll_weapon(rng, maxi(1, level) + 1, {
+		0: 0.55,
+		1: 0.30,
+		2: 0.15,
+	})
 	return {
 		"type": kind,
-		"loot": loot,
+		"loot": [{"kind": "item", "item": item}],
 	}
 
 

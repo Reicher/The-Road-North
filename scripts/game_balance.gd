@@ -72,21 +72,11 @@ static func berry_food(map_size: int) -> int:
 	return clampi(roundi(float(map_size) / 2.0), 3, 6)
 
 
-static func loot_road_rewards(level: int) -> Dictionary:
-	var safe_level := maxi(1, level)
-	return {
-		"gold_min": safe_level + 1,
-		"gold_max": safe_level * 2 + 2,
-		"item_chance": minf(0.20 + float(safe_level) * 0.05, 0.45),
-	}
-
-
 static func enemy_rewards(level: int) -> Dictionary:
 	var safe_level := maxi(1, level)
 	return {
 		"gold_min": safe_level * 2,
 		"gold_max": safe_level * 3 + 2,
-		"item_chance": minf(0.30 + float(safe_level) * 0.05, 0.55),
 	}
 
 

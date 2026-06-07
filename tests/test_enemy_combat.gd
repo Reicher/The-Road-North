@@ -84,12 +84,7 @@ func run() -> void:
 	root.add_child(player)
 	player._ready()
 	var rewards = player.get_node("Rewards")
-	for loot_seed in range(1, 100):
-		rewards.set_loot_seed(loot_seed)
-		var seeded_loot: Array = rewards._make_enemy_loot(enemy_data)
-		if seeded_loot.size() == 2:
-			rewards.set_loot_seed(loot_seed)
-			break
+	rewards.set_loot_seed(1)
 	player.move_started.connect(func(_target_position: Vector2i) -> void:
 		player.input_enabled = false
 	)
@@ -130,12 +125,12 @@ func run() -> void:
 	_assert(player.health == 5, "Expected player power to prevent enemy damage in this combat")
 	_assert(not map.get_tile(Vector2i(4, 7)).has("encounter"), "Expected defeated enemy to be removed from tile data")
 	_assert(roads.get_visual_tile(Vector2i(4, 7)).enemy_data.is_empty(), "Expected defeated enemy to disappear from visual tile")
-	_assert(loot_ui.is_open(), "Expected defeated enemies to open the loot screen")
+	_assert(not loot_ui.is_open(), "Expected gold-only enemy loot to collect without opening the item loot screen")
 
 	loot_ui.take_all()
 	_assert(player.food == 2, "Expected enemy loot not to add food")
 	_assert(player.gold >= 2 and player.gold <= 5, "Expected enemy gold loot to scale from enemy level")
-	_assert(inventory.get_active_items().size() == 2, "Expected enemy item loot to move into one backpack slot")
+	_assert(inventory.get_active_items().size() == 1, "Expected enemy loot not to add an item")
 	_assert(player.input_enabled, "Expected player input to resume after enemy combat movement")
 	_assert(player.move_to(Vector2i(4, 8)), "Expected player to backtrack after enemy combat")
 	_assert(player.grid_position == Vector2i(4, 8), "Expected enemy combat backtracking to move onto the connected start road")

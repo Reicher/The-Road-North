@@ -93,11 +93,10 @@ func _initialize() -> void:
 					"power_bonus": 1,
 				},
 			},
-			{"kind": "gold", "amount": 4},
 		],
 	}), "Expected treasure cache road card placement to succeed")
 	_assert(player.move_to(Vector2i(6, 6)), "Expected player to move onto a treasure cache")
-	_assert(player.gold == 4, "Expected treasure cache gold to be collected when entering its tile")
+	_assert(player.gold == 0, "Expected treasure caches not to add gold")
 	_assert(map.get_encounter(Vector2i(6, 6)).is_empty(), "Expected collected treasure cache to be removed")
 
 	player.food = 0
