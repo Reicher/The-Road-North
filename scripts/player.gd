@@ -149,10 +149,6 @@ func move_to(target_position: Vector2i) -> bool:
 	return true
 
 
-func is_moving() -> bool:
-	return _moving
-
-
 func is_in_combat() -> bool:
 	return _combat_running
 

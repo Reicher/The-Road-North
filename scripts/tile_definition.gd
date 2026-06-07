@@ -35,7 +35,3 @@ func get_rotated_openings(rotation_steps: int) -> Dictionary:
 		rotated_openings[to_direction] = base_openings[from_direction]
 
 	return rotated_openings
-
-
-func has_opening(direction_name: String, rotation_steps: int = 0) -> bool:
-	return get_rotated_openings(rotation_steps).get(direction_name, false) == true

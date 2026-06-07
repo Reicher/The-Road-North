@@ -60,10 +60,6 @@ func render(
 	_refresh_enemy_view(tile_size, encounter_data, enemy_offset)
 
 
-func refresh_enemy(tile_size: float, encounter_data: Dictionary, enemy_offset: Vector3) -> void:
-	_refresh_enemy_view(tile_size, encounter_data, enemy_offset)
-
-
 func _get_openings(definition: Resource, rotation_steps: int) -> Dictionary:
 	if definition == null or not definition.has_method("get_rotated_openings"):
 		return {}

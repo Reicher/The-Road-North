@@ -120,7 +120,7 @@ Connections are fully bidirectional.
 
 The player may freely backtrack if valid roads and food exist.
 
-The player starts each run with food equal to approximately one quarter of the playable map area. On a 9x9 map this is 20 food.
+The player starts each run with 10 food. Levels may explicitly override this value when authored.
 
 The movement itself should be tweened/interpolated over a short duration so the marker appears to travel along the road rather than teleport instantly.
 
@@ -136,7 +136,11 @@ Version 1 uses a single shared deck per run.
 
 There is no persistent personal deck or meta-progression between runs. The prototype may include a short sequence of authored levels during one play session; completing a level advances to the next level, while restarting the game returns to the first level.
 
-The deck contains one card per playable tile — on a 9x9 map that is 81 cards total.
+Food, gold, current and maximum health, base power, and inventory carry between levels in the same play session. Restarting a level restores the values held when that level began. Restarting the game clears this run progression and returns to the first level.
+
+The prototype intentionally uses a shorter deck than one card per playable tile. Deck size scales primarily with the map's shortest side so a compact level does not become dominated by a very large deck.
+
+The current deck size is approximately 3.5 cards per tile along the shortest side, with a minimum of three times the shortest route length and a small difficulty reduction every three levels. For example, the current 5x5 introductory level has 18 cards and a 7x7 level has 25 cards.
 
 The deck composition is:
 - 75% road cards

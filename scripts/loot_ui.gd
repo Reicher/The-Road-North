@@ -377,16 +377,6 @@ func _collect_resource_entry(entry: Dictionary) -> bool:
 	return false
 
 
-func _format_loot_entry(entry: Dictionary) -> String:
-	var kind := str(entry.get("kind", "item"))
-	if kind == "food":
-		return "+%d Food" % int(entry.get("amount", 0))
-	if kind == "gold":
-		return "+%d Gold" % int(entry.get("amount", 0))
-	var item: Dictionary = entry.get("item", {})
-	return str(item.get("name", "Item"))
-
-
 func _is_item_loot(entry: Dictionary) -> bool:
 	return str(entry.get("kind", "item")) == "item"
 

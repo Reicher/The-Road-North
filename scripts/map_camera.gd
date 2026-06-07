@@ -276,10 +276,6 @@ func _get_ground_size_for_vertical_map_span(map_depth: float) -> float:
 	return map_depth * maxf(sin(angle), 0.25)
 
 
-func _get_visible_ground_size() -> Vector2:
-	return _get_visible_ground_size_for_size(size)
-
-
 func _get_visible_ground_size_for_size(camera_size: float) -> Vector2:
 	var viewport_size := _get_map_viewport_size()
 	var aspect := viewport_size.x / maxf(viewport_size.y, 1.0)
@@ -292,17 +288,6 @@ func _get_full_map_position() -> Vector3:
 		return Vector3.ZERO
 	var center := _map.get_padded_world_rect().get_center()
 	return Vector3(center.x, 0.0, center.y)
-
-
-func _get_player_tile_position() -> Vector3:
-	if _map == null:
-		return Vector3.ZERO
-	if _player != null:
-		var player_grid_position: Variant = _player.get("grid_position")
-		if player_grid_position is Vector2i:
-			return _map.grid_to_world(player_grid_position)
-		return _player.global_position
-	return _map.grid_to_world(_map.get_start_position())
 
 
 func _play_start_zoom_sequence() -> void:

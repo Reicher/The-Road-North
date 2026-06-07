@@ -337,16 +337,6 @@ func _compact_detail_text() -> String:
 	return detail
 
 
-func _category_badge_fill() -> Color:
-	if category == DeckController.EVENT_CATEGORY:
-		return Color(0.66, 0.78, 0.86, 1.0)
-	if _encounter_type() == GameMap.ENCOUNTER_ENEMY:
-		return Color(0.88, 0.60, 0.48, 1.0)
-	if not encounter_data.is_empty():
-		return Color(0.74, 0.82, 0.54, 1.0)
-	return Color(0.86, 0.76, 0.52, 1.0)
-
-
 func _fit_label_font_size(label: Label, max_size: int, min_size: int) -> void:
 	var text_value := label.text.strip_edges()
 	var line_count := maxi(1, text_value.count("\n") + 1)
