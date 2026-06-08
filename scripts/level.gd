@@ -1,8 +1,6 @@
 class_name Level
 extends Node
 
-signal restart_requested
-
 enum RunState {
 	IDLE,
 	CARD_FOCUSED,
@@ -57,14 +55,14 @@ func _connect_placement_controller() -> void:
 		_placement_controller.placement_started.connect(_on_placement_started)
 	if not _placement_controller.placement_cancelled.is_connected(_on_placement_ended):
 		_placement_controller.placement_cancelled.connect(_on_placement_ended)
-	if not _placement_controller.placement_confirmed.is_connected(_on_placement_confirmed):
-		_placement_controller.placement_confirmed.connect(_on_placement_confirmed)
-	if not _placement_controller.tile_destroyed.is_connected(_on_tile_destroyed):
-		_placement_controller.tile_destroyed.connect(_on_tile_destroyed)
-	if not _placement_controller.tile_rotated.is_connected(_on_tile_rotated):
-		_placement_controller.tile_rotated.connect(_on_tile_rotated)
-	if not _placement_controller.encounter_changed.is_connected(_on_encounter_changed):
-		_placement_controller.encounter_changed.connect(_on_encounter_changed)
+	for resolved_signal in [
+		_placement_controller.placement_confirmed,
+		_placement_controller.tile_destroyed,
+		_placement_controller.tile_rotated,
+		_placement_controller.encounter_changed,
+	]:
+		if not resolved_signal.is_connected(_on_placement_resolved):
+			resolved_signal.connect(_on_placement_resolved)
 
 
 func _connect_player() -> void:
@@ -92,14 +90,7 @@ func _on_placement_started(card: CardView) -> void:
 	if _is_terminal_state():
 		return
 	_set_player_input_enabled(false)
-	if card.event_type in [
-		DeckController.EVENT_DESTROY_TILE,
-		DeckController.EVENT_ROTATE_TILE,
-		DeckController.EVENT_CLEAR_PATH,
-		DeckController.EVENT_AMBUSH,
-		DeckController.EVENT_WILD_BERRIES,
-		DeckController.EVENT_LOST_BELONGINGS,
-	]:
+	if card.event_type in DeckController.TARGETED_EVENT_TYPES:
 		state = RunState.EVENT_TARGETING
 	else:
 		state = RunState.PLACEMENT_MODE
@@ -112,28 +103,7 @@ func _on_placement_ended(_card: CardView) -> void:
 	_set_player_input_enabled(true)
 
 
-func _on_placement_confirmed(_grid_position: Vector2i, _card: CardView) -> void:
-	if _is_terminal_state():
-		return
-	state = RunState.IDLE
-	_set_player_input_enabled(true)
-
-
-func _on_tile_destroyed(_grid_position: Vector2i, _card: CardView) -> void:
-	if _is_terminal_state():
-		return
-	state = RunState.IDLE
-	_set_player_input_enabled(true)
-
-
-func _on_tile_rotated(_grid_position: Vector2i, _card: CardView) -> void:
-	if _is_terminal_state():
-		return
-	state = RunState.IDLE
-	_set_player_input_enabled(true)
-
-
-func _on_encounter_changed(_grid_position: Vector2i, _card: CardView) -> void:
+func _on_placement_resolved(_grid_position: Vector2i, _card: CardView) -> void:
 	if _is_terminal_state():
 		return
 	state = RunState.IDLE

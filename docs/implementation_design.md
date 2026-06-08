@@ -261,7 +261,7 @@ DeckBuilder owns:
 - enemy, berry-bush, and cache encounter attachment
 - debug hand generation
 
-GameBalance is the shared source for starting values, deck-size formulas, encounter counts, enemy power ranges, reward values, and future shop values.
+GameBalance is the shared source for starting values, deck-size formulas, encounter counts, enemy power ranges, and reward values.
 
 The DeckController should not contain hand UI logic.
 

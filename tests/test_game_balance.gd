@@ -8,7 +8,6 @@ func _initialize() -> void:
 	_test_deck_formulas()
 	_test_level_and_map_size_are_independent_inputs()
 	_test_reward_formulas()
-	_test_shop_formulas()
 	quit()
 
 
@@ -45,17 +44,6 @@ func _test_reward_formulas() -> void:
 	_assert(GameBalance.berry_food(5) == 3 and GameBalance.berry_food(9) == 5, "Expected berry food to scale from map size")
 	var enemy_rewards := GameBalance.enemy_rewards(2)
 	_assert(int(enemy_rewards["gold_min"]) == 4 and int(enemy_rewards["gold_max"]) == 8, "Expected level two enemy gold rewards")
-
-
-func _test_shop_formulas() -> void:
-	var shop := GameBalance.shop_values(3)
-	_assert(int(shop["small_food_amount"]) == 5 and int(shop["small_food_price"]) == 5, "Expected small food shop values")
-	_assert(int(shop["big_food_amount"]) == 10 and int(shop["big_food_price"]) == 8, "Expected big food shop values")
-	_assert(int(shop["heal_1_price"]) == 7 and int(shop["random_item_price"]) == 7, "Expected healing and random item prices")
-	_assert(int(shop["low_power_bonus"]) == 3 and int(shop["low_power_item_price"]) == 10, "Expected low power item values")
-	_assert(int(shop["high_power_bonus"]) == 4 and int(shop["high_power_item_price"]) == 14, "Expected high power item values")
-
-
 func _assert(condition: bool, message: String) -> void:
 	if condition:
 		return

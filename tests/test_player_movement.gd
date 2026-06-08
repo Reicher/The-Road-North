@@ -16,10 +16,6 @@ func _initialize() -> void:
 	map.name = "Map"
 	root.add_child(map)
 
-	var health_label := Label.new()
-	health_label.name = "HealthLabel"
-	root.add_child(health_label)
-
 	var roads = ROADS_SCRIPT.new()
 	roads.name = "Roads"
 	roads.map_path = NodePath("../Map")
@@ -30,7 +26,6 @@ func _initialize() -> void:
 	var player = PLAYER_SCENE.instantiate() as GamePlayer
 	player.name = "Player"
 	player.map_path = NodePath("../Map")
-	player.health_label_path = NodePath("../HealthLabel")
 	player.start_position = Vector2i(4, 8)
 	player.starting_food = 5
 	player.move_duration = 0.0
@@ -44,7 +39,6 @@ func _initialize() -> void:
 	_assert(player.food == 5, "Expected player to start with configured food")
 	_assert(player.health == 4, "Expected player to start with default health")
 	_assert(player.max_health == 4, "Expected player to start with default max health")
-	_assert(health_label.text == "Health: 4/4", "Expected health label to show current and max health")
 
 	var hop_start: Vector3 = player.position
 	var hop_target: Vector3 = map.grid_to_world(Vector2i(4, 7))
@@ -108,7 +102,6 @@ func _initialize() -> void:
 	player.set_max_health(5)
 	player.set_health(4)
 	_assert(player.health == 4, "Expected player health to increase after max health is raised")
-	_assert(health_label.text == "Health: 4/5", "Expected health label to update after health changes")
 	player.set_base_power(2)
 	_assert(player.get_total_power() == 2, "Expected mutable base power to contribute to total power")
 

@@ -73,7 +73,7 @@ var _inventory: InventoryUI
 var _deck_controller: DeckController
 var _preview_tile: RoadTile
 var _target_preview: TargetPreview
-var _controls_layer
+var _controls_layer: PlacementControlsUI
 var _placement_valid := false
 var _hidden_preview_trees_position := Vector2i(-1, -1)
 var _rotate_original_position := Vector2i(-1, -1)
@@ -159,20 +159,10 @@ func begin_placement(card: CardView) -> bool:
 	if card == null or card.category != DeckController.ROAD_CATEGORY or card.tile_definition == null:
 		return false
 
-	active_card = card
-	active_definition = card.tile_definition
-	active_mode = MODE_ROAD_PLACEMENT
-	preview_position = Vector2i(-1, -1)
-	rotation_steps = 0
-	_placement_valid = false
-	_player.input_enabled = false
-	_hand.interaction_enabled = false
-	_hand.clear_focus()
-	_hide_preview()
+	_begin_mode(card, MODE_ROAD_PLACEMENT, card.tile_definition)
 	if not _card_drag_in_progress:
 		_show_idle_placement_controls()
 		_show_prompt()
-	placement_started.emit(card)
 	return true
 
 
@@ -198,8 +188,16 @@ func begin_encounter_targeting(card: CardView) -> bool:
 
 
 func _begin_tile_targeting(card: CardView, mode: String) -> bool:
+	_begin_mode(card, mode)
+	if not _card_drag_in_progress:
+		_controls_layer.show_tile_targeting(_hand)
+		_show_prompt()
+	return true
+
+
+func _begin_mode(card: CardView, mode: String, definition: Resource = null) -> void:
 	active_card = card
-	active_definition = null
+	active_definition = definition
 	active_mode = mode
 	preview_position = Vector2i(-1, -1)
 	rotation_steps = 0
@@ -208,11 +206,7 @@ func _begin_tile_targeting(card: CardView, mode: String) -> bool:
 	_hand.interaction_enabled = false
 	_hand.clear_focus()
 	_hide_preview()
-	if not _card_drag_in_progress:
-		_controls_layer.show_tile_targeting(_hand)
-		_show_prompt()
 	placement_started.emit(card)
-	return true
 
 
 func rotate_preview() -> void:
@@ -250,7 +244,7 @@ func confirm_placement() -> bool:
 		_deck_controller.consume_card(confirmed_card)
 	else:
 		_hand.remove_card(confirmed_card)
-	_end_placement(false)
+	_end_placement()
 	placement_confirmed.emit(confirmed_position, confirmed_card)
 	return true
 
@@ -260,7 +254,7 @@ func cancel_placement() -> void:
 		return
 	var cancelled_card := active_card
 	_restore_rotate_target()
-	_end_placement(false)
+	_end_placement()
 	placement_cancelled.emit(cancelled_card)
 
 
@@ -368,10 +362,6 @@ func _refresh_preview() -> void:
 	set_process(true)
 
 
-func _is_valid_placement(grid_position: Vector2i, connections: Dictionary) -> bool:
-	return _get_road_placement_hint(grid_position, connections).is_empty()
-
-
 func _is_valid_destroy_target(grid_position: Vector2i) -> bool:
 	if not _is_in_target_range(grid_position):
 		return false
@@ -419,7 +409,7 @@ func _confirm_destroy_target() -> bool:
 		_deck_controller.consume_card(destroyed_card)
 	else:
 		_hand.remove_card(destroyed_card)
-	_end_placement(false)
+	_end_placement()
 	tile_destroyed.emit(destroyed_position, destroyed_card)
 	return true
 
@@ -434,7 +424,7 @@ func _confirm_rotate_target() -> bool:
 		_deck_controller.consume_card(rotated_card)
 	else:
 		_hand.remove_card(rotated_card)
-	_end_placement(false)
+	_end_placement()
 	tile_rotated.emit(rotated_position, rotated_card)
 	return true
 
@@ -454,7 +444,7 @@ func _confirm_encounter_target() -> bool:
 		_deck_controller.consume_card(event_card)
 	else:
 		_hand.remove_card(event_card)
-	_end_placement(false)
+	_end_placement()
 	encounter_changed.emit(target_position, event_card)
 	return true
 
@@ -477,8 +467,7 @@ func _refresh_tile_target() -> void:
 	set_process(true)
 
 
-func _end_placement(keep_card_focused: bool) -> void:
-	var ending_card := active_card
+func _end_placement() -> void:
 	active_card = null
 	active_definition = null
 	active_mode = MODE_NONE
@@ -491,10 +480,7 @@ func _end_placement(keep_card_focused: bool) -> void:
 	_player.input_enabled = true
 	_hand.interaction_enabled = true
 	_hand.set_inactive(false)
-	if keep_card_focused and ending_card != null:
-		_hand.focus_card(ending_card)
-	elif not keep_card_focused:
-		_hand.clear_focus()
+	_hand.clear_focus()
 	_hide_preview()
 
 
@@ -535,9 +521,9 @@ func _restore_preview_trees() -> void:
 
 
 func _ensure_controls() -> void:
-	_controls_layer = get_node_or_null("PlacementControls") as CanvasLayer
+	_controls_layer = get_node_or_null("PlacementControls") as PlacementControlsUI
 	if _controls_layer == null:
-		_controls_layer = controls_scene.instantiate() as CanvasLayer
+		_controls_layer = controls_scene.instantiate() as PlacementControlsUI
 		add_child(_controls_layer)
 
 	_controls_layer.bind_actions(rotate_preview, confirm_placement, cancel_placement)
@@ -615,12 +601,7 @@ func _get_tile_target_hint(grid_position: Vector2i) -> String:
 
 
 func _is_encounter_event(event_type: String) -> bool:
-	return event_type in [
-		DeckController.EVENT_CLEAR_PATH,
-		DeckController.EVENT_AMBUSH,
-		DeckController.EVENT_WILD_BERRIES,
-		DeckController.EVENT_LOST_BELONGINGS,
-	]
+	return event_type in DeckController.ENCOUNTER_EVENT_TYPES
 
 
 func _is_too_far_away(grid_position: Vector2i) -> bool:

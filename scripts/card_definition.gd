@@ -2,7 +2,6 @@ class_name CardDefinition
 extends Resource
 
 const ROAD_CATEGORY := "Road"
-const EVENT_CATEGORY := "Event"
 
 @export var category := ROAD_CATEGORY
 @export var title := ""

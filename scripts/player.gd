@@ -11,13 +11,10 @@ signal health_changed(health: int)
 signal base_power_changed(base_power: int)
 signal move_started(target_position: Vector2i)
 signal moved(grid_position: Vector2i)
-signal move_blocked(target_position: Vector2i, reason: String)
 signal game_over(reason: String)
 signal run_won
 
 @export var map_path: NodePath
-@export var food_label_path: NodePath
-@export var health_label_path: NodePath
 @export var inventory_path: NodePath
 @export var loot_ui_path: NodePath
 @export var rewards_path: NodePath = NodePath("Rewards")
@@ -43,11 +40,9 @@ var max_health := 3
 var input_enabled := true
 
 var _map: GameMap
-var _food_label: Label
-var _health_label: Label
 var _inventory: InventoryUI
-var _loot_ui: Node
-var _rewards: Node
+var _loot_ui: LootUI
+var _rewards: PlayerRewards
 var _combat: Node
 var _moving := false
 var _move_target := Vector2i.ZERO
@@ -59,11 +54,9 @@ var _visual_root: Node3D
 
 func _ready() -> void:
 	_map = get_node_or_null(map_path) as GameMap
-	_food_label = get_node_or_null(food_label_path) as Label
-	_health_label = get_node_or_null(health_label_path) as Label
 	_inventory = get_node_or_null(inventory_path) as InventoryUI
-	_loot_ui = get_node_or_null(loot_ui_path)
-	_rewards = get_node_or_null(rewards_path)
+	_loot_ui = get_node_or_null(loot_ui_path) as LootUI
+	_rewards = get_node_or_null(rewards_path) as PlayerRewards
 	if _rewards == null:
 		push_warning("Player needs a Rewards child at rewards_path.")
 		return
@@ -88,9 +81,6 @@ func _ready() -> void:
 	gold = starting_gold
 	max_health = maxi(1, starting_max_health)
 	health = clampi(starting_health, 0, max_health)
-	_update_food_label()
-	_update_health_label()
-
 	if not _map.tile_pressed.is_connected(_on_tile_pressed):
 		_map.tile_pressed.connect(_on_tile_pressed)
 
@@ -98,39 +88,19 @@ func _ready() -> void:
 
 
 func can_move_to(target_position: Vector2i) -> bool:
-	if _map == null or _moving or _combat_running or _game_over or _run_won or food <= 0:
+	if _map == null or _game_over or _run_won or _moving or _combat_running or food <= 0:
 		return false
 	return _map.can_move_between(grid_position, target_position)
 
 
 func move_to(target_position: Vector2i) -> bool:
-	if _map == null:
-		move_blocked.emit(target_position, "missing_map")
-		return false
-	if _game_over:
-		move_blocked.emit(target_position, "game_over")
-		return false
-	if _run_won:
-		move_blocked.emit(target_position, "run_won")
-		return false
-	if _moving:
-		move_blocked.emit(target_position, "moving")
-		return false
-	if _combat_running:
-		move_blocked.emit(target_position, "combat")
-		return false
-	if food <= 0:
-		move_blocked.emit(target_position, "no_food")
-		return false
-	if not _map.can_move_between(grid_position, target_position):
-		move_blocked.emit(target_position, "invalid_road")
+	if not can_move_to(target_position):
 		return false
 
 	var input_enabled_before_move := input_enabled
 	_moving = true
 	move_started.emit(target_position)
 	food -= 1
-	_update_food_label()
 	food_changed.emit(food)
 
 	var enemy_data: Dictionary = _combat.get_enemy_data(target_position)
@@ -149,10 +119,6 @@ func move_to(target_position: Vector2i) -> bool:
 	return true
 
 
-func is_moving() -> bool:
-	return _moving
-
-
 func is_in_combat() -> bool:
 	return _combat_running
 
@@ -162,7 +128,6 @@ func set_health(value: int, check_game_over := true) -> void:
 	if health == clamped_value:
 		return
 	health = clamped_value
-	_update_health_label()
 	health_changed.emit(health)
 	if check_game_over:
 		_check_game_over()
@@ -174,7 +139,6 @@ func set_max_health(value: int) -> void:
 		return
 	max_health = next_max_health
 	health = mini(health, max_health)
-	_update_health_label()
 	health_changed.emit(health)
 	_check_game_over()
 
@@ -202,8 +166,6 @@ func apply_progression_state(state: Dictionary, emit_changes := true) -> void:
 	max_health = maxi(1, int(state.get("max_health", max_health)))
 	health = clampi(int(state.get("health", health)), 0, max_health)
 	base_power = int(state.get("base_power", base_power))
-	_update_food_label()
-	_update_health_label()
 	if not emit_changes:
 		return
 	food_changed.emit(food)
@@ -216,7 +178,6 @@ func add_food(amount: int) -> void:
 	if amount <= 0:
 		return
 	food += amount
-	_update_food_label()
 	food_changed.emit(food)
 
 
@@ -313,16 +274,6 @@ func _reset_hop_visuals() -> void:
 	_visual_root.scale = Vector3.ONE
 
 
-func _update_food_label() -> void:
-	if _food_label != null:
-		_food_label.text = "Food: %d" % food
-
-
-func _update_health_label() -> void:
-	if _health_label != null:
-		_health_label.text = "Health: %d/%d" % [health, max_health]
-
-
 func get_total_power() -> int:
 	return base_power + _rewards.get_power_bonus()
 
@@ -378,8 +329,8 @@ func _play_enemy_defeat(target_position: Vector2i, combat_direction: Vector3) ->
 	var visual_tile := _find_visual_tile(target_position)
 	if visual_tile == null:
 		return
-	var enemy_view := visual_tile.get_node_or_null("Enemy")
-	if enemy_view != null and enemy_view.has_method("play_defeat"):
+	var enemy_view := visual_tile.get_node_or_null("Enemy") as EnemyView
+	if enemy_view != null:
 		await enemy_view.play_defeat(combat_direction)
 
 

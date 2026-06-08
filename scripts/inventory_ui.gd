@@ -82,9 +82,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _close_on_outside_press(event: InputEvent) -> void:
-	if not is_open():
-		return
-	if not _outside_close_enabled:
+	if not is_open() or not _outside_close_enabled:
 		return
 
 	var canvas_position := Vector2.INF
@@ -256,7 +254,6 @@ func set_inventory_open(open: bool, animate := true) -> void:
 			_overlay.scale = Vector2.ONE
 			_overlay.modulate.a = 1.0
 	else:
-		_hide_tooltip()
 		if animate and overlay_animation_duration > 0.0 and _overlay.visible:
 			var closed_frame_rect := _get_closed_frame_rect()
 			_set_frame_rect(transition_start_rect)
@@ -364,9 +361,9 @@ func _refresh_slots() -> void:
 		slot_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		slot_button.add_theme_constant_override("icon_max_width", int(active_slot_size.x))
 		_apply_slot_style(slot_button)
+		slot_button.text = ""
 		if not items[slot_index].is_empty():
 			var item := items[slot_index]
-			slot_button.text = ""
 			slot_button.icon = ItemIconLibrary.get_icon(item)
 			slot_button.expand_icon = true
 			slot_button.disabled = false
@@ -375,7 +372,6 @@ func _refresh_slots() -> void:
 			if not slot_button.gui_input.is_connected(input_callback):
 				slot_button.gui_input.connect(input_callback)
 		else:
-			slot_button.text = ""
 			slot_button.icon = null
 			slot_button.disabled = true
 			slot_button.self_modulate = NORMAL_SLOT_TINT

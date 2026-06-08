@@ -2,7 +2,6 @@ class_name RoadTileVisuals
 extends Node3D
 
 const GROUND_HEIGHT := 0.10
-const ROAD_HEIGHT := 0.08
 const ROAD_TREE_CLEARANCE := 0.26
 const ROAD_EDGE_SAMPLES := 6
 const ROAD_EDGE_JITTER_RATIO := 0.009
@@ -22,11 +21,11 @@ const ROAD_TREE_SLOTS := [
 	Vector2(0.42, 0.38),
 ]
 
-var _enemy_view: Node3D
+var _enemy_view: EnemyView
 
 
 func _ready() -> void:
-	_enemy_view = get_node_or_null("../Enemy") as Node3D
+	_enemy_view = get_node_or_null("../Enemy") as EnemyView
 
 
 func render(
@@ -57,10 +56,6 @@ func render(
 	if highlight_enabled:
 		_add_highlight(tile_size, highlight_color)
 
-	_refresh_enemy_view(tile_size, encounter_data, enemy_offset)
-
-
-func refresh_enemy(tile_size: float, encounter_data: Dictionary, enemy_offset: Vector3) -> void:
 	_refresh_enemy_view(tile_size, encounter_data, enemy_offset)
 
 
@@ -277,11 +272,11 @@ func _add_highlight(tile_size: float, highlight_color: Color) -> void:
 
 func _refresh_enemy_view(tile_size: float, encounter_data: Dictionary, enemy_offset: Vector3) -> void:
 	if _enemy_view == null:
-		_enemy_view = get_node_or_null("../Enemy") as Node3D
+		_enemy_view = get_node_or_null("../Enemy") as EnemyView
 	if _enemy_view == null:
 		return
-	_enemy_view.set("tile_size", tile_size)
-	_enemy_view.set("enemy_data", encounter_data if _encounter_type(encounter_data) == GameMap.ENCOUNTER_ENEMY else {})
+	_enemy_view.tile_size = tile_size
+	_enemy_view.enemy_data = encounter_data if _encounter_type(encounter_data) == GameMap.ENCOUNTER_ENEMY else {}
 	_enemy_view.position = enemy_offset
 
 

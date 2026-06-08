@@ -11,7 +11,6 @@ const FULL_INVENTORY_FLASH_DURATION := 0.28
 @export var panel_size := Vector2(286.0, 310.0)
 
 var loot: Array[Dictionary] = []
-var collected_resources: Array[Dictionary] = []
 
 var _player: GamePlayer
 var _inventory: InventoryUI
@@ -26,8 +25,6 @@ var _tooltip_effect: Label
 var _dragged_item_index := -1
 var _drag_source_button: Button
 var _backpack_drag_slot_index := -1
-var _backpack_drag_item: Dictionary = {}
-var _backpack_drag_source_button: Button
 var _drag_ghost: TextureRect
 var _ready_completed := false
 var _full_inventory_flash_tween: Tween
@@ -65,7 +62,6 @@ func _input(event: InputEvent) -> void:
 func open_loot(new_loot: Array) -> void:
 	_resolve_paths()
 	loot.clear()
-	collected_resources.clear()
 	_hide_tooltip()
 	for entry in new_loot:
 		if entry is Dictionary:
@@ -84,7 +80,6 @@ func open_loot(new_loot: Array) -> void:
 
 func close_loot() -> void:
 	loot.clear()
-	collected_resources.clear()
 	_reset_full_inventory_flash()
 	_cancel_drag()
 	_cancel_backpack_drag()
@@ -162,17 +157,18 @@ func _refresh_loot() -> void:
 	for index in loot.size():
 		var entry := loot[index]
 		if _is_item_loot(entry):
+			var loot_slot_size := _get_loot_slot_size()
 			var item_button := Button.new()
 			item_button.name = "LootItem%d" % index
 			item_button.text = ""
 			item_button.icon = ItemIconLibrary.get_icon(entry.get("item", {}))
 			item_button.expand_icon = true
 			item_button.focus_mode = Control.FOCUS_NONE
-			item_button.custom_minimum_size = _get_loot_slot_size()
-			item_button.size = _get_loot_slot_size()
+			item_button.custom_minimum_size = loot_slot_size
+			item_button.size = loot_slot_size
 			item_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 			item_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			item_button.add_theme_constant_override("icon_max_width", int(_get_loot_slot_size().x))
+			item_button.add_theme_constant_override("icon_max_width", int(loot_slot_size.x))
 			item_button.gui_input.connect(_on_item_gui_input.bind(index, item_button))
 			_loot_list.add_child(item_button)
 
@@ -280,17 +276,15 @@ func _cancel_drag() -> void:
 		_drag_ghost.visible = false
 
 
-func _start_backpack_drag(slot_index: int, item: Dictionary, _source_button: Button, canvas_position: Vector2) -> void:
+func _start_backpack_drag(slot_index: int, _item: Dictionary, _source_button: Button, _canvas_position: Vector2) -> void:
 	if not is_open():
 		return
 	_mark_input_handled()
 	add_to_group("ui_item_drag_active")
 	_backpack_drag_slot_index = slot_index
-	_backpack_drag_item = item.duplicate(true)
-	_backpack_drag_source_button = _source_button
 
 
-func _move_backpack_drag(canvas_position: Vector2) -> void:
+func _move_backpack_drag(_canvas_position: Vector2) -> void:
 	if _backpack_drag_slot_index < 0:
 		return
 	_mark_input_handled()
@@ -312,20 +306,15 @@ func _finish_backpack_drag(slot_index: int, item: Dictionary, _source_button: Bu
 
 func _cancel_backpack_drag() -> void:
 	_backpack_drag_slot_index = -1
-	_backpack_drag_item.clear()
-	_backpack_drag_source_button = null
 	remove_from_group("ui_item_drag_active")
 	if _drag_ghost != null and _dragged_item_index < 0:
 		_drag_ghost.visible = false
 
 
 func _collect_loot_entry(entry: Dictionary) -> bool:
-	var kind := str(entry.get("kind", "item"))
 	if _collect_resource_entry(entry):
 		return true
-	if kind == "item":
-		return _inventory != null and _inventory.add_item(entry.get("item", {}).duplicate(true))
-	return false
+	return _is_item_loot(entry) and _inventory != null and _inventory.add_item(entry.get("item", {}).duplicate(true))
 
 
 func _can_take_all() -> bool:
@@ -367,24 +356,12 @@ func _collect_resource_entry(entry: Dictionary) -> bool:
 	if kind == "food":
 		if _player != null:
 			_player.add_food(int(entry.get("amount", 0)))
-		collected_resources.append(entry.duplicate(true))
 		return true
 	if kind == "gold":
 		if _player != null:
 			_player.add_gold(int(entry.get("amount", 0)))
-		collected_resources.append(entry.duplicate(true))
 		return true
 	return false
-
-
-func _format_loot_entry(entry: Dictionary) -> String:
-	var kind := str(entry.get("kind", "item"))
-	if kind == "food":
-		return "+%d Food" % int(entry.get("amount", 0))
-	if kind == "gold":
-		return "+%d Gold" % int(entry.get("amount", 0))
-	var item: Dictionary = entry.get("item", {})
-	return str(item.get("name", "Item"))
 
 
 func _is_item_loot(entry: Dictionary) -> bool:
@@ -429,15 +406,6 @@ func _event_canvas_position(event: InputEvent, source_button: Button) -> Vector2
 	if event is InputEventMouse:
 		return source_button.get_global_position() + event.position
 	return source_button.get_global_rect().get_center()
-
-
-func _show_drag_ghost(item: Dictionary, canvas_position: Vector2) -> void:
-	_drag_ghost.texture = ItemIconLibrary.get_icon(item)
-	_drag_ghost.custom_minimum_size = _get_loot_slot_size()
-	_drag_ghost.size = _get_loot_slot_size()
-	_drag_ghost.modulate = Color.WHITE
-	_drag_ghost.visible = true
-	_update_drag(canvas_position)
 
 
 func _mark_input_handled() -> void:
@@ -489,8 +457,7 @@ func _layout_loot() -> void:
 		return
 	if _dimmer != null:
 		_dimmer.visible = visible and not loot.is_empty()
-	if _panel != null:
-		_panel.visible = visible and not loot.is_empty()
+	_panel.visible = visible and not loot.is_empty()
 	var content_size := _panel.get_combined_minimum_size()
 	var max_size := Vector2(
 		minf(panel_size.x, viewport_size.x - 28.0),

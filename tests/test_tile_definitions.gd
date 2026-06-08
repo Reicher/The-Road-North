@@ -71,7 +71,7 @@ func _initialize() -> void:
 	_assert(power_icon != null, "Expected revealed enemy tiles to show a power icon")
 	_assert(power_label.text == "7", "Expected enemy power label to show the enemy power")
 	_assert(power_label.position.y > TILE_SIZE * 0.45, "Expected enemy power label to sit above the enemy model")
-	_assert(power_icon.texture == load("res://assets/images/stat_health.png"), "Expected enemy tiles to use the player's power icon")
+	_assert(power_icon.texture == load("res://assets/images/stat_power.png"), "Expected enemy tiles to use the player's power icon")
 	_assert(power_label.position.x > power_icon.position.x, "Expected the enemy power value to sit right of the power icon")
 	_assert(power_label.position.x - power_icon.position.x > TILE_SIZE * 0.15, "Expected clear spacing between the enemy power icon and value")
 	_assert(is_equal_approx((power_label.position.x + power_icon.position.x) * 0.5, 0.0), "Expected the power value and icon to be centered over the enemy")

@@ -17,6 +17,7 @@ var _panel: PanelContainer
 var _title_label: Label
 var _action_button: Button
 var _ready_completed := false
+var _action := ""
 
 
 func _ready() -> void:
@@ -61,7 +62,7 @@ func _on_game_over(_reason: String) -> void:
 
 func _on_run_won() -> void:
 	if has_next_level:
-		_show_end_screen("Nån typ av shop", "Next level", "next_level")
+		_show_end_screen("Shop coming soon", "Next level", "next_level")
 	else:
 		_show_end_screen("You won", "Restart game", "restart_game")
 
@@ -71,7 +72,7 @@ func _show_end_screen(title: String, button_text: String, action: String) -> voi
 		_title_label.text = title
 	if _action_button != null:
 		_action_button.text = button_text
-		_action_button.set_meta("action", action)
+	_action = action
 	if _hand != null:
 		_hand.visible = false
 	visible = true
@@ -79,12 +80,9 @@ func _show_end_screen(title: String, button_text: String, action: String) -> voi
 
 
 func _on_action_button_pressed() -> void:
-	var action := ""
-	if _action_button != null:
-		action = str(_action_button.get_meta("action", ""))
-	if action == "next_level":
+	if _action == "next_level":
 		next_level_requested.emit()
-	elif action == "restart_game":
+	elif _action == "restart_game":
 		if restart_game_requested.get_connections().is_empty():
 			get_tree().reload_current_scene()
 		else:

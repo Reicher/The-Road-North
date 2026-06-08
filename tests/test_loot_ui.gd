@@ -110,7 +110,6 @@ func _initialize() -> void:
 	_assert(player.food == 5, "Expected food loot to add when the loot screen opens")
 	_assert(player.gold == 6, "Expected gold loot to add when the loot screen opens")
 	_assert(loot_ui.loot.size() == 1, "Expected only item loot to remain in the loot screen")
-	_assert(loot_ui.collected_resources.size() == 2, "Expected collected resource loot to remain tracked")
 	_assert(loot_ui.get_node_or_null("LootPanel/ContentMargin/Stack/LootList/LootResource0") == null, "Expected resource loot to stay out of the item loot list")
 	_assert(loot_ui.get_node_or_null("ResourcePopupLayer") == null, "Expected resource loot not to show floating feedback above the player")
 	var loot_panel_position := loot_panel.position

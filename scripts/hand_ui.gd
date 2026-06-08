@@ -20,7 +20,6 @@ signal card_drag_finished(card: CardView, canvas_position: Vector2, activated: b
 @export var focused_scale := 1.18
 @export var arc_depth := 34.0
 @export var preferred_spacing := 180.0
-@export var minimum_spacing := 48.0
 @export var focused_side_shift := 38.0
 @export var layout_duration := 0.14
 @export var inactive_visible_ratio := 0.5
@@ -64,7 +63,7 @@ func _draw() -> void:
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		if not _is_canvas_position_over_card(get_global_transform_with_canvas() * event.position):
+		if _card_at_canvas_position(get_global_transform_with_canvas() * event.position) == null:
 			clear_focus()
 	elif event is InputEventScreenTouch and event.pressed:
 		var touched_card := _card_at_canvas_position(event.position)
@@ -346,14 +345,7 @@ func _dragged_card_uses_preview() -> bool:
 		return false
 	if _dragged_card.category == DeckController.ROAD_CATEGORY:
 		return true
-	return _dragged_card.event_type in [
-		DeckController.EVENT_DESTROY_TILE,
-		DeckController.EVENT_ROTATE_TILE,
-		DeckController.EVENT_CLEAR_PATH,
-		DeckController.EVENT_AMBUSH,
-		DeckController.EVENT_WILD_BERRIES,
-		DeckController.EVENT_LOST_BELONGINGS,
-	]
+	return _dragged_card.event_type in DeckController.TARGETED_EVENT_TYPES
 
 
 func _on_resized() -> void:
@@ -378,10 +370,6 @@ func _clamp_card_x(card_x: float, card_scale: float) -> float:
 	var minimum_x := side_margin + scale_overhang
 	var maximum_x := _available_width() - side_margin - card_size.x - scale_overhang
 	return clampf(card_x, minimum_x, maxf(minimum_x, maximum_x))
-
-
-func _is_canvas_position_over_card(canvas_position: Vector2) -> bool:
-	return _card_at_canvas_position(canvas_position) != null
 
 
 func _card_at_canvas_position(canvas_position: Vector2) -> CardView:

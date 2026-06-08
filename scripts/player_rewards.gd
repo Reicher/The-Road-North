@@ -5,12 +5,12 @@ const GameBalance = preload("res://scripts/game_balance.gd")
 
 var _player: GamePlayer
 var _inventory: InventoryUI
-var _loot_ui: Node
+var _loot_ui: LootUI
 var _map: GameMap
 var _loot_rng := RandomNumberGenerator.new()
 
 
-func setup(player: GamePlayer, inventory: InventoryUI, loot_ui: Node, map: GameMap = null) -> void:
+func setup(player: GamePlayer, inventory: InventoryUI, loot_ui: LootUI, map: GameMap = null) -> void:
 	_player = player
 	_inventory = inventory
 	_loot_ui = loot_ui
@@ -33,14 +33,14 @@ func open_enemy_loot(enemy_data: Dictionary) -> void:
 		return
 	var loot := _make_enemy_loot(enemy_data)
 	if not loot.is_empty():
-		_loot_ui.call("open_loot", loot)
+		_loot_ui.open_loot(loot)
 
 
 func collect_loot(loot: Array) -> void:
 	if loot.is_empty():
 		return
 	if _loot_ui != null:
-		_loot_ui.call("open_loot", loot)
+		_loot_ui.open_loot(loot)
 		return
 	for entry in loot:
 		if entry is Dictionary:

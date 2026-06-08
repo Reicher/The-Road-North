@@ -15,7 +15,7 @@ extends Camera3D
 @export_range(0.0, 3.0, 0.05) var pan_margin_z_tiles := 0.0
 
 var _map: GameMap
-var _player: Node3D
+var _player: GamePlayer
 var _reserved_bottom_control: Control
 var _touch_points: Dictionary = {}
 var _last_pinch_distance := 0.0
@@ -31,19 +31,17 @@ var _mouse_pan_dragging := false
 
 func _ready() -> void:
 	_map = get_node_or_null(map_path) as GameMap
-	_player = get_node_or_null(player_path) as Node3D
+	_player = get_node_or_null(player_path) as GamePlayer
 	_reserved_bottom_control = get_node_or_null(reserved_bottom_path) as Control
 	projection = Camera3D.PROJECTION_ORTHOGONAL
 	current = true
 	get_viewport().size_changed.connect(_refresh_limits)
 	if _reserved_bottom_control != null:
 		_reserved_bottom_control.resized.connect(_refresh_limits)
-	var move_started_callback := Callable(self, "_on_player_move_started")
-	if _player != null and _player.has_signal("move_started") and not _player.is_connected("move_started", move_started_callback):
-		_player.connect("move_started", move_started_callback)
-	var moved_callback := Callable(self, "_on_player_moved")
-	if _player != null and _player.has_signal("moved") and not _player.is_connected("moved", moved_callback):
-		_player.connect("moved", moved_callback)
+	if _player != null and not _player.move_started.is_connected(_on_player_move_started):
+		_player.move_started.connect(_on_player_move_started)
+	if _player != null and not _player.moved.is_connected(_on_player_moved):
+		_player.moved.connect(_on_player_moved)
 	if _map != null:
 		size = _get_zoom_out_limit()
 		_target_xz = _world_to_xz(_get_full_map_position())
@@ -276,10 +274,6 @@ func _get_ground_size_for_vertical_map_span(map_depth: float) -> float:
 	return map_depth * maxf(sin(angle), 0.25)
 
 
-func _get_visible_ground_size() -> Vector2:
-	return _get_visible_ground_size_for_size(size)
-
-
 func _get_visible_ground_size_for_size(camera_size: float) -> Vector2:
 	var viewport_size := _get_map_viewport_size()
 	var aspect := viewport_size.x / maxf(viewport_size.y, 1.0)
@@ -292,17 +286,6 @@ func _get_full_map_position() -> Vector3:
 		return Vector3.ZERO
 	var center := _map.get_padded_world_rect().get_center()
 	return Vector3(center.x, 0.0, center.y)
-
-
-func _get_player_tile_position() -> Vector3:
-	if _map == null:
-		return Vector3.ZERO
-	if _player != null:
-		var player_grid_position: Variant = _player.get("grid_position")
-		if player_grid_position is Vector2i:
-			return _map.grid_to_world(player_grid_position)
-		return _player.global_position
-	return _map.grid_to_world(_map.get_start_position())
 
 
 func _play_start_zoom_sequence() -> void:

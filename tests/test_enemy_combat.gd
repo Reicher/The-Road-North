@@ -51,10 +51,6 @@ func run() -> void:
 	_assert(enemy_tile["health"] == 1, "Expected placed enemies to have one life")
 	_assert(roads.get_visual_tile(Vector2i(4, 7)).enemy_data["health"] == 1, "Expected visual enemy data to use one life")
 
-	var health_label := Label.new()
-	health_label.name = "HealthLabel"
-	root.add_child(health_label)
-
 	var inventory = INVENTORY_SCENE.instantiate() as InventoryUI
 	inventory.name = "Inventory"
 	root.add_child(inventory)
@@ -70,7 +66,6 @@ func run() -> void:
 	var player = PLAYER_SCENE.instantiate() as GamePlayer
 	player.name = "Player"
 	player.map_path = NodePath("../Map")
-	player.health_label_path = NodePath("../HealthLabel")
 	player.inventory_path = NodePath("../Inventory")
 	player.loot_ui_path = NodePath("../Loot")
 	player.start_position = Vector2i(4, 8)

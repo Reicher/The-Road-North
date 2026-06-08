@@ -9,7 +9,6 @@ const DIRECTION_NAMES: Array[String] = ["north", "east", "south", "west"]
 @export var opens_south := false
 @export var opens_west := false
 @export var road_color := Color(0.45, 0.36, 0.27)
-@export var shoulder_color := Color(0.69, 0.61, 0.46)
 @export var terrain_color := Color(0.55, 0.63, 0.45)
 @export var visual_identity := "road"
 @export var road_visible := true
@@ -35,7 +34,3 @@ func get_rotated_openings(rotation_steps: int) -> Dictionary:
 		rotated_openings[to_direction] = base_openings[from_direction]
 
 	return rotated_openings
-
-
-func has_opening(direction_name: String, rotation_steps: int = 0) -> bool:
-	return get_rotated_openings(rotation_steps).get(direction_name, false) == true

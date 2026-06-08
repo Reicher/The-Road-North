@@ -8,10 +8,8 @@ const DEFAULT_PANEL_BORDER := Color(0.34, 0.23, 0.14)
 const DEFAULT_TEXT := Color(0.20, 0.14, 0.09)
 const DEFAULT_MUTED_TEXT := Color(0.45, 0.32, 0.20)
 const DEFAULT_CARD_FILL := Color(0.98, 0.91, 0.72)
-const DEFAULT_CARD_ART_FILL := Color(0.66, 0.76, 0.55)
 const DEFAULT_CARD_TEXT := Color(0.20, 0.14, 0.09)
 const DEFAULT_CARD_MUTED_TEXT := Color(0.45, 0.32, 0.20)
-const DEFAULT_ROAD_INK := Color(0.36, 0.27, 0.18)
 const DEFAULT_FOCUS := Color(1.0, 0.83, 0.35)
 const DEFAULT_SHADOW := Color(0.13, 0.08, 0.04, 0.52)
 
@@ -52,20 +50,12 @@ static func card_fill(control: Control) -> Color:
 	return color(control, &"card_fill", DEFAULT_CARD_FILL)
 
 
-static func card_art_fill(control: Control) -> Color:
-	return color(control, &"card_art_fill", DEFAULT_CARD_ART_FILL)
-
-
 static func card_text(control: Control) -> Color:
 	return color(control, &"card_text", DEFAULT_CARD_TEXT)
 
 
 static func card_muted_text(control: Control) -> Color:
 	return color(control, &"card_muted_text", DEFAULT_CARD_MUTED_TEXT)
-
-
-static func road_ink(control: Control) -> Color:
-	return color(control, &"road_ink", DEFAULT_ROAD_INK)
 
 
 static func focus(control: Control) -> Color:

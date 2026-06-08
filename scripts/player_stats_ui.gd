@@ -8,9 +8,9 @@ const STAT_ROW_HEIGHT := 64.0
 const ICON_PATHS := {
 	"food": "res://assets/images/stat_food.png",
 	"gold": "res://assets/images/stat_gold.png",
-	"health": "res://assets/images/stat_power.png",
+	"health": "res://assets/images/stat_health.png",
 	"deck": "res://assets/images/stat_deck.png",
-	"power": "res://assets/images/stat_health.png",
+	"power": "res://assets/images/stat_power.png",
 }
 
 @export var player_path: NodePath
@@ -19,8 +19,6 @@ const ICON_PATHS := {
 @export var left_margin := 10.0
 @export var icon_size := STAT_ICON_SIZE
 @export var row_height := STAT_ROW_HEIGHT
-@export var panel_color := Color.TRANSPARENT
-@export var border_color := Color.TRANSPARENT
 @export var gain_pulse_duration := 2.0
 
 var _player: GamePlayer
@@ -72,7 +70,7 @@ func _draw_stat_row(index: int, stat_name: String, value: Variant) -> void:
 	var change_amount := int(_gain_amounts.get(stat_name, 0))
 	var change_color := _get_stat_glow_color(stat_name, sign)
 	if pulse > 0.0:
-		var glow := _get_stat_glow_color(stat_name, sign)
+		var glow := change_color
 		glow.a = 0.22 + pulse * 0.46
 		draw_circle(row_center, icon_size * (0.48 + pulse * 0.16), glow)
 		draw_arc(row_center, icon_size * (0.64 + pulse * 0.15), 0.0, TAU, 28, glow.lightened(0.20), maxf(2.0, 5.0 * pulse))
@@ -154,8 +152,7 @@ func _on_deck_count_changed(_cards_remaining: int, _total_cards: int) -> void:
 
 
 func _on_inventory_stats_changed() -> void:
-	var current_values := _get_current_values()
-	_handle_value_change("power", int(current_values.get("power", 0)))
+	_handle_value_change("power", _get_power())
 
 
 func _on_player_base_power_changed(_base_power: int) -> void:

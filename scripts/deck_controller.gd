@@ -13,6 +13,20 @@ const EVENT_CLEAR_PATH := "clear_path"
 const EVENT_AMBUSH := "ambush"
 const EVENT_WILD_BERRIES := "wild_berries"
 const EVENT_LOST_BELONGINGS := "lost_belongings"
+const TARGETED_EVENT_TYPES: Array[String] = [
+	EVENT_DESTROY_TILE,
+	EVENT_ROTATE_TILE,
+	EVENT_CLEAR_PATH,
+	EVENT_AMBUSH,
+	EVENT_WILD_BERRIES,
+	EVENT_LOST_BELONGINGS,
+]
+const ENCOUNTER_EVENT_TYPES: Array[String] = [
+	EVENT_CLEAR_PATH,
+	EVENT_AMBUSH,
+	EVENT_WILD_BERRIES,
+	EVENT_LOST_BELONGINGS,
+]
 const GameBalance = preload("res://scripts/game_balance.gd")
 
 const HAND_SIZE := 4

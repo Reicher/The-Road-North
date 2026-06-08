@@ -78,27 +78,3 @@ static func enemy_rewards(level: int) -> Dictionary:
 		"gold_min": safe_level * 2,
 		"gold_max": safe_level * 3 + 2,
 	}
-
-
-static func shop_values(shop_level: int) -> Dictionary:
-	var safe_level := maxi(1, shop_level)
-	var small_food_amount := 2 + safe_level
-	var big_food_amount := small_food_amount * 2
-	var low_power_bonus := safe_level
-	var high_power_bonus := safe_level + 1
-	return {
-		"small_food_amount": small_food_amount,
-		"small_food_price": 2 + safe_level,
-		"big_food_amount": big_food_amount,
-		"big_food_price": roundi(float(big_food_amount) * 0.8),
-		"heal_1_price": 4 + safe_level,
-		"low_power_bonus": low_power_bonus,
-		"low_power_item_price": power_item_price(low_power_bonus),
-		"high_power_bonus": high_power_bonus,
-		"high_power_item_price": power_item_price(high_power_bonus),
-		"random_item_price": 4 + safe_level,
-	}
-
-
-static func power_item_price(bonus: int) -> int:
-	return bonus * 3 + maxi(0, bonus - 2)

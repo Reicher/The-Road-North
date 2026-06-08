@@ -60,7 +60,7 @@ signal pointer_released(card: CardView, canvas_position: Vector2)
 @export var focused := false:
 	set(value):
 		focused = value
-		_refresh_focus()
+		queue_redraw()
 
 @export var card_color := Color.TRANSPARENT:
 	set(value):
@@ -113,12 +113,12 @@ func _ready() -> void:
 	_bind_scene_nodes()
 	_layout_content()
 	_refresh_text()
-	_refresh_focus()
+	queue_redraw()
 
 
 func _draw() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
-	var base_art_rect := _card_art_rect()
+	var base_art_rect := get_card_art_rect()
 	var art_rect := Rect2(Vector2(base_art_rect.position.x, base_art_rect.position.y), Vector2(size.x - base_art_rect.position.x * 2.0, base_art_rect.size.y))
 	var border := _resolved_card_border_color()
 	var card_base_texture := _load_texture(card_base_texture_path)
@@ -145,7 +145,7 @@ func configure(card_data: Dictionary) -> void:
 	tile_definition = card_data.get("tile_definition")
 	title = str(card_data.get("title", _title_from_definition()))
 	category = str(card_data.get("category", "Road"))
-	detail = str(card_data.get("detail", _detail_from_definition()))
+	detail = str(card_data.get("detail", detail))
 	event_type = str(card_data.get("event_type", ""))
 	var raw_encounter: Dictionary = card_data.get("encounter", card_data.get("enemy", {}))
 	if not raw_encounter.is_empty() and not raw_encounter.has("type") and card_data.has("enemy"):
@@ -215,10 +215,6 @@ func _refresh_text() -> void:
 	queue_redraw()
 
 
-func _refresh_focus() -> void:
-	queue_redraw()
-
-
 func _on_touch_button_gui_input(event: InputEvent) -> void:
 	_handle_pointer_input(event, _touch_button)
 
@@ -269,10 +265,6 @@ func _card_header_text() -> String:
 	return _title_from_definition()
 
 
-func _detail_from_definition() -> String:
-	return detail
-
-
 func _draw_card_art_texture(art_rect: Rect2) -> void:
 	var art_texture := _card_art_texture()
 	if art_texture != null:
@@ -292,10 +284,6 @@ func get_card_art_rect() -> Rect2:
 	if _compact_detail_text().is_empty():
 		return _scaled_rect(NO_DETAIL_ART_RECT)
 	return _scaled_rect(ART_RECT)
-
-
-func _card_art_rect() -> Rect2:
-	return get_card_art_rect()
 
 
 func _card_art_texture() -> Texture2D:
@@ -361,16 +349,6 @@ func _compact_detail_text() -> String:
 	if detail == "Destroy a placed tile.":
 		return "Destroy placed tile."
 	return detail
-
-
-func _category_badge_fill() -> Color:
-	if category == DeckController.EVENT_CATEGORY:
-		return Color(0.66, 0.78, 0.86, 1.0)
-	if _encounter_type() == GameMap.ENCOUNTER_ENEMY:
-		return Color(0.88, 0.60, 0.48, 1.0)
-	if not encounter_data.is_empty():
-		return Color(0.74, 0.82, 0.54, 1.0)
-	return Color(0.86, 0.76, 0.52, 1.0)
 
 
 func _fit_label_font_size(label: Label, max_size: int, min_size: int) -> void:

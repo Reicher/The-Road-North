@@ -64,9 +64,6 @@ func _load_level(level_index: int) -> void:
 	if not _level_start_progression.is_empty():
 		_apply_progression(_level_start_progression)
 	_level_start_progression = _capture_progression()
-	var level := _current_level as Level
-	if level != null and not level.restart_requested.is_connected(_on_restart_level_requested):
-		level.restart_requested.connect(_on_restart_level_requested)
 	_configure_level_end_screen()
 
 

@@ -66,33 +66,10 @@ func remove_tile(grid_position: Vector2i) -> void:
 	_map.clear_tile(grid_position)
 
 
-func rotate_tile(grid_position: Vector2i) -> bool:
-	var tile_data: Variant = _map.get_tile(grid_position)
-	if not (tile_data is Dictionary):
-		return false
-	var definition: Resource = tile_data.get("definition")
-	if definition == null or not definition.has_method("get_rotated_openings"):
-		return false
-
-	var next_rotation := posmod(int(tile_data.get("rotation_steps", 0)) + 1, 4)
-	tile_data["rotation_steps"] = next_rotation
-	tile_data["connections"] = definition.get_rotated_openings(next_rotation)
-	_map.set_tile(grid_position, tile_data)
-
-	var visual_tile := get_visual_tile(grid_position)
-	if visual_tile != null:
-		visual_tile.rotation_steps = next_rotation
-	return true
-
-
 func set_encounter(grid_position: Vector2i, encounter_data: Dictionary) -> bool:
 	if _map.get_tile(grid_position) == null:
 		return false
-	var stored_encounter := encounter_data.duplicate(true)
-	if str(stored_encounter.get("type", "")) == GameMap.ENCOUNTER_ENEMY:
-		stored_encounter["revealed"] = true
-		stored_encounter["health"] = 1
-		stored_encounter["max_health"] = 1
+	var stored_encounter := _prepare_encounter(encounter_data)
 	_map.update_encounter_data(grid_position, stored_encounter)
 	var visual_tile := get_visual_tile(grid_position)
 	if visual_tile != null:
@@ -122,15 +99,19 @@ func make_tile_data(definition: Resource, rotation_steps: int = 0, encounter_dat
 		"connections": definition.get_rotated_openings(normalized_rotation),
 	}
 	if not encounter_data.is_empty():
-		var revealed_encounter := encounter_data.duplicate(true)
-		if not revealed_encounter.has("type") and revealed_encounter.has("power"):
-			revealed_encounter["type"] = GameMap.ENCOUNTER_ENEMY
-		if str(revealed_encounter.get("type", "")) == GameMap.ENCOUNTER_ENEMY:
-			revealed_encounter["revealed"] = true
-			revealed_encounter["health"] = 1
-			revealed_encounter["max_health"] = 1
-		tile_data["encounter"] = revealed_encounter
+		tile_data["encounter"] = _prepare_encounter(encounter_data)
 	return tile_data
+
+
+func _prepare_encounter(encounter_data: Dictionary) -> Dictionary:
+	var encounter := encounter_data.duplicate(true)
+	if not encounter.has("type") and encounter.has("power"):
+		encounter["type"] = GameMap.ENCOUNTER_ENEMY
+	if str(encounter.get("type", "")) == GameMap.ENCOUNTER_ENEMY:
+		encounter["revealed"] = true
+		encounter["health"] = 1
+		encounter["max_health"] = 1
+	return encounter
 
 
 func _store_and_spawn_tile(grid_position: Vector2i, tile_data: Dictionary) -> bool:

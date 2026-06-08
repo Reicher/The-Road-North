@@ -93,7 +93,7 @@ func run() -> void:
 	_assert(first_player.call("_check_run_won"), "Expected reaching the first goal to complete the level")
 	_assert(first_screen.visible, "Expected the completion screen to show after the first goal")
 	_assert(not first_hand.visible, "Expected the card hand to hide on the completion screen")
-	_assert(first_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "Nån typ av shop", "Expected between-level shop placeholder text")
+	_assert(first_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "Shop coming soon", "Expected between-level shop placeholder text")
 	_assert(first_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Next level", "Expected first completion button to advance")
 
 	first_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").pressed.emit()
