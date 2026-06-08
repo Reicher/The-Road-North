@@ -2,509 +2,197 @@
 
 ## Project Structure
 
-The project should follow normal Godot 4.6 scene and script conventions.
-
-The codebase should remain modular and scene-oriented rather than centered around large manager scripts.
-
-Suggested root structure:
-
-- scenes/
-- scripts/
-- assets/
-- data/
-- ui/
-- levels/
-
-Version 1 should remain lightweight and avoid unnecessary abstractions.
-
-The project should feel like a small focused game rather than a reusable engine.
+Godot 4.6, modular scene-oriented structure. Root folders: `scenes/`, `scripts/`, `assets/`, `data/`, `ui/`, `levels/`. Keep it lightweight — small focused game, not a reusable engine.
 
 ---
 
-# Main Scene Structure
-
-The game starts from a single root scene.
-
-Main scene:
-- `scenes/main.tscn`
-
-Current responsibilities:
-- load the two authored levels in sequence
-- capture player and inventory progression at level start
-- carry progression into the next level
-- restore level-start progression when restarting a level
-- reset progression when restarting the game
-- provide keyboard-only debug shortcuts
-
----
-
-# Level Scene
-
-Each playable map is represented by a Level scene.
-
-Example:
-- levels/level_001.tscn
-
-Shared level plumbing should live in a reusable base scene:
-- scenes/level.tscn
-
-Individual level scenes inherit from the base scene and currently override:
-- map size
-- fixed terrain features
-- hand size
-- balance level used by deck and encounter generation
-
-The Level scene is responsible for:
-- map state
-- tile placement
-- player placement
-- card interactions
-- camera
-- game state
-- win/loss handling
-
-Current shared Level scene structure:
-
-- Level (Node)
-  - Map (Node3D)
-    - MapVisuals
-  - Roads (Node3D)
-  - Player (Node3D)
-  - PlacementController (Node3D)
-  - Camera3D
-  - Sun
-  - UI (CanvasLayer)
-    - Hand
-    - Loot
-    - Inventory
-    - PlayerStats
-    - GameOver
-  - DeckController
-
-The Level script owns the high-level run state and input coordination. Gameplay rules remain in dedicated child nodes and scripts.
-
-There should only be one PlacementController in the scene.
-
----
-
-# Game States
-
-The game should use explicit high-level states.
-
-Suggested states:
-- idle
-- card_focused
-- placement_mode
-- event_targeting
-- player_moving
-- game_over
-- run_won
-
-This is primarily to simplify touch interactions and prevent conflicting input behavior.
-
-Version 1 does not need a large generic state machine framework.
-
-A simple enum and straightforward logic is sufficient.
-
-The Level node owns the high-level run state and coordinates input availability between child nodes. For example, entering placement mode disables player movement, and entering player_moving disables gameplay input until movement resolves.
-
----
-
-# Map Node
-
-The Map node owns:
-- playable dimensions
-- tile lookup
-- placement validation
-- movement validation
-- coordinate conversion
-- helper coordinate functions
-
-The Map node should expose helper methods such as:
-- get_tile(position)
-- can_place_tile(position, connections)
-- can_move_between(a, b)
-- get_neighbors(position)
-- is_inside_playable_area(position)
-- world_to_grid(position)
-- grid_to_world(position)
-
-The Map does not know anything about cards or UI.
-
-It only understands tiles, coordinate helpers, movement and placement rules, and lightweight tile metadata such as an encounter dictionary attached to a placed tile.
-
-Placement validation rejects road openings pointing outside the playable area. The surrounding visual forest should be substantially denser than trees on playable empty tiles so the boundary reads as impassable.
-
-The Map should be the single owner of world/grid coordinate conversion.
-
-The Map should own all logical tile data.
-
-Authored levels may also define fixed terrain features owned by the Map:
-- mountains and rivers block road placement
-- bridges occupy their tile and expose fixed road connections
-
-These features are lightweight map metadata rather than a separate terrain system. Mountains and rivers block placement and movement. Bridges are fixed crossings with road connections.
-
----
-
-# Roads Node
-
-The Roads node owns all spawned visual road tile scenes.
+## Main Scene (`scenes/main.tscn`)
 
 Responsibilities:
-- spawning tile scenes
-- removing tile scenes
-- updating tile visuals
-
-The Roads node should not contain gameplay rules.
-
-Logical validation should remain inside the Map node.
+- Load levels in sequence, carry/restore/reset progression
+- Open between-level shop, apply pending potion bonuses
+- Save/load via SaveManager for mid-run persistence
+- Configure player deck modifiers (removals, special cards)
+- Debug shortcuts (keyboard only)
 
 ---
 
-# Road Tile Representation
+## Level Scene
 
-Road tiles should be data-driven.
+Base scene: `scenes/level.tscn`. Level overrides (e.g. `levels/level_001.tscn`): map size, fixed features, hand size, balance level.
 
-A tile should contain:
-- tile type
-- rotation
-- directional openings
+Scene tree:
+```
+Level (Node)
+├── Map (Node3D) → MapVisuals
+├── Roads (Node3D)
+├── Player (Node3D)
+├── PlacementController (Node3D)
+├── Camera3D
+├── Sun
+├── UI (CanvasLayer) → Hand, Loot, Inventory, PlayerStats, GameOver
+└── DeckController → DeckBuilder
+```
 
-Suggested directions:
-- north
-- east
-- south
-- west
-
-The openings should preferably be represented internally as booleans or bitmasks.
-
-Example:
-- Straight vertical = north + south
-- Corner = north + east
-
-Rotation should transform openings dynamically rather than requiring separate scenes for every orientation.
-
-TileDefinition resources should be the single source of truth for connection data.
-
-Avoid duplicating connection logic across scenes or scripts.
+The Level script owns the run state enum and coordinates input between children.
 
 ---
 
-# Tile Scene
+## Game States
 
-Road tiles should use a reusable Tile scene.
-
-The reusable Tile scene is a `Node3D` that builds simple road, landmark, encounter, and highlight visuals.
-
-The Tile scene should:
-- display visuals
-- support rotation
-- support placement highlighting
-
-The Tile scene should not own gameplay rules.
-
-The Tile scene should read connection information from TileDefinition resources.
-
-Road visuals should remain perfectly square and aligned to the grid.
-
-The map should not draw internal debug grid lines. It should draw only a thin outline around the playable area's outer boundary.
-
-Preview tiles should use light tinting to indicate valid or invalid placement.
+Simple enum on Level: `IDLE`, `CARD_FOCUSED`, `PLACEMENT_MODE`, `EVENT_TARGETING`, `PLAYER_MOVING`, `GAME_OVER`, `RUN_WON`. Entering a state disables conflicting inputs (e.g. placement disables movement). No generic state machine needed.
 
 ---
 
-# Player
+## Map Node
 
-The Player scene represents the pawn on the map.
+Owns: playable dimensions, tile data, placement/movement validation, coordinate conversion, fixed terrain features (mountains/rivers/bridges as lightweight metadata).
 
-The Player is a `Node3D` with separate `Combat`, `Rewards`, and `Visuals` children.
+Key methods: `get_tile`, `can_place_tile`, `can_move_between`, `get_neighbors`, `is_inside_playable_area`, `world_to_grid`, `grid_to_world`.
 
-Responsibilities:
-- current grid position
-- movement tweening
-- movement state
-- food, health, gold, and simple combat/reward resolution
-
-The player should expose:
-- move_to(grid_position)
-
-The Player asks the Map to validate movement before spending food or starting a move. Movement is animated as a short multi-hop tween.
-
-Movement should always resolve one step at a time.
-
-The player pawn itself visually indicates the current tile.
-
-The Player emits movement and run outcome signals upward. Level uses those signals to update the high-level run state.
-
-Player child helpers handle narrow combat and reward responsibilities:
-- Combat: reads enemy encounter data and computes damage
-- Rewards: collects resource loot and inventory item loot
-
-These helpers should remain small and direct. They should not become generic effect systems.
+Does not know about cards or UI. Rejects openings pointing off-map. Single owner of coordinate conversion.
 
 ---
 
-# DeckController
+## Roads Node
 
-DeckController owns:
-- deck shuffling
-- draw pile
-- draw logic
-- hand refill
-- event-card execution for Idea and Lucky Find
-- deck-count reporting
-
-DeckBuilder owns:
-- road and event card generation
-- base, level, and empty player-special deck components
-- combining deck components before shuffling
-- road subtype distribution
-- enemy, berry-bush, and cache encounter attachment
-- debug hand generation
-
-GameBalance is the shared source for starting values, deck-size and deck-component formulas, encounter counts, enemy power ranges, and reward values.
-
-The DeckController should not contain hand UI logic.
-
-The Hand node displays cards and owns focus/drag interaction, but does not execute card effects.
+Owns spawned visual tile scenes. Spawns, removes, and updates visuals. No gameplay rules — logical validation stays in Map.
 
 ---
 
-# Hand System
+## Road Tile Representation
 
-The hand is its own isolated UI system.
+Data-driven via `TileDefinition` resources (single source of truth for connections). Stores: tile type, rotation, directional openings (north/east/south/west booleans). Rotation transforms openings dynamically.
 
-Current structure:
-
-- Hand (Control)
-  - CardContainer
-
-Cards:
-- ui/card.tscn
-
-The Hand system owns:
-- card selection
-- focus state
-- animations
-- dynamic spacing/compression
-- card drag recognition
-- the temporary dragged-card visual
-- the tweened inactive hand position used during placement and targeting
-
-Cards are not manually reorderable in version 1.
-
-The Level scene receives high-level interaction and outcome signals such as:
-- card_focused
-- card_unfocused
-- placement_started
-- placement_confirmed
-- movement_finished
-- run_won
-
-The hand should not directly manipulate map state.
+`RoadTile` scene (`Node3D`): displays visuals, supports rotation and highlight tinting. Does not own gameplay rules.
 
 ---
 
-# Card Scene
+## Player
 
-Current structure:
+`Node3D` with `Rewards` and `Visuals` children.
 
-- Card (Control)
-  - Title
-  - Category
-  - Detail
-  - TouchButton
+Owns: grid position, movement tweening (multi-hop), food/health/gold, inline combat (damage = `max(0, enemy_power - total_power)` with bump animation and defeat effects).
 
-Responsibilities:
-- displaying card visuals
-- focus animation
-- input forwarding
+Exposes `move_to(grid_position)`. Asks Map to validate before moving. Emits `move_started`, `moved`, `game_over`, `run_won` upward to Level.
 
-The Card should not know gameplay rules.
-
-It only knows:
-- card category
-- visual state
-
-CardDefinition resources contain:
-- category
-- tile_definition for road cards
-- event_type for event cards
-- optional encounter data
+PlayerRewards: collects resource loot and inventory items. Stays small and direct.
 
 ---
 
-# Placement Mode
+## DeckController / DeckBuilder / GameBalance
 
-Placement mode should be handled by a dedicated PlacementController node.
+**DeckController** owns: shuffling, draw pile, draw logic, hand refill, immediate event execution (Idea, Lucky Find, restart_level), deck-count reporting.
 
-Responsibilities:
-- showing preview tile
-- moving preview tile
-- rotating preview
-- validating placement
-- applying the player's current orthogonal target range
-- showing one green or red preview for the currently selected targeted-event tile
-- confirming placement
-- cancelling placement
+**DeckBuilder** owns: road/event card generation, base+level+player-special components, road subtype distribution, encounter attachment, debug hands.
 
-The controller should query the Map for validation.
-
-The controller should not permanently modify map state until confirmation.
-
-Placement flow:
-- player drags a road card upward from the hand
-- crossing the activation boundary starts placement mode
-- the preview tile follows the drag and snaps to map tiles
-- placement controls stay hidden while the drag remains active
-- releasing over the map leaves the preview selected
-- releasing over the map shows the relevant placement controls
-- preview becomes green or red depending on validity
-- player may rotate the preview
-- player confirms or cancels
-
-The player must drag from the current preview tile to move it. Tapping another tile does not move the preview.
-
-Once released, the preview remains draggable while the existing rotate, confirm, and cancel flow remains active.
-
-Double tapping the preview tile should rotate it.
-
-Version 1 does not need a generic placement framework.
+**GameBalance** is the shared source for starting values, deck-size formulas, encounter counts, enemy power ranges, and reward values.
 
 ---
 
-# Event Cards
+## Hand System
 
-Event cards should use the same card pipeline as road cards.
+`Hand` (Control) → `CardContainer`. Owns: card selection/focus, animations, spacing compression, drag recognition, dragged-card ghost, inactive hand position during placement.
 
-The difference should primarily exist in:
-- card data
-- explicit card behavior
+Signals upward: `card_focused`, `card_unfocused`, `card_drag_started`, `card_drag_moved`, `card_drag_finished`. Does not manipulate map state.
 
-Avoid generic effect systems in version 1.
-
-Current events:
-- Mirage enters target selection mode and destroys one placed tile.
-- Idea consumes itself, draws its normal replacement, then draws up to two extra cards.
-- Doubt enters target selection mode and previews rotation of one placed road tile.
-- Lucky Find consumes itself and grants either 3 food or 4 gold.
-
-All events are dragged onto the map. Idea and Lucky Find resolve immediately when released over the playable map. Mirage and Doubt enter targeting when dragged above the hand, follow the drag for their initial target, and remain draggable in the normal confirm/cancel flow after release.
-
-Road placement and targeted events currently share a simple orthogonal target range of one tile from the player. The range is an explicit PlacementController value so future items can increase it without changing each card's targeting rules.
-
-PlacementController reads target range bonuses from InventoryUI. Kikare contributes `target_range_bonus: 1`, expanding valid targets to Manhattan distance two. Each cache contains exactly one item and has a 15% chance to contain Kikare instead of a weapon. Enemy loot contains only gold.
-
-Road placement deliberately does not show valid empty tiles before the player previews them. Only the active road preview communicates validity through its green or red tint.
-
-Targeted events follow the same rule and do not reveal valid targets in advance. Only the currently previewed target tile is marked green or red.
-
-Future event cards may use different targeting patterns.
-
-Avoid separate UI systems for event cards.
+**Card scene** (Control): Title, Category, Detail, TouchButton. Displays visuals and forwards input. No gameplay rules. `CardDefinition` resources contain category, tile_definition, event_type, optional encounter data.
 
 ---
 
-# Combat, Loot, and Inventory
+## PlacementController
 
-Combat, loot, and inventory are part of the current version 1 prototype structure.
+Dedicated `Node3D` handling preview tile, rotation, validation, and confirm/cancel flow.
 
-They should stay layered on top of the road-card loop:
-- DeckBuilder may attach enemy or reward encounter data to road cards.
-- GameBalance calculates encounter counts from level and map size.
-- Roads stores encounter data on the placed tile and passes it to the visual tile.
-- Player resolves encounters when entering a tile.
-- PlayerRewards handles resource/item collection.
-- PlayerCombat handles simple enemy damage calculations.
-- LootUI presents loot and collection interaction.
-- InventoryUI stores a small fixed backpack and computes the strongest weapon power bonus.
+Modes: road placement, destroy targeting, rotate targeting, encounter targeting.
 
-The structure should remain simple:
-- no generic effect engine
-- no economy system
-- no progression persisted between separate games
-- no equipment slot framework beyond the strongest weapon power bonus
-- no separate encounter scene hierarchy unless the current tile drawing becomes unmanageable
+Flow: card dragged above hand → mode starts → preview follows drag → release shows controls → drag preview to move it → rotate/confirm/cancel. Double-tap rotates. Queries Map for validity; does not modify state until confirmation.
 
-The Level scene may include Loot and Inventory under UI, but those systems should not own map, deck, or placement rules.
+Target range = base (1) + inventory bonus (Binoculars). Only the active preview shows green/red — no advance hints.
 
 ---
 
-# Camera
+## PlacementValidator
 
-The Camera3D node:
-- support pinch zoom
-- support two-finger pan
-- support mouse/trackpad pan and zoom during desktop development
-- reserve the hand area when calculating the visible map viewport
-- clamp to the playable map plus a three-tile visual forest margin
-- show the full map, then zoom toward the start position
-- follow the pawn while movement is active
-- briefly settle on the player after movement resolves
-
-The camera does not continuously follow the player while idle.
-
-The dedicated camera controller script is attached directly to `Camera3D`.
-
-When placement mode is active:
-- single finger controls placement
-- two finger gestures may still pan/zoom
+Focused `RefCounted` helper. Road placement hints (too far, occupied, terrain, off-map, doesn't fit). Tile targeting validation. Range checks via callable for live target range. Keeps PlacementController focused on interaction.
 
 ---
 
-# Data Definitions
+## Event Cards
 
-Road cards and event cards should use Godot Resources.
+Same card pipeline as road cards, differing only in data and explicit behavior. No generic effect system.
 
-Version 1 should avoid:
-- JSON config systems
-- generic scripting systems
-- external data pipelines
+Immediate: Idea (draw 2 extra), Lucky Find (3 food or 4 gold), It was all a dream (restart level).
+Targeted: Mirage (destroy tile), Doubt (rotate tile), Clear Path (remove encounter), Ambush (add enemy), Wild Berries (add berry bush), Lost Belongings (add cache).
 
-Example concepts:
-- CardDefinition
-- TileDefinition
-
-This keeps gameplay rules separate from scenes while staying simple.
+All dragged onto map. Immediate events resolve on release. Targeted events enter confirm/cancel flow.
 
 ---
 
-# Signals
+## Combat, Loot, and Inventory
 
-Use signals primarily upward through the scene hierarchy.
+Layered on road-card loop:
+- DeckBuilder attaches encounter data to road cards
+- GameBalance calculates encounter counts
+- Roads stores encounters on tiles
+- Player resolves encounters inline on enter
+- PlayerRewards collects loot
+- LootUI presents collection; InventoryUI stores 3-slot backpack and computes weapon power bonus
 
-Examples:
-- card_used
-- placement_confirmed
-- movement_finished
-- tile_destroyed
-- run_won
-
-Prefer direct references downward.
-
-Avoid unnecessary signal chains or event-bus-style architecture.
+No generic effect engine, no economy system, no equipment framework beyond strongest-weapon bonus.
 
 ---
 
-# Recommended Philosophy
+## WeaponCatalog and ItemCatalog
 
-Version 1 should optimize for:
-- clean scene separation
-- simple responsibilities
-- readable code
-- iteration speed
-- minimal architecture
+**WeaponCatalog:** Knife (+1), Dagger (+2), Machete (+3), Sword (+4), Katana (+5). Provides `roll_weapon(rng, target_power, power_weights)` with weighted randomization.
 
-Avoid:
-- singleton-heavy architecture
-- overengineering
-- premature save systems
-- multiplayer assumptions
-- generic frameworks
-- factories
-- registries
-- generic effect pipelines
-- reusable engine-style abstractions
+**ItemCatalog:** Binoculars (`target_range_bonus: 1`, 15% drop chance). Both are static `RefCounted` classes.
 
-The project should feel like a small focused Godot game rather than an engine.
+---
+
+## ShopUI
+
+Standalone `Control` instantiated by Main. Features: food (5/4g), heal (2HP/5g), power potion (8g), max-health potion (10g), sell zone, two item offers (Dagger 7g, Machete 12g), three special-card offers, deck overlay with one removal per shop (base 12g, +6g each). Protected types: Straight, Corner, T-Junction.
+
+Emits `play_next_requested(progression)`. Potions stored as `pending_*` keys, applied by Main on next level load.
+
+---
+
+## SaveManager
+
+Static `RefCounted`. Persists to `user://save_data.json`: version, level index, full progression dictionary, timestamp. Main saves after shop and loads on startup.
+
+---
+
+## GameConstants
+
+Static `RefCounted`, single source of truth: card categories, encounter types, feature types, event type strings, targeted/encounter event arrays, deck sources, direction vectors/opposites, stat icon paths, `card_signature()` utility.
+
+---
+
+## Camera
+
+Script on `Camera3D`. Pinch zoom, two-finger pan, mouse/trackpad for desktop. Reserves hand area for viewport calc. Clamped to map + 3-tile margin. Start sequence: full map → zoom to start. Follows pawn during movement, settles after. Input handled by `CameraInputHandler` (RefCounted).
+
+---
+
+## Data Definitions
+
+Use Godot Resources (`CardDefinition`, `TileDefinition`). Avoid JSON configs, scripting systems, or external pipelines.
+
+---
+
+## Signals
+
+Signals upward, direct references downward. Key signals: `placement_started`, `placement_confirmed`, `tile_destroyed`, `tile_rotated`, `encounter_changed`, `moved`, `run_won`. No event-bus architecture.
+
+---
+
+## Philosophy
+
+Optimize for: clean scene separation, simple responsibilities, readable code, iteration speed, minimal architecture.
+
+Avoid: singletons, overengineering, multiplayer assumptions, generic frameworks, factories, registries, effect pipelines, engine-style abstractions.
+
+Small focused Godot game, not an engine.

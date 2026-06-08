@@ -2,469 +2,183 @@
 
 ## Overview
 
-The goal of version 1 is to build a small mobile-first technical demo focused on one question:
-
 > Is it fun to build roads, manage a hand of cards, and navigate through a map using limited movement resources?
 
-The game is a calm, tactical, singleplayer experience played on a square grid. The player travels from the bottom of the map to the top by placing road tiles using cards drawn from a deck, managing food, and dealing with simple encounters placed on some roads.
-
-The game should feel readable, tactile, strategic, and pleasant to interact with on a phone.
+A calm, tactical, singleplayer mobile game on a square grid. The player travels bottom-to-top by placing road tiles from a card hand, managing food, and handling encounters. Should feel readable, tactile, and strategic on a phone.
 
 ---
 
-## Visual Style and Perspective
+## Visual Style
 
-The game map should be viewed from a slightly elevated angled 3D perspective, roughly 45 degrees above the ground.
+Angled 3D perspective (~45°) over a flat orthogonal grid. Gameplay coordinates remain square; only the camera is angled.
 
-However, the gameplay grid itself should remain a normal square grid. Tiles should not use isometric diamonds or rotated coordinate systems. Movement and placement logic should still operate on a clean orthogonal grid with north/south/east/west adjacency.
+- Empty tiles: flat grass with a few trees
+- Road tiles: raised road geometry on grass
+- Player/enemies: simple 3D pawns
+- Start/goal: landmark shapes
+- UI (cards, stats, loot, inventory, placement controls): 2D overlays
 
-Visually, this means:
-- square gameplay coordinates
-- square tile logic
-- non-isometric gameplay rules
-- but rendered with a simple angled 3D camera
-
-The overall feel should resemble a simple stylized tabletop adventure map viewed from slightly above and at an angle.
-
-Menus, cards, stats, loot, inventory, and placement controls remain 2D UI.
-
-The map itself is rendered in simple real 3D using primitive low-detail shapes:
-- empty tiles are flat grass surfaces with a few small trees
-- road tiles are flat grass surfaces with raised road geometry and a few trees placed away from the road
-- player and enemies are simple readable 3D pawns
-- start and goal use simple 3D landmark shapes
-
-The 3D presentation must not change any placement, movement, deck, encounter, or win/loss rules.
+The 3D presentation does not change any gameplay rules.
 
 ---
 
-# Map Structure
+## Map Structure
 
-The prototype currently contains two authored square levels:
-- Level 1 is a 5x5 introductory map with a mountain in the center.
-- Level 2 is a 7x7 map with a horizontal river and two fixed bridge crossings.
+Two authored levels:
+- Level 1: 5×5, mountain at center
+- Level 2: 7×7, horizontal river with two bridge crossings
 
-The playable area has no surrounding gameplay padding border.
+Start at bottom center, goal at top center. Both are T-crossings facing inward. Coordinates: X left→right, Y top→bottom. Current positions: 5×5 start `(2,4)` goal `(2,0)`; 7×7 start `(3,6)` goal `(3,0)`.
 
-The 3D world should show a much thicker forest outside all four edges of the playable grid so angled camera views never reveal an empty void beyond small maps and the boundary reads as impassable. This surrounding forest is visual only and does not add playable tiles.
+No gameplay border. A thick visual-only forest surrounds all edges so the camera never reveals empty void. A thin outline marks the playable boundary; no internal grid lines.
 
-The camera may show the surrounding visual forest, but it cannot be panned beyond that authored margin.
+Start/goal tiles are permanent. Road openings may never point outside the map.
 
-The grid itself should not be rendered visually as debug lines. The playable area should have a thin visible outline around its outer edge so the player can read the boundary without seeing internal grid lines.
-
-The map starts with only the start and goal tiles placed. All other tiles are empty.
-
-Both the start and goal positions are T-crossings rotated so their open side faces inward toward the center of the map:
-- The start tile at the bottom has openings facing left, right, and up.
-- The goal tile at the top has openings facing left, right, and down.
-
-The start position is at the bottom center of the playable area. The goal position is at the top center.
-
-For the current levels:
-- 5x5 start position = `(2, 4)`, goal position = `(2, 0)`
-- 7x7 start position = `(3, 6)`, goal position = `(3, 0)`
-
-Coordinates use:
-- X increasing left to right
-- Y increasing top to bottom
-
-Road openings may never point outside the playable map.
-
-The start and goal tiles are permanent occupied tiles and may never be overwritten.
-
-Some authored levels may include fixed terrain features:
-- mountains block placement and movement
-- rivers block placement and movement
-- bridges are fixed road-like crossings over rivers
-
-Fixed terrain features are level content, not player-placed roads. They should remain simple obstacles or crossings that support the road-building puzzle without adding new systems.
+Fixed terrain: mountains block placement/movement; rivers block placement/movement; bridges are fixed crossings with road connections.
 
 ---
 
-# Camera and Controls
+## Camera and Controls
 
-The game is designed primarily for portrait mobile play.
+Portrait mobile. Pinch to zoom, two fingers to pan. Zoom clamped between close-up and full-map view. Camera clamped to playable area plus forest margin.
 
-The player can:
-- pinch to zoom
-- use two fingers to pan the camera
+On level start: shows full map, then zooms toward start. Follows pawn during movement tween, settles briefly after. Does not follow while idle.
 
-Zoom is clamped between a minimum zoom level and a maximum that shows the full playable area.
-
-The camera starts by showing the full map, then zooms toward the start position. It follows the pawn while a movement tween is active and briefly settles on the destination after movement resolves. It does not continuously follow the player while idle or manually panning.
-
-The camera position is clamped to the playable map plus a visual forest margin.
-
-All interaction should work entirely through touch.
-
-When placement mode is active:
-- single-finger interaction controls placement
-- two-finger gestures may still pan and zoom the camera
+Touch only. In placement mode: single finger = placement, two fingers = camera.
 
 ---
 
-# Movement
+## Movement
 
-The player is represented by a simple marker or pawn.
+Tap an adjacent connected tile to move. Rules:
+- Orthogonal only, one tile at a time, costs 1 food
+- Both tiles must connect toward each other (bidirectional)
+- Backtracking allowed if roads and food exist
+- Tweened hop animation; input disabled during move
 
-The player pawn visually indicates the current tile position.
+Starting stats: 10 food, 4 health, 0 gold, 1 base power, a Knife (+1 power).
 
-When the player taps an adjacent tile that has a valid road connection, the player marker moves there.
-
-Movement rules:
-- only orthogonal movement
-- one tile at a time
-- movement costs 1 food
-- movement is only allowed if both tiles connect correctly toward each other
-- movement is processed one step at a time
-
-Connections are fully bidirectional.
-
-The player may freely backtrack if valid roads and food exist.
-
-The player starts a new game with:
-- 10 food
-- 4 health
-- 0 gold
-- 1 base power
-- a Knife that adds 1 power
-
-Food, gold, health, max health, base power, and backpack contents carry from one completed level into the next. Restarting a level restores the values held when that level began. Restarting the game resets all progression.
-
-The movement itself should be tweened/interpolated over a short duration so the marker appears to travel along the road rather than teleport instantly.
-
-Movement should feel smooth and tactile, but still quick.
-
-Gameplay interaction should be temporarily disabled during movement tweening.
+Food, gold, health, max health, base power, and backpack carry between levels. Restarting a level restores level-start values. Restarting the game resets everything.
 
 ---
 
-# Cards and Decks
+## Cards and Decks
 
-Each level's generated deck is combined from three named parts:
-- the base deck
-- the level deck
-- the player's special cards
+Each level's deck = base deck − player removals + level deck + player special cards.
 
-The base deck contains the normal shared card pool. Level 1 uses only the base deck. Level 2 combines the 18-card base deck with 7 level cards, prioritizing somewhat more difficult cards such as enemy roads, disruptive events, and dead ends.
+- Level 1: 18 cards (base only)
+- Level 2: 25 cards (18 base + 7 harder level cards)
 
-Player special cards are bought in the between-level shop. They persist for the current game and are mixed into each new level's draw pile. Base-card removals bought in the shop are stored as player deck modifiers; the authored base deck resource is never changed.
+Deck size formula: `round(map_size * 3.5 + 0.5)`, minus 1 card per 3 levels, floor at `shortest_path * 3`.
 
-Each level builds its run deck as:
-- a copy of the base deck
-- minus player-removed base cards
-- plus the level deck
-- plus player special cards
+Composition: 75% road, 25% event. Shuffled once at level start; no reshuffle.
 
-The current run is a sequence of two authored levels. Completing level 1 opens the shop before level 2 while carrying player resources, inventory, special cards, and deck modifiers. Restarting the game returns to level 1 with the initial player values.
+Hand size: 4. Using a card draws a replacement. No discard. Player may freely mix movement and placement in any order.
 
-Deck size is based on map size and level:
-- shortest path steps = map size - 1
-- base card count = round(map size * 3.5 + 0.5)
-- every three levels remove one card as a difficulty penalty
-- total card count is never lower than three times the shortest path length
-
-The current decks contain:
-- Level 1, 5x5: 18 cards
-- Level 2, 7x7: 25 cards
-
-The deck composition is:
-- 75% road cards
-- 25% event cards
-
-Road card subtype distribution applies only within the road card category.
-
-The deck is shuffled randomly at the start of each level.
-
-# Between-Level Shop
-
-The shop opens after a completed non-final level and before the next level starts. It shows the next map name and size, player resources, fixed backpack slots, and a button to start the next map.
-
-The shop supports:
-- dragging inventory items to a sell zone for gold
-- click purchases for food, healing, and next-map-only potions
-- exactly two item offers bought by dragging to an empty backpack slot
-- three randomly selected special-card offers; duplicate offers are allowed
-- viewing the deck in an overlay
-- buying at most one increasingly expensive base-card removal per shop through an overlay
-
-The last copy of an important road type cannot be removed. Potion power and max-health bonuses apply only to the next map and are removed afterward.
-
-The special event card "It was all a dream" restarts the current level from its saved level-start state.
-
-The hand is normally maintained at 4 cards. Idea can temporarily increase it above that size.
-
-When a card is used:
-- it disappears from the hand
-- a new card is immediately drawn from the deck, if any remain
-
-Cards are not reshuffled during a run.
-
-When the deck is empty, no new cards are drawn.
-
-The player may continue moving and playing remaining cards freely.
-
-There is no discard action.
-
-The player may:
-- move multiple times before placing
-- place multiple tiles before moving
-- freely mix actions in any order
+Player special cards are bought in the shop and persist for the run. Base-card removals are stored as modifiers; the authored deck is never changed.
 
 ---
 
-# Hand Presentation
+## Between-Level Shop
 
-The player’s hand is displayed at the bottom of the screen.
+Opens after completing a non-final level. Shows next map info, resources, backpack, and a start button.
 
-Cards are shown overlapping slightly in a curved arc.
+Features:
+- Sell items by dragging to sell zone
+- Buy food, healing, next-map-only potions
+- Two item offers (drag to empty slot)
+- Three random special-card offers (duplicates allowed)
+- Deck overlay for viewing or removing one base card (increasingly expensive)
 
-The hand should always fit within the screen width by dynamically compressing the spacing between cards when necessary.
+Protected road types (Straight, Corner, T-Junction) cannot have their last copy removed. Potion bonuses apply only to the next map.
 
-When the player taps a card:
-- that card moves upward and toward the center
-- the surrounding cards compress slightly outward
-- the selected card becomes larger and easier to read
-
-Cards are played by dragging them upward from the hand onto the map.
-
-When a card is dragged:
-- a visual copy follows the finger while it remains near the hand
-- crossing a clear activation boundary above the hand starts road placement or event targeting
-- the rest of the hand tweens downward until the cards are half hidden below the screen
-- road cards change from the card visual into the normal tile preview
-- targeted event cards change from the card visual into their normal target preview
-- placement controls remain hidden until the dragged card is released over the map
-- dragging back into the hand cancels the active placement or targeting mode
-- releasing outside both the hand and playable map cancels the drag
-
-Releasing a road card or targeted event over the map leaves its preview selected and shows the rotate, confirm, and cancel controls. The hand remains half hidden until the card is confirmed or cancelled.
-
-Events without a target trigger immediately when released over the playable map.
-
-Tapping a different card focuses that card instead.
-
-Tapping outside the hand deselects the current card.
-
-Cards cannot be manually reordered in version 1.
+Special card: "It was all a dream" restarts the current level from its saved state.
 
 ---
 
-# Card Types
+## Hand Presentation
 
-Version 1 contains two categories of cards:
-- Road Cards
-- Event Cards
+Cards shown in a curved arc at screen bottom, dynamically compressed to fit width.
 
-Some road cards may also contain encounters. Encounter data modifies the road tile being placed, but the card is still a road card and follows the normal road placement rules.
+Tap to focus (card lifts and enlarges). Drag upward to play:
+- Below activation boundary: visual copy follows finger
+- Above boundary: enters placement/targeting mode; hand hides half-off-screen
+- Road cards become tile preview; targeted events become target preview
+- Dragging back into hand cancels; releasing outside both cancels
+- Release over map: preview stays, controls appear (rotate/confirm/cancel)
 
----
-
-# Road Cards
-
-Road cards place tiles onto the map.
-
-The initial road tile types are:
-- Straight Road
-- Corner
-- T-Junction
-- Four-Way Intersection
-- Dead End
-
-Dead ends should appear relatively rarely.
-
-Suggested distribution within road cards:
-- Straight and Corner: split the cards left after the other road types
-- T-Junction: 20%
-- Four-Way: 15%
-- Dead End: 20%
-
-Road cards can be rotated before placement.
-
-Some road cards contain a hidden enemy or reward encounter.
-
-Special road counts scale from map size and level. The current decks contain:
-- Level 1: 4 enemy roads, 2 berry-bush roads, and 2 cache roads
-- Level 2: 6 enemy roads, 3 berry-bush roads, and 3 cache roads
-
-Encounter road cards:
-- still place normal road tiles
-- still use the same road connection and rotation rules
-- show enough card text to communicate that an encounter is attached
-- attach the encounter to the placed tile
-
-Enemy encounters are revealed when placed so the player can see the threat on the map.
-
-Berry-bush encounters grant food when reached. Cache encounters grant gold and may also contain a weapon.
-
-When the player drags a road card above the hand, the game enters placement mode.
-
-In placement mode:
-- the initial preview follows the dragged card across map tiles
-- after releasing the card, the player moves the preview by dragging it from its current tile
-- the preview tile snaps to tiles crossed by the drag
-- the preview tile is tinted green when placement is valid
-- the preview tile is tinted red when placement is invalid
-- the preview tile itself acts as the visual placement hint
-- round confirm and cancel icon buttons appear below the preview
-- a round rotate icon button appears above the preview when rotation is available
-- the rotate button turns the tile 90 degrees clockwise
-- double tapping the preview tile also rotates it
-- invalid preview tiles may still be rotated
-- the confirm button is only active while the preview is valid
-- tapping another tile does not move the preview
-- the cancel button exits placement mode and returns the card to the hand
-
-The preview must always be dragged to move it. After release, rotate, confirm, and cancel remain available.
-
-A road card may only be legally placed:
-- on an empty playable tile
-- within the player's current orthogonal target range
-
-The player currently has a target range of one tile:
-- targeted cards may only affect tiles one orthogonal step from the player
-- diagonal tiles are not in range
-- future items may increase this range
-
-Road cards do not reveal which empty tiles or rotations would be valid. Only the currently previewed road tile is tinted green when valid or red when invalid.
-
-Targeted events do not reveal valid targets in advance. Only the currently previewed target tile is marked green when valid or red when invalid.
-
-A placement is only valid if all of the following are true:
-- the new tile is adjacent to the player's current tile
-- the new tile connects correctly to the player's current tile
-- the new tile connects correctly to all neighboring tiles
-- all neighboring tiles with an opening toward the new tile are matched back
-
-- the tile does not create openings outside the playable map
-
-Neighboring tiles without openings toward the new tile are valid.
-
-A connection is only valid if both tiles connect toward each other.
+Immediate events (Idea, Lucky Find, It was all a dream) trigger on release over map. No manual reorder in v1.
 
 ---
 
-# Event Cards
+## Road Cards
 
-Version 1 contains eight event card types. Event slots are filled from a shuffled set of all event types before any type repeats:
-- Mirage destroys a placed tile.
-- Idea draws two extra cards.
-- Doubt rotates a placed tile.
-- Lucky Find grants either 3 food or 4 gold.
-- Clear Path removes an enemy, berry bush, or cache from a placed road.
-- Ambush adds a random enemy from the level's power range to a placed road.
-- Wild Berries adds a berry bush to a placed road.
-- Lost Belongings adds a cache to a placed road.
+Types: Straight, Corner, T-Junction (20%), Four-Way (15%), Dead End (20%). Straight and Corner split the remainder equally.
 
-Clear Path targets a placed road that contains an encounter. Ambush, Wild Berries, and Lost Belongings target a placed road without an encounter. These cards use the normal orthogonal target range and do not alter the road itself.
+Can be rotated before placement. Some carry hidden encounters (enemy, berry bush, cache). Encounter counts scale with map size and level:
+- Level 1: 4 enemy, 2 berry, 2 cache
+- Level 2: 6 enemy, 3 berry, 3 cache
 
-One event destroys a placed tile.
+Placement mode:
+- Preview follows drag, snaps to tiles; green = valid, red = invalid
+- After release: drag preview to move it, buttons for rotate/confirm/cancel
+- Double-tap preview to rotate; confirm only active when valid
+- Must be on an empty tile within orthogonal target range (default 1)
 
-When this card is played:
-- the player is shown all placed tiles after dragging the card above the hand
-- the initial selected tile follows the drag
-- after release, the player may drag the target preview to another tile
-- the start and goal tiles cannot be targeted
-- the tile the player is currently standing on cannot be targeted
-- the tile must be within the player's orthogonal target range
-
-The UI mirrors placement mode:
-- only the currently previewed tile is marked green or red
-- the same round confirm and cancel icon buttons appear below the preview
-- there is no rotate button
-- cancelling returns the card to the hand
-
-Destroying a tile is allowed to create strange or awkward road layouts.
-
-If an event card has no valid targets, the player may simply cancel it.
-
-Future event cards may use different targeting rules such as:
-- orthogonal targeting
-- diagonal targeting
-- random tile targeting
-- unrestricted map targeting
-
-Idea draws two extra cards immediately after its normal replacement card is drawn. If fewer than two additional cards remain in the deck, it draws whatever is left. This can temporarily increase the hand above four cards.
-
-Doubt uses the same targeting restrictions as Mirage. Selecting a road previews clockwise rotation; confirming requires a changed rotation, and cancelling restores the original rotation.
-
-These events stay small and explicit rather than using a generic effect system.
+Validity requires: empty tile, within range, connects correctly to player's tile, matches all neighboring connections, no openings off-map. Only the current preview shows validity — no advance hints.
 
 ---
 
-# Combat, Loot, and Inventory
+## Event Cards
 
-Version 1 includes a simple encounter layer on top of road placement.
+Eight types, dealt from shuffled set before repeating:
 
-The goal of encounters is to add risk and reward to route planning without changing the core road-building loop.
+| Event | Effect |
+|-------|--------|
+| Mirage | Destroy a placed tile |
+| Idea | Draw 2 extra cards |
+| Doubt | Rotate a placed tile |
+| Lucky Find | Gain 3 food or 4 gold |
+| Clear Path | Remove encounter from a road |
+| Ambush | Add enemy to a road |
+| Wild Berries | Add berry bush to a road |
+| Lost Belongings | Add cache to a road |
 
-Enemy encounters:
-- are attached to some placed road tiles
-- have a simple power value
-- set power from the level's three-value power range: level 1 uses 1-3, level 2 uses 4-6, and so on
-- trigger when the player moves onto the tile
-- cost the normal 1 food movement cost before combat resolves
-- damage the player by max(0, enemy power - player power)
-- are removed from the tile after combat resolves
-- grant gold directly after defeat
+Targeting rules: same orthogonal range as road placement. Cannot target start, goal, or player's tile. Clear Path requires an encounter present; Ambush/Wild Berries/Lost Belongings require no encounter. Mirage/Doubt share targeting restrictions; Doubt previews clockwise rotation.
 
-The player has:
-- food
-- health
-- gold
-- power
-
-Food remains the primary movement resource.
-
-Health is lost through combat. Reaching 0 health ends the run.
-
-Gold is a simple collected resource for the prototype.
-
-Power comes from the player's base value plus the strongest carried weapon bonus.
-
-Berry bushes contain food. Defeated enemies always grant only gold. Caches always contain exactly one item.
-
-Food and gold loot are collected directly.
-
-Items go into the inventory if there is space.
-
-The inventory is a three-slot backpack that starts with a Knife. Weapons may provide power. Only the strongest carried weapon contributes to the player's power. Weapons range from +1 power for a Knife to +5 power for a Katana.
-
-Kikare is a utility item that increases the player's target range by one. With Kikare, targeted cards can reach Manhattan distance two: two tiles horizontally or vertically, or one tile diagonally. Every cache has a 15% chance to contain Kikare instead of a weapon.
-
-Food and gold are collected immediately when loot opens. Item loot can be dragged into the backpack, swapped with carried items, or collected with Take All when enough slots are free. Backpack items can also be reordered by drag and drop.
+If no valid targets exist, the player may cancel. Destroying tiles may create awkward layouts.
 
 ---
 
-# Win Condition
+## Combat, Loot, and Inventory
 
-Moving onto level 1's goal opens a placeholder between-level shop screen with a Next level action. No shop interaction is implemented yet.
+Encounters add risk/reward to route planning without changing the road-building loop.
 
-Moving onto level 2's goal wins the game and shows a Restart game action.
+**Enemies:** power from level range (L1: 1–3, L2: 4–6). Trigger on move. Damage = max(0, enemy_power − player_power). Removed after combat. Grant gold.
 
----
+**Player power** = base power + strongest carried weapon bonus.
 
-# Resources and Run End
+**Loot:** Berry bushes → food. Caches → exactly one item. Enemies → gold only. Food/gold collected directly; items go to inventory if space exists (drag or Take All).
 
-Movement consumes food.
+**Inventory:** 3-slot backpack, starts with Knife. Weapons: Knife +1 … Katana +5. Only strongest weapon counts.
 
-Every movement action costs 1 food.
-
-The current level is lost when the player has no food remaining after movement resolves or health reaches 0. The loss screen restarts the current level from its captured level-start progression.
-
-Soft-lock detection, such as ending the run because no valid movement is available, is intentionally deferred.
-
-Food should feel like a constant pressure that discourages unnecessary movement and backtracking.
+**Binoculars:** Utility item, +1 target range (Manhattan distance 2). 15% cache drop chance instead of weapon.
 
 ---
 
-# Main Goal of the Prototype
+## Win/Loss
 
-The prototype succeeds if players naturally begin thinking things like:
-- “I should save this junction for later.”
-- “I may need a backup route.”
-- “This dead end could trap me.”
-- “I should not waste food backtracking.”
-- “I need to work around this hand.”
+Reaching the goal on level 1 opens the shop. Reaching the goal on level 2 wins the game.
 
-If those feelings emerge naturally, then the core design is working.
+Loss: 0 food remaining after a move, or 0 health. Loss screen restarts the level from captured level-start state. Soft-lock detection deferred.
+
+---
+
+## Design Goal
+
+The prototype works if players naturally think:
+- "I should save this junction for later."
+- "I may need a backup route."
+- "This dead end could trap me."
+- "I should not waste food backtracking."
+- "I need to work around this hand."
