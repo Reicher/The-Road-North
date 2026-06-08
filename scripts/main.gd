@@ -4,6 +4,8 @@ const LEVEL_SCENES: Array[PackedScene] = [
 	preload("res://levels/level_001.tscn"),
 	preload("res://levels/level_002.tscn"),
 ]
+const SHOP_SCENE := preload("res://ui/shop.tscn")
+const LEVEL_NAMES := ["", "3 bridges"]
 
 const DEBUG_LABEL_TEXT := "Debug"
 const DEBUG_HAND_SHORTCUTS := {
@@ -20,6 +22,8 @@ var _level_start_progression: Dictionary = {}
 var _debug_mode_enabled := false
 var _debug_layer: CanvasLayer
 var _debug_label: Label
+var _shop: Control
+var _shop_layer: CanvasLayer
 
 
 func _ready() -> void:
@@ -53,6 +57,7 @@ func _input(event: InputEvent) -> void:
 
 
 func _load_level(level_index: int) -> void:
+	_close_shop()
 	if _current_level != null:
 		remove_child(_current_level)
 		_current_level.queue_free()
@@ -63,7 +68,8 @@ func _load_level(level_index: int) -> void:
 	add_child(_current_level)
 	if not _level_start_progression.is_empty():
 		_apply_progression(_level_start_progression)
-	_level_start_progression = _capture_progression()
+	_configure_player_deck(_level_start_progression)
+	_level_start_progression = _capture_progression_with_extras(_level_start_progression)
 	_configure_level_end_screen()
 
 
@@ -78,6 +84,9 @@ func _configure_level_end_screen() -> void:
 		end_screen.restart_level_requested.connect(_on_restart_level_requested)
 	if not end_screen.restart_game_requested.is_connected(_on_restart_game_requested):
 		end_screen.restart_game_requested.connect(_on_restart_game_requested)
+	var player := _current_level.get_node_or_null("Player") as GamePlayer
+	if player != null and not player.run_won.is_connected(_on_level_won):
+		player.run_won.connect(_on_level_won)
 
 
 func _ensure_debug_overlay() -> void:
@@ -125,8 +134,11 @@ func _show_debug_hand(kind: String) -> void:
 
 
 func _on_next_level_requested() -> void:
-	_level_start_progression = _capture_progression()
-	_load_level(_current_level_index + 1)
+	_open_shop()
+
+
+func _on_level_won() -> void:
+	_open_shop()
 
 
 func _on_restart_level_requested() -> void:
@@ -134,6 +146,7 @@ func _on_restart_level_requested() -> void:
 
 
 func _on_restart_game_requested() -> void:
+	_close_shop()
 	_level_start_progression.clear()
 	_load_level(0)
 
@@ -150,15 +163,100 @@ func _capture_progression() -> Dictionary:
 	return progression
 
 
+func _capture_progression_with_extras(extras: Dictionary) -> Dictionary:
+	var progression := _capture_progression()
+	for key in ["player_removed_base_cards", "player_special_cards", "active_power_bonus", "active_max_health_bonus"]:
+		if extras.has(key):
+			progression[key] = extras[key].duplicate(true) if extras[key] is Array or extras[key] is Dictionary else extras[key]
+	return progression
+
+
 func _apply_progression(progression: Dictionary) -> void:
 	if _current_level == null:
 		return
 	var player := _current_level.get_node_or_null("Player") as GamePlayer
 	var inventory := _current_level.get_node_or_null("UI/Inventory") as InventoryUI
 	var stats := _current_level.get_node_or_null("UI/PlayerStats") as PlayerStatsUI
+	var applied := progression.duplicate(true)
+	var pending_power := int(applied.get("pending_power_bonus", 0))
+	var pending_max_health := int(applied.get("pending_max_health_bonus", 0))
+	if pending_power > 0:
+		applied["base_power"] = int(applied.get("base_power", 0)) + pending_power
+		applied["active_power_bonus"] = pending_power
+	if pending_max_health > 0:
+		applied["max_health"] = int(applied.get("max_health", 1)) + pending_max_health
+		applied["health"] = int(applied.get("health", 0)) + pending_max_health
+		applied["active_max_health_bonus"] = pending_max_health
+	applied.erase("pending_power_bonus")
+	applied.erase("pending_max_health_bonus")
 	if player != null:
-		player.apply_progression_state(progression, false)
+		player.apply_progression_state(applied, false)
 	if inventory != null:
-		inventory.set_items(progression.get("inventory", []), false)
+		inventory.set_items(applied.get("inventory", []), false)
 	if stats != null:
 		stats.sync_without_feedback()
+	_level_start_progression = applied
+
+
+func _configure_player_deck(progression: Dictionary) -> void:
+	var deck_controller := _current_level.get_node_or_null("DeckController") as DeckController
+	if deck_controller == null:
+		return
+	deck_controller.set_player_deck_modifiers(
+		progression.get("player_removed_base_cards", []),
+		progression.get("player_special_cards", [])
+	)
+	if not deck_controller.restart_level_requested.is_connected(_on_dream_restart_level_requested):
+		deck_controller.restart_level_requested.connect(_on_dream_restart_level_requested)
+	deck_controller.start_run()
+
+
+func _on_dream_restart_level_requested() -> void:
+	_on_restart_level_requested.call_deferred()
+
+
+func _open_shop() -> void:
+	if _shop != null or _current_level_index >= LEVEL_SCENES.size() - 1:
+		return
+	var progression := _capture_progression_with_extras(_level_start_progression)
+	var active_power := int(progression.get("active_power_bonus", 0))
+	var active_max_health := int(progression.get("active_max_health_bonus", 0))
+	progression["base_power"] = int(progression.get("base_power", 0)) - active_power
+	progression["max_health"] = maxi(1, int(progression.get("max_health", 1)) - active_max_health)
+	progression["health"] = mini(int(progression.get("health", 0)), int(progression["max_health"]))
+	progression.erase("active_power_bonus")
+	progression.erase("active_max_health_bonus")
+	progression.erase("removed_base_card_this_shop")
+	var deck_controller := _current_level.get_node_or_null("DeckController") as DeckController
+	var available_base_cards: Array = deck_controller.deck_components.get(DeckBuilder.DECK_SOURCE_BASE, []) if deck_controller != null else []
+	var next_scene := LEVEL_SCENES[_current_level_index + 1].instantiate()
+	var next_map := next_scene.get_node("Map") as GameMap
+	var map_size := mini(next_map.playable_width, next_map.playable_height)
+	next_scene.free()
+	_shop = SHOP_SCENE.instantiate() as Control
+	_shop_layer = CanvasLayer.new()
+	_shop_layer.name = "ShopLayer"
+	_shop_layer.layer = 50
+	add_child(_shop_layer)
+	_shop_layer.add_child(_shop)
+	_shop.setup(progression, LEVEL_NAMES[_current_level_index + 1], map_size, available_base_cards)
+	_shop.play_next_requested.connect(_on_shop_play_next_requested)
+	var level_ui := _current_level.get_node_or_null("UI") as CanvasLayer
+	if level_ui != null:
+		level_ui.visible = false
+
+
+func _on_shop_play_next_requested(progression: Dictionary) -> void:
+	_level_start_progression = progression.duplicate(true)
+	_close_shop()
+	_load_level(_current_level_index + 1)
+
+
+func _close_shop() -> void:
+	if _shop == null:
+		return
+	_shop.queue_free()
+	_shop = null
+	if _shop_layer != null:
+		_shop_layer.queue_free()
+		_shop_layer = null

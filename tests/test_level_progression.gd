@@ -61,7 +61,7 @@ func run() -> void:
 	_assert(_event_types(first_hand.cards).size() == 8, "Expected debug T hand to contain each event type once")
 	_send_key(main, KEY_ENTER)
 	await process_frame
-	_assert(first_screen.visible, "Expected debug Enter to complete the current level")
+	_assert(main.find_child("Shop", true, false) != null, "Expected debug Enter to open the between-level shop")
 	_assert(first_player.grid_position == first_map.get_goal_position(), "Expected debug Enter to use the normal goal completion state")
 
 	_send_key(main, KEY_2)
@@ -91,12 +91,15 @@ func run() -> void:
 
 	first_player.grid_position = first_map.get_goal_position()
 	_assert(first_player.call("_check_run_won"), "Expected reaching the first goal to complete the level")
-	_assert(first_screen.visible, "Expected the completion screen to show after the first goal")
+	var shop := main.find_child("Shop", true, false) as Control
+	_assert(shop != null, "Expected the shop to open immediately after the first goal")
+	_assert((shop.get_parent() as CanvasLayer).layer == 50, "Expected shop to render above all level UI")
+	_assert(not (first_level.get_node("UI") as CanvasLayer).visible, "Expected resource stats and backpack UI to hide while the shop is open")
+	_assert(not first_screen.is_visible_in_tree(), "Expected the shop to replace the completion prompt between levels")
 	_assert(not first_hand.visible, "Expected the card hand to hide on the completion screen")
-	_assert(first_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "Shop coming soon", "Expected between-level shop placeholder text")
-	_assert(first_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Next level", "Expected first completion button to advance")
+	_assert(shop.next_map_name == "3 bridges" and shop.next_map_size == 7, "Expected shop to describe the next map")
 
-	first_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").pressed.emit()
+	(shop.find_child("PlayNextButton", true, false) as Button).pressed.emit()
 	await process_frame
 
 	var second_level := main.get_node("Level")
@@ -113,6 +116,26 @@ func run() -> void:
 	_assert(second_stats._gain_amounts.is_empty(), "Expected progression restore not to show resource gain or loss amounts")
 	_assert(second_stats._pulse_strength.is_empty(), "Expected progression restore not to pulse stats at level start")
 
+	second_player.food = 1
+	var second_deck := second_level.get_node("DeckController") as DeckController
+	var second_hand := second_level.get_node("UI/Hand") as HandUI
+	second_hand.set_cards([{
+		"title": "It was all a dream",
+		"detail": "Restart the current level.",
+		"category": DeckController.EVENT_CATEGORY,
+		"event_type": DeckController.EVENT_RESTART_LEVEL,
+	}])
+	_assert(second_deck.play_immediate_event(second_hand.cards[0]), "Expected dream special card to request a level restart")
+	await process_frame
+	await process_frame
+	var dreamed_level := main.get_node("Level")
+	_assert(dreamed_level != second_level, "Expected dream special card to replace the current level instance")
+	second_level = dreamed_level
+	second_map = second_level.get_node("Map") as GameMap
+	second_player = second_level.get_node("Player") as GamePlayer
+	second_screen = second_level.get_node("UI/GameOver") as GameOverUI
+	_assert(second_player.food == 4, "Expected dream special card to restore the saved level-start resources")
+
 	second_player.set_health(0)
 	_assert(second_screen.visible, "Expected loss screen to show on the current level")
 	_assert(not (second_level.get_node("UI/Hand") as HandUI).visible, "Expected the card hand to hide on the loss screen")
@@ -125,7 +148,7 @@ func run() -> void:
 	second_map = second_level.get_node("Map") as GameMap
 	second_player = second_level.get_node("Player") as GamePlayer
 	second_screen = second_level.get_node("UI/GameOver") as GameOverUI
-	var second_hand := second_level.get_node("UI/Hand") as HandUI
+	second_hand = second_level.get_node("UI/Hand") as HandUI
 	_assert(second_map.playable_width == 7 and second_map.playable_height == 7, "Expected Restart level to reload the current 7x7 level")
 	_assert(second_player.food == 4 and second_player.health == 4, "Expected Restart level to restore the resources held at level start")
 	_assert((second_level.get_node("UI/Inventory") as InventoryUI).get_active_items().size() == 2, "Expected Restart level to restore the backpack held at level start")

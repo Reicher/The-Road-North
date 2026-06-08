@@ -148,9 +148,15 @@ Each level's generated deck is combined from three named parts:
 
 The base deck contains the normal shared card pool. Level 1 uses only the base deck. Level 2 combines the 18-card base deck with 7 level cards, prioritizing somewhat more difficult cards such as enemy roads, disruptive events, and dead ends.
 
-Player special cards are only a named, empty concept in version 1. They are intended to come from authored levels later, but no special cards, acquisition rules, or effects are implemented yet.
+Player special cards are bought in the between-level shop. They persist for the current game and are mixed into each new level's draw pile. Base-card removals bought in the shop are stored as player deck modifiers; the authored base deck resource is never changed.
 
-There is no persistent personal deck or progression between games. The current run is a sequence of two authored levels. Completing level 1 advances to level 2 while carrying player resources and inventory. Restarting the game returns to level 1 with the initial player values.
+Each level builds its run deck as:
+- a copy of the base deck
+- minus player-removed base cards
+- plus the level deck
+- plus player special cards
+
+The current run is a sequence of two authored levels. Completing level 1 opens the shop before level 2 while carrying player resources, inventory, special cards, and deck modifiers. Restarting the game returns to level 1 with the initial player values.
 
 Deck size is based on map size and level:
 - shortest path steps = map size - 1
@@ -169,6 +175,22 @@ The deck composition is:
 Road card subtype distribution applies only within the road card category.
 
 The deck is shuffled randomly at the start of each level.
+
+# Between-Level Shop
+
+The shop opens after a completed non-final level and before the next level starts. It shows the next map name and size, player resources, fixed backpack slots, and a button to start the next map.
+
+The shop supports:
+- dragging inventory items to a sell zone for gold
+- click purchases for food, healing, and next-map-only potions
+- exactly two item offers bought by dragging to an empty backpack slot
+- three randomly selected special-card offers; duplicate offers are allowed
+- viewing the deck in an overlay
+- buying at most one increasingly expensive base-card removal per shop through an overlay
+
+The last copy of an important road type cannot be removed. Potion power and max-health bonuses apply only to the next map and are removed afterward.
+
+The special event card "It was all a dream" restarts the current level from its saved level-start state.
 
 The hand is normally maintained at 4 cards. Idea can temporarily increase it above that size.
 

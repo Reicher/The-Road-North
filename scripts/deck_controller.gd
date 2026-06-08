@@ -2,6 +2,7 @@ class_name DeckController
 extends Node
 
 signal deck_count_changed(cards_remaining: int, total_cards: int)
+signal restart_level_requested
 
 const ROAD_CATEGORY := "Road"
 const EVENT_CATEGORY := "Event"
@@ -13,6 +14,7 @@ const EVENT_CLEAR_PATH := "clear_path"
 const EVENT_AMBUSH := "ambush"
 const EVENT_WILD_BERRIES := "wild_berries"
 const EVENT_LOST_BELONGINGS := "lost_belongings"
+const EVENT_RESTART_LEVEL := "restart_level"
 const TARGETED_EVENT_TYPES: Array[String] = [
 	EVENT_DESTROY_TILE,
 	EVENT_ROTATE_TILE,
@@ -49,6 +51,8 @@ var deck: Array[Dictionary] = []
 var starting_deck: Array[Dictionary] = []
 var deck_components: Dictionary = {}
 var drawn_count := 0
+var player_removed_base_cards: Array[String] = []
+var player_special_cards: Array[Dictionary] = []
 
 var _map: GameMap
 var _hand: HandUI
@@ -89,8 +93,42 @@ func start_run() -> void:
 
 func generate_deck() -> void:
 	deck_components = _deck_builder.make_deck_components(_get_deck_size(), _rng, _deck_config())
+	_apply_player_deck_modifiers()
 	deck = _deck_builder.combine_deck_components(deck_components)
 	starting_deck = deck.duplicate(true)
+
+
+func set_player_deck_modifiers(removals: Array, special_cards: Array) -> void:
+	player_removed_base_cards.clear()
+	for removal in removals:
+		player_removed_base_cards.append(str(removal))
+	player_special_cards.clear()
+	for card in special_cards:
+		if card is Dictionary:
+			player_special_cards.append((card as Dictionary).duplicate(true))
+
+
+func _apply_player_deck_modifiers() -> void:
+	var base_cards: Array = deck_components.get(DeckBuilder.DECK_SOURCE_BASE, [])
+	for removal in player_removed_base_cards:
+		for index in base_cards.size():
+			if _card_signature(base_cards[index]) == removal:
+				base_cards.remove_at(index)
+				break
+	deck_components[DeckBuilder.DECK_SOURCE_BASE] = base_cards
+	var specials: Array[Dictionary] = []
+	for card in player_special_cards:
+		var special := card.duplicate(true)
+		special["deck_source"] = DeckBuilder.DECK_SOURCE_PLAYER_SPECIAL
+		specials.append(special)
+	deck_components[DeckBuilder.DECK_SOURCE_PLAYER_SPECIAL] = specials
+
+
+func _card_signature(card: Dictionary) -> String:
+	var definition: Resource = card.get("tile_definition")
+	if definition != null:
+		return "road:%s" % str(definition.get("display_name"))
+	return "event:%s" % str(card.get("event_type", card.get("title", "")))
 
 
 func shuffle_deck() -> void:
@@ -198,6 +236,11 @@ func play_immediate_event(card: CardView) -> bool:
 		if consume_card(card):
 			_apply_lucky_find()
 			_hand.set_inactive(false)
+			return true
+	elif card.event_type == EVENT_RESTART_LEVEL:
+		if consume_card(card):
+			_hand.set_inactive(false)
+			restart_level_requested.emit()
 			return true
 	return false
 
