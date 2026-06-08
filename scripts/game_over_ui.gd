@@ -45,8 +45,18 @@ func _bind_scene_nodes() -> void:
 	if not _action_button.pressed.is_connected(_on_action_button_pressed):
 		_action_button.pressed.connect(_on_action_button_pressed)
 
-func _on_game_over(_reason: String) -> void:
-	_show_end_screen("You lose", "Restart level", "restart_level")
+func _on_game_over(reason: String) -> void:
+	var title := "You lose"
+	match reason:
+		"exhaustion":
+			title = "You lose — Exhaustion"
+		"food":
+			title = "You lose — Starvation"
+		"health":
+			title = "You lose — Death"
+		_:
+			title = "You lose"
+	_show_end_screen(title, "Restart level", "restart_level")
 
 
 func _on_run_won() -> void:

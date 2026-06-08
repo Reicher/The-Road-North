@@ -186,7 +186,15 @@ func consume_card(card: CardView) -> bool:
 	if not _hand.remove_card(card):
 		return false
 	refill_hand()
+	_check_exhaustion()
 	return true
+
+
+func _check_exhaustion() -> void:
+	if _hand == null or _player == null:
+		return
+	if _hand.cards.is_empty() and deck.is_empty():
+		_player.trigger_game_over("exhaustion")
 
 
 func _on_card_drag_finished(card: CardView, canvas_position: Vector2, activated: bool, released_over_hand: bool) -> void:

@@ -83,7 +83,7 @@ func _ready() -> void:
 func can_move_to(target_position: Vector2i) -> bool:
 	if _map == null or _game_over or _run_won or _moving or _combat_running:
 		return false
-	if food <= 0 and target_position != _map.get_goal_position():
+	if food <= 0:
 		return false
 	return _map.can_move_between(grid_position, target_position)
 
@@ -219,10 +219,11 @@ func _finish_move(target_position: Vector2i) -> void:
 	moved.emit(grid_position)
 	if check_run_won():
 		return
-	_check_game_over()
-	if _game_over:
+	if health <= 0:
+		trigger_game_over("health")
 		return
 	_resolve_reward_encounter_at(grid_position)
+	_check_game_over()
 
 
 func _on_move_tween_finished() -> void:
@@ -303,8 +304,8 @@ func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previ
 	if check_run_won():
 		_combat_running = false
 		return
-	_check_game_over()
-	if _game_over:
+	if health <= 0:
+		trigger_game_over("health")
 		_combat_running = false
 		return
 
@@ -363,6 +364,14 @@ func _resolve_reward_encounter_at(target_position: Vector2i) -> void:
 		_clear_visual_encounter_data(target_position)
 
 
+func trigger_game_over(reason: String) -> void:
+	if _game_over or _run_won:
+		return
+	_game_over = true
+	input_enabled = false
+	game_over.emit(reason)
+
+
 func _check_game_over() -> void:
 	if _game_over or _run_won:
 		return
@@ -372,21 +381,11 @@ func _check_game_over() -> void:
 	var reason := ""
 	if health <= 0:
 		reason = "health"
-	elif food <= 0 and not _is_adjacent_to_goal():
+	elif food <= 0:
 		reason = "food"
 	if reason.is_empty():
 		return
-	_game_over = true
-	input_enabled = false
-	game_over.emit(reason)
-
-
-func _is_adjacent_to_goal() -> bool:
-	if _map == null:
-		return false
-	var goal := _map.get_goal_position()
-	var delta := goal - grid_position
-	return absi(delta.x) + absi(delta.y) == 1 and _map.can_move_between(grid_position, goal)
+	trigger_game_over(reason)
 
 
 func check_run_won() -> bool:

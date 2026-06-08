@@ -51,6 +51,8 @@ func _ready() -> void:
 	_gold_row = $GoldRow as StatRow
 	_health_row = $HealthRow as StatRow
 	_power_row = $PowerRow as StatRow
+	_food_row.low_warning_threshold = 3
+	_health_row.low_warning_threshold = 3
 	_player = get_node_or_null(player_path) as GamePlayer
 	_deck_controller = get_node_or_null(deck_controller_path) as DeckController
 	if _player != null and not _player.health_changed.is_connected(_on_player_health_changed):
@@ -86,6 +88,8 @@ func _refresh_all_displays() -> void:
 	_gold_row.set_display_value(_get_gold())
 	_health_row.set_display_value(_get_health_display())
 	_power_row.set_display_value(_get_power())
+	_food_row.check_low_warning(_get_food())
+	_health_row.check_low_warning(_get_health())
 
 
 func _get_food() -> int:
@@ -126,10 +130,12 @@ func _get_deck_display() -> String:
 
 func _on_player_health_changed(_health: int) -> void:
 	_handle_value_change("health", _health)
+	_health_row.check_low_warning(_health)
 
 
 func _on_player_food_changed(_food: int) -> void:
 	_handle_value_change("food", _food)
+	_food_row.check_low_warning(_food)
 
 
 func _on_player_gold_changed(_gold: int) -> void:

@@ -16,11 +16,14 @@ const ICON_PATHS := GameConstants.STAT_ICON_PATHS
 			queue_redraw()
 
 @export var gain_pulse_duration := 2.0
+@export var low_warning_threshold := 0
 
 var _pulse_strength := 0.0
 var _pulse_sign := 1
 var _gain_amount := 0
 var _pulse_tween: Tween
+var _low_blink_tween: Tween
+var _low_blink_strength := 0.0
 var _icon: TextureRect
 var _value_label: Label
 var _gain_label: Label
@@ -106,13 +109,18 @@ func _update_value_color() -> void:
 	if _value_label == null:
 		return
 	var base_color := Color(1.0, 0.96, 0.84)
+	var low_red := Color(1.0, 0.22, 0.18)
 	if _pulse_strength > 0.0:
 		_value_label.add_theme_color_override("font_color", base_color.lerp(_get_glow_color(), 0.86 * _pulse_strength))
+	elif _low_blink_strength > 0.0:
+		_value_label.add_theme_color_override("font_color", base_color.lerp(low_red, _low_blink_strength))
 	else:
 		_value_label.add_theme_color_override("font_color", base_color)
 	if _icon != null:
 		if _pulse_strength > 0.0:
 			_icon.modulate = Color.WHITE.lerp(_get_glow_color(), 0.62 * _pulse_strength)
+		elif _low_blink_strength > 0.0:
+			_icon.modulate = Color.WHITE.lerp(low_red, 0.5 * _low_blink_strength)
 		else:
 			_icon.modulate = Color.WHITE
 
@@ -121,6 +129,35 @@ func _get_glow_color() -> Color:
 	if _pulse_sign < 0:
 		return Color(1.0, 0.32, 0.22)
 	return Color(0.32, 1.0, 0.38)
+
+
+func check_low_warning(value: int) -> void:
+	if low_warning_threshold > 0 and value < low_warning_threshold and value > 0:
+		_start_low_blink()
+	else:
+		_stop_low_blink()
+
+
+func _start_low_blink() -> void:
+	if _low_blink_tween != null:
+		return
+	_low_blink_tween = create_tween()
+	_low_blink_tween.set_loops()
+	_low_blink_tween.tween_method(_set_low_blink, 0.0, 1.0, 0.5)
+	_low_blink_tween.tween_method(_set_low_blink, 1.0, 0.0, 0.5)
+
+
+func _stop_low_blink() -> void:
+	if _low_blink_tween != null:
+		_low_blink_tween.kill()
+		_low_blink_tween = null
+	_low_blink_strength = 0.0
+	_update_value_color()
+
+
+func _set_low_blink(value: float) -> void:
+	_low_blink_strength = value
+	_update_value_color()
 
 
 func _load_icon() -> void:
