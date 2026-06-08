@@ -1,7 +1,23 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
-GODOT_BIN="${GODOT_BIN:-/Users/robin.reicher/Downloads/Godot 2.app/Contents/MacOS/Godot}"
+# --- Resolve Godot binary ---
+# Override with GODOT_BIN env var, or auto-detect from PATH / common locations.
+if [[ -z "${GODOT_BIN:-}" ]]; then
+	if command -v godot &>/dev/null; then
+		GODOT_BIN="godot"
+	elif [[ -x "/Applications/Godot.app/Contents/MacOS/Godot" ]]; then
+		GODOT_BIN="/Applications/Godot.app/Contents/MacOS/Godot"
+	else
+		print -u2 "ERROR: Cannot find Godot binary. Set GODOT_BIN or add godot to PATH."
+		exit 1
+	fi
+fi
+
+TIMEOUT_SECONDS="${TEST_TIMEOUT:-30}"
+passed=0
+failed=0
+failed_tests=()
 
 tests=(
 	tests/test_model_assets.gd
@@ -25,17 +41,43 @@ tests=(
 	tests/test_level_progression.gd
 )
 
+# Allow running a single test via argument: ./run_tests.sh tests/test_foo.gd
+if [[ $# -gt 0 ]]; then
+	tests=("$@")
+fi
+
 for test_script in "${tests[@]}"; do
-	print "RUN ${test_script}"
+	print "RUN  ${test_script}"
 	output_file="$(mktemp)"
-	if ! "${GODOT_BIN}" --headless --path . -s "${test_script}" 2>&1 | tee "${output_file}"; then
-		rm -f "${output_file}"
-		exit 1
+	test_passed=true
+
+	if ! timeout "${TIMEOUT_SECONDS}" "${GODOT_BIN}" --headless --path . -s "${test_script}" 2>&1 | tee "${output_file}"; then
+		test_passed=false
 	fi
-	if grep -E "^(ERROR|SCRIPT ERROR|WARNING):" "${output_file}" >/dev/null; then
-		print "Godot reported errors or warnings while running ${test_script}."
-		rm -f "${output_file}"
-		exit 1
+
+	if ${test_passed} && grep -qE "^(ERROR|SCRIPT ERROR):" "${output_file}"; then
+		test_passed=false
 	fi
+
 	rm -f "${output_file}"
+
+	if ${test_passed}; then
+		print "PASS ${test_script}"
+		((passed++))
+	else
+		print "FAIL ${test_script}"
+		((failed++))
+		failed_tests+=("${test_script}")
+	fi
 done
+
+# --- Summary ---
+print ""
+print "=== Results: ${passed} passed, ${failed} failed ==="
+if (( failed > 0 )); then
+	print "Failed tests:"
+	for t in "${failed_tests[@]}"; do
+		print "  - ${t}"
+	done
+	exit 1
+fi

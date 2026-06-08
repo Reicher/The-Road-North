@@ -44,7 +44,7 @@ func collect_loot(loot: Array) -> void:
 		return
 	for entry in loot:
 		if entry is Dictionary:
-			_collect_loot_entry(entry)
+			collect_entry(entry)
 
 
 func collect_reward_at(target_position: Vector2i) -> bool:
@@ -53,22 +53,25 @@ func collect_reward_at(target_position: Vector2i) -> bool:
 	var encounter := _map.get_encounter(target_position)
 	if encounter.is_empty() or str(encounter.get("type", "")) == GameMap.ENCOUNTER_ENEMY:
 		return false
-	encounter = _map.consume_encounter(target_position)
-	var loot: Array = encounter.get("loot", [])
+	var consumed := _map.consume_encounter(target_position)
+	var loot: Array = consumed.get("loot", [])
 	collect_loot(loot)
 	return true
 
 
-func _collect_loot_entry(entry: Dictionary) -> void:
+func collect_entry(entry: Dictionary) -> bool:
 	if _player == null:
-		return
+		return false
 	var kind := str(entry.get("kind", "item"))
 	if kind == "food":
 		_player.add_food(int(entry.get("amount", 0)))
-	elif kind == "gold":
+		return true
+	if kind == "gold":
 		_player.add_gold(int(entry.get("amount", 0)))
-	elif kind == "item" and _inventory != null:
-		_inventory.add_item(entry.get("item", {}).duplicate(true))
+		return true
+	if kind == "item" and _inventory != null:
+		return _inventory.add_item(entry.get("item", {}).duplicate(true))
+	return false
 
 
 func _make_enemy_loot(enemy_data: Dictionary) -> Array[Dictionary]:

@@ -17,24 +17,21 @@ extends Camera3D
 var _map: GameMap
 var _player: GamePlayer
 var _reserved_bottom_control: Control
-var _touch_points: Dictionary = {}
-var _last_pinch_distance := 0.0
-var _last_pinch_center := Vector2.ZERO
+var _input_handler: CameraInputHandler
 var _target_xz := Vector2.ZERO
 var _start_zoom_tween: Tween
 var _move_focus_tween: Tween
 var _following_player := false
-var _mouse_pan_button := MOUSE_BUTTON_NONE
-var _mouse_pan_start_position := Vector2.ZERO
-var _mouse_pan_dragging := false
 
 
 func _ready() -> void:
 	_map = get_node_or_null(map_path) as GameMap
 	_player = get_node_or_null(player_path) as GamePlayer
 	_reserved_bottom_control = get_node_or_null(reserved_bottom_path) as Control
-	projection = Camera3D.PROJECTION_ORTHOGONAL
-	current = true
+	_input_handler = CameraInputHandler.new()
+	_input_handler.mouse_pan_threshold = mouse_pan_threshold
+	_input_handler.zoom_requested.connect(_on_input_zoom_requested)
+	_input_handler.pan_requested.connect(_on_input_pan_requested)
 	get_viewport().size_changed.connect(_refresh_limits)
 	if _reserved_bottom_control != null:
 		_reserved_bottom_control.resized.connect(_refresh_limits)
@@ -65,15 +62,15 @@ func _exit_tree() -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if _is_ui_item_drag_active():
+	if _map == null or _is_ui_item_drag_active():
 		return
-	if _handle_scroll_zoom(event):
+	if _input_handler.handle_scroll_zoom(event, _is_in_map_screen_area, size, zoom_step):
 		get_viewport().set_input_as_handled()
-	elif _handle_mouse_pan(event):
+	elif _input_handler.handle_mouse_pan(event, _is_in_map_screen_area):
 		get_viewport().set_input_as_handled()
-	elif _handle_trackpad_zoom(event):
+	elif _input_handler.handle_trackpad_zoom(event, size, get_viewport().get_mouse_position()):
 		get_viewport().set_input_as_handled()
-	elif _handle_trackpad_pan(event):
+	elif _input_handler.handle_trackpad_pan(event):
 		get_viewport().set_input_as_handled()
 
 
@@ -84,109 +81,21 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event is InputEventScreenTouch:
-		_handle_screen_touch(event)
+		_input_handler.handle_screen_touch(event)
 	elif event is InputEventScreenDrag:
-		_handle_screen_drag(event)
+		_input_handler.handle_screen_drag(event, size)
 
 
 func _is_ui_item_drag_active() -> bool:
 	return get_tree().get_node_count_in_group("ui_item_drag_active") > 0
 
 
-func _handle_scroll_zoom(event: InputEvent) -> bool:
-	if _map == null or not (event is InputEventMouseButton) or not event.pressed:
-		return false
-	if not _is_in_map_screen_area(event.position):
-		return false
-
-	if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-		_apply_zoom(size * (1.0 - zoom_step), event.position)
-		return true
-	if event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-		_apply_zoom(size * (1.0 + zoom_step), event.position)
-		return true
-	return false
+func _on_input_zoom_requested(target_size: float, screen_anchor: Vector2) -> void:
+	_apply_zoom(target_size, screen_anchor)
 
 
-func _handle_trackpad_zoom(event: InputEvent) -> bool:
-	if _map == null or not (event is InputEventMagnifyGesture):
-		return false
-	_apply_zoom(size / maxf(event.factor, 0.01), get_viewport().get_mouse_position())
-	return true
-
-
-func _handle_trackpad_pan(event: InputEvent) -> bool:
-	if _map == null or not (event is InputEventPanGesture):
-		return false
-	_pan_by_screen_delta(event.delta)
-	return true
-
-
-func _handle_mouse_pan(event: InputEvent) -> bool:
-	if _map == null:
-		return false
-
-	if event is InputEventMouseButton:
-		if not _is_pan_mouse_button(event.button_index):
-			return false
-		if event.pressed:
-			if not _is_in_map_screen_area(event.position):
-				return false
-			_mouse_pan_button = event.button_index
-			_mouse_pan_start_position = event.position
-			_mouse_pan_dragging = false
-			return false
-		if event.button_index == _mouse_pan_button:
-			var was_dragging := _mouse_pan_dragging
-			_mouse_pan_button = MOUSE_BUTTON_NONE
-			_mouse_pan_dragging = false
-			return was_dragging
-		return false
-
-	if event is InputEventMouseMotion and _mouse_pan_button != MOUSE_BUTTON_NONE:
-		var button_mask := _get_mouse_button_mask(_mouse_pan_button)
-		if (event.button_mask & button_mask) == 0:
-			_mouse_pan_button = MOUSE_BUTTON_NONE
-			_mouse_pan_dragging = false
-			return false
-		if not _mouse_pan_dragging:
-			if _mouse_pan_start_position.distance_to(event.position) < mouse_pan_threshold:
-				return false
-			_mouse_pan_dragging = true
-		_pan_by_screen_delta(event.relative)
-		return true
-
-	return false
-
-
-func _handle_screen_touch(event: InputEventScreenTouch) -> void:
-	if event.pressed:
-		_touch_points[event.index] = event.position
-	else:
-		_touch_points.erase(event.index)
-
-	_last_pinch_distance = 0.0
-	if _touch_points.size() == 2:
-		_last_pinch_center = _get_touch_center()
-
-
-func _handle_screen_drag(event: InputEventScreenDrag) -> void:
-	if not _touch_points.has(event.index):
-		return
-
-	_touch_points[event.index] = event.position
-	if _touch_points.size() != 2:
-		return
-
-	var center: Vector2 = _get_touch_center()
-	var distance: float = _get_touch_distance()
-	_pan_by_screen_delta(_last_pinch_center - center)
-
-	if _last_pinch_distance > 0.0 and distance > 0.0:
-		_apply_zoom(size * _last_pinch_distance / distance, center)
-
-	_last_pinch_center = center
-	_last_pinch_distance = distance
+func _on_input_pan_requested(screen_delta: Vector2) -> void:
+	_pan_by_screen_delta(screen_delta)
 
 
 func _refresh_limits() -> void:
@@ -423,33 +332,3 @@ func _get_reserved_bottom_height() -> float:
 
 func _is_in_map_screen_area(screen_position: Vector2) -> bool:
 	return screen_position.y < _get_map_viewport_size().y
-
-
-func _get_touch_center() -> Vector2:
-	var points: Array = _touch_points.values()
-	var first_point: Vector2 = points[0]
-	var second_point: Vector2 = points[1]
-	return (first_point + second_point) * 0.5
-
-
-func _get_touch_distance() -> float:
-	var points: Array = _touch_points.values()
-	var first_point: Vector2 = points[0]
-	var second_point: Vector2 = points[1]
-	return first_point.distance_to(second_point)
-
-
-func _is_pan_mouse_button(button_index: int) -> bool:
-	return button_index == MOUSE_BUTTON_LEFT or button_index == MOUSE_BUTTON_RIGHT or button_index == MOUSE_BUTTON_MIDDLE
-
-
-func _get_mouse_button_mask(button_index: int) -> int:
-	match button_index:
-		MOUSE_BUTTON_LEFT:
-			return MOUSE_BUTTON_MASK_LEFT
-		MOUSE_BUTTON_RIGHT:
-			return MOUSE_BUTTON_MASK_RIGHT
-		MOUSE_BUTTON_MIDDLE:
-			return MOUSE_BUTTON_MASK_MIDDLE
-		_:
-			return 0

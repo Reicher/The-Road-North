@@ -45,7 +45,6 @@ func _ready() -> void:
 	if _ready_completed:
 		return
 	_ready_completed = true
-	mouse_filter = Control.MOUSE_FILTER_STOP
 	_resolve_card_parent()
 	resized.connect(_on_resized)
 	if demo_cards_enabled and cards.is_empty():
@@ -343,9 +342,9 @@ func set_inactive(value: bool, animated := true) -> void:
 func _dragged_card_uses_preview() -> bool:
 	if _dragged_card == null:
 		return false
-	if _dragged_card.category == DeckController.ROAD_CATEGORY:
+	if _dragged_card.category == GameConstants.ROAD_CATEGORY:
 		return true
-	return _dragged_card.event_type in DeckController.TARGETED_EVENT_TYPES
+	return _dragged_card.event_type in GameConstants.TARGETED_EVENT_TYPES
 
 
 func _on_resized() -> void:

@@ -18,10 +18,6 @@ const DISABLED_COLOR := Color(0.34, 0.40, 0.36, 0.82)
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(BUTTON_SIZE, BUTTON_SIZE)
-	focus_mode = Control.FOCUS_NONE
-	text = ""
-	flat = false
 	_apply_styles()
 
 

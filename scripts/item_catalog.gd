@@ -3,8 +3,8 @@ extends RefCounted
 
 const BINOCULARS_DROP_CHANCE := 0.15
 const BINOCULARS := {
-	"name": "Kikare",
-	"effect": "Placera kort längre bort.",
+	"name": "Binoculars",
+	"effect": "Place cards further away.",
 	"target_range_bonus": 1,
 }
 

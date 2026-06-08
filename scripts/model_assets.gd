@@ -9,6 +9,11 @@ const ENEMY_MODEL := "res://assets/models/enemy.obj"
 static var _cache: Dictionary = {}
 
 
+## Call between level loads to free unused model memory.
+static func clear_cache() -> void:
+	_cache.clear()
+
+
 static func instantiate_model(path: String, node_name: String, local_position: Vector3, uniform_scale: float) -> Node3D:
 	var resource := _load_model(path)
 	if resource == null:
@@ -47,6 +52,11 @@ static func _load_model(path: String) -> Resource:
 	return resource
 
 
+## Custom OBJ parser for runtime-loaded mesh assets that bypass the Godot
+## import pipeline. This is used because the models are loaded on-demand from
+## res:// paths that may not have .import metadata (e.g. dynamically referenced
+## OBJ files). If all models are properly imported via the editor, this can be
+## removed in favor of standard ResourceLoader.
 static func _load_obj_mesh(path: String) -> ArrayMesh:
 	if not FileAccess.file_exists(path):
 		push_error("3D model file does not exist: %s" % path)

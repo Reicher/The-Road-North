@@ -253,14 +253,5 @@ func _make_material(color: Color) -> StandardMaterial3D:
 
 
 func _resolve_roots() -> void:
-	_cells_root = get_node_or_null("Cells") as Node3D
-	if _cells_root == null:
-		_cells_root = Node3D.new()
-		_cells_root.name = "Cells"
-		add_child(_cells_root)
-
-	_forest_root = get_node_or_null("Forest") as Node3D
-	if _forest_root == null:
-		_forest_root = Node3D.new()
-		_forest_root.name = "Forest"
-		add_child(_forest_root)
+	_cells_root = $Cells
+	_forest_root = $Forest

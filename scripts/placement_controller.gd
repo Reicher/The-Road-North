@@ -15,17 +15,6 @@ const MODE_ROAD_PLACEMENT := "road_placement"
 const MODE_DESTROY_TARGETING := "destroy_targeting"
 const MODE_ROTATE_TARGETING := "rotate_targeting"
 const MODE_ENCOUNTER_TARGETING := "encounter_targeting"
-const HINT_TOO_FAR := "Too far away"
-const HINT_STANDING_HERE := "You're standing here"
-const HINT_OCCUPIED := "Tile already occupied"
-const HINT_CANT_TARGET := "Can't target this tile"
-const HINT_TERRAIN_BLOCKS := "Terrain blocks placement"
-const HINT_ROAD_OFF_MAP := "Road leads off map"
-const HINT_CONNECT_TO_PLAYER := "Connect to your tile"
-const HINT_ROAD_DOESNT_FIT := "Road doesn't fit"
-const HINT_NO_TILE := "No tile to target"
-const HINT_NO_ENCOUNTER := "No encounter here"
-const HINT_HAS_ENCOUNTER := "Road already has an encounter"
 
 class TargetPreview extends Node3D:
 	var preview_color := Color.TRANSPARENT
@@ -71,6 +60,7 @@ var _player: GamePlayer
 var _hand: HandUI
 var _inventory: InventoryUI
 var _deck_controller: DeckController
+var _validator: PlacementValidator
 var _preview_tile: RoadTile
 var _target_preview: TargetPreview
 var _controls_layer: PlacementControlsUI
@@ -104,6 +94,8 @@ func _ready() -> void:
 		push_warning("PlacementController needs a HandUI at hand_path.")
 		return
 
+	_validator = PlacementValidator.new()
+	_validator.setup(_map, _player, get_target_range)
 	_ensure_controls()
 	_hide_preview()
 
@@ -156,7 +148,7 @@ func is_placing() -> bool:
 
 
 func begin_placement(card: CardView) -> bool:
-	if card == null or card.category != DeckController.ROAD_CATEGORY or card.tile_definition == null:
+	if card == null or card.category != GameConstants.ROAD_CATEGORY or card.tile_definition == null:
 		return false
 
 	_begin_mode(card, MODE_ROAD_PLACEMENT, card.tile_definition)
@@ -167,21 +159,21 @@ func begin_placement(card: CardView) -> bool:
 
 
 func begin_destroy_targeting(card: CardView) -> bool:
-	if card == null or card.category != DeckController.EVENT_CATEGORY or card.event_type != DeckController.EVENT_DESTROY_TILE:
+	if card == null or card.category != GameConstants.EVENT_CATEGORY or card.event_type != GameConstants.EVENT_DESTROY_TILE:
 		return false
 
 	return _begin_tile_targeting(card, MODE_DESTROY_TARGETING)
 
 
 func begin_rotate_targeting(card: CardView) -> bool:
-	if card == null or card.category != DeckController.EVENT_CATEGORY or card.event_type != DeckController.EVENT_ROTATE_TILE:
+	if card == null or card.category != GameConstants.EVENT_CATEGORY or card.event_type != GameConstants.EVENT_ROTATE_TILE:
 		return false
 
 	return _begin_tile_targeting(card, MODE_ROTATE_TARGETING)
 
 
 func begin_encounter_targeting(card: CardView) -> bool:
-	if card == null or card.category != DeckController.EVENT_CATEGORY or not _is_encounter_event(card.event_type):
+	if card == null or card.category != GameConstants.EVENT_CATEGORY or not _is_encounter_event(card.event_type):
 		return false
 
 	return _begin_tile_targeting(card, MODE_ENCOUNTER_TARGETING)
@@ -263,11 +255,11 @@ func has_valid_preview() -> bool:
 
 
 func _begin_for_dragged_card(card: CardView) -> bool:
-	if card.category == DeckController.ROAD_CATEGORY:
+	if card.category == GameConstants.ROAD_CATEGORY:
 		return begin_placement(card)
-	elif card.event_type == DeckController.EVENT_DESTROY_TILE:
+	elif card.event_type == GameConstants.EVENT_DESTROY_TILE:
 		return begin_destroy_targeting(card)
-	elif card.event_type == DeckController.EVENT_ROTATE_TILE:
+	elif card.event_type == GameConstants.EVENT_ROTATE_TILE:
 		return begin_rotate_targeting(card)
 	elif _is_encounter_event(card.event_type):
 		return begin_encounter_targeting(card)
@@ -362,43 +354,9 @@ func _refresh_preview() -> void:
 	set_process(true)
 
 
-func _is_valid_destroy_target(grid_position: Vector2i) -> bool:
-	if not _is_in_target_range(grid_position):
-		return false
-	if _map.get_tile(grid_position) == null:
-		return false
-	if grid_position == _map.get_start_position() or grid_position == _map.get_goal_position():
-		return false
-	if grid_position == _player.grid_position:
-		return false
-	return true
-
-
-func _is_in_target_range(grid_position: Vector2i) -> bool:
-	var delta: Vector2i = grid_position - _player.grid_position
-	var distance: int = absi(delta.x) + absi(delta.y)
-	return distance > 0 and distance <= get_target_range()
-
-
 func get_target_range() -> int:
 	var inventory_bonus := _inventory.get_target_range_bonus() if _inventory != null else 0
 	return target_range + inventory_bonus
-
-
-func _is_valid_rotate_target(grid_position: Vector2i) -> bool:
-	if not _is_valid_destroy_target(grid_position):
-		return false
-	var tile_data: Variant = _map.get_tile(grid_position)
-	return tile_data is Dictionary and tile_data.get("definition") != null
-
-
-func _is_valid_encounter_target(grid_position: Vector2i) -> bool:
-	if not _is_valid_destroy_target(grid_position):
-		return false
-	var encounter := _map.get_encounter(grid_position)
-	if active_card.event_type == DeckController.EVENT_CLEAR_PATH:
-		return not encounter.is_empty()
-	return encounter.is_empty()
 
 
 func _confirm_destroy_target() -> bool:
@@ -433,7 +391,7 @@ func _confirm_encounter_target() -> bool:
 	var event_card := active_card
 	var target_position := preview_position
 	var changed := false
-	if event_card.event_type == DeckController.EVENT_CLEAR_PATH:
+	if event_card.event_type == GameConstants.EVENT_CLEAR_PATH:
 		changed = _roads.clear_encounter(target_position)
 	else:
 		changed = _roads.set_encounter(target_position, event_card.encounter_data)
@@ -557,88 +515,25 @@ func _refresh_target_preview(valid_target: bool) -> void:
 
 
 func _is_valid_tile_target(grid_position: Vector2i) -> bool:
+	var event_type := active_card.event_type if active_card != null else ""
 	if active_mode == MODE_ROTATE_TARGETING:
-		return _is_valid_rotate_target(grid_position)
+		return _validator.is_valid_rotate_target(grid_position)
 	if active_mode == MODE_ENCOUNTER_TARGETING:
-		return _is_valid_encounter_target(grid_position)
-	return _is_valid_destroy_target(grid_position)
+		return _validator.is_valid_encounter_target(grid_position, event_type)
+	return _validator.is_valid_destroy_target(grid_position)
 
 
 func _get_road_placement_hint(grid_position: Vector2i, connections: Dictionary) -> String:
-	if _is_too_far_away(grid_position):
-		return HINT_TOO_FAR
-	if grid_position == _player.grid_position:
-		return HINT_STANDING_HERE
-	if _map.get_tile(grid_position) != null:
-		return HINT_OCCUPIED
-	if not _map.can_build_on_fixed_feature(grid_position):
-		return HINT_TERRAIN_BLOCKS
-	if _road_leads_off_map(grid_position, connections):
-		return HINT_ROAD_OFF_MAP
-	if _road_mismatches_player_tile(grid_position, connections):
-		return HINT_CONNECT_TO_PLAYER
-	if not _map.can_place_tile(grid_position, connections):
-		return HINT_ROAD_DOESNT_FIT
-	return ""
+	return _validator.get_road_placement_hint(grid_position, connections)
 
 
 func _get_tile_target_hint(grid_position: Vector2i) -> String:
-	if _is_too_far_away(grid_position):
-		return HINT_TOO_FAR
-	if grid_position == _player.grid_position:
-		return HINT_STANDING_HERE
-	if grid_position == _map.get_start_position() or grid_position == _map.get_goal_position():
-		return HINT_CANT_TARGET
-	if _map.get_tile(grid_position) == null:
-		return HINT_NO_TILE
-	if active_mode == MODE_ENCOUNTER_TARGETING:
-		var encounter := _map.get_encounter(grid_position)
-		if active_card.event_type == DeckController.EVENT_CLEAR_PATH and encounter.is_empty():
-			return HINT_NO_ENCOUNTER
-		if active_card.event_type != DeckController.EVENT_CLEAR_PATH and not encounter.is_empty():
-			return HINT_HAS_ENCOUNTER
-	return ""
+	var event_type := active_card.event_type if active_card != null else ""
+	return _validator.get_tile_target_hint(grid_position, event_type)
 
 
 func _is_encounter_event(event_type: String) -> bool:
-	return event_type in DeckController.ENCOUNTER_EVENT_TYPES
-
-
-func _is_too_far_away(grid_position: Vector2i) -> bool:
-	var delta: Vector2i = grid_position - _player.grid_position
-	return absi(delta.x) + absi(delta.y) > get_target_range()
-
-
-func _road_leads_off_map(grid_position: Vector2i, connections: Dictionary) -> bool:
-	for direction_name in GameMap.DIRECTIONS:
-		if connections.get(direction_name, false) != true:
-			continue
-		var direction: Vector2i = GameMap.DIRECTIONS[direction_name]
-		if not _map.is_inside_playable_area(grid_position + direction):
-			return true
-	return false
-
-
-func _road_mismatches_player_tile(grid_position: Vector2i, connections: Dictionary) -> bool:
-	var delta: Vector2i = _player.grid_position - grid_position
-	if absi(delta.x) + absi(delta.y) != 1:
-		return false
-	var direction_name: String = _direction_name_for_delta(delta)
-	var opposite_direction: String = GameMap.OPPOSITE_DIRECTIONS[direction_name]
-	var player_tile: Variant = _map.get_tile(_player.grid_position)
-	if not (player_tile is Dictionary):
-		return false
-	var player_connections: Dictionary = player_tile.get("connections", {})
-	var opens_to_player: bool = connections.get(direction_name, false) == true
-	var player_opens_back: bool = player_connections.get(opposite_direction, false) == true
-	return opens_to_player != player_opens_back
-
-
-func _direction_name_for_delta(delta: Vector2i) -> String:
-	for direction_name in GameMap.DIRECTIONS:
-		if GameMap.DIRECTIONS[direction_name] == delta:
-			return direction_name
-	return ""
+	return event_type in GameConstants.ENCOUNTER_EVENT_TYPES
 
 
 func _capture_rotate_target() -> void:
@@ -654,7 +549,7 @@ func _capture_rotate_target() -> void:
 
 
 func _rotate_selected_target() -> void:
-	if active_mode != MODE_ROTATE_TARGETING or not _is_valid_rotate_target(preview_position):
+	if active_mode != MODE_ROTATE_TARGETING or not _validator.is_valid_rotate_target(preview_position):
 		return
 	_capture_rotate_target()
 	rotation_steps = posmod(rotation_steps + 1, 4)

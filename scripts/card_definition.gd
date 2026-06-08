@@ -1,7 +1,7 @@
 class_name CardDefinition
 extends Resource
 
-const ROAD_CATEGORY := "Road"
+const ROAD_CATEGORY := GameConstants.ROAD_CATEGORY
 
 @export var category := ROAD_CATEGORY
 @export var title := ""

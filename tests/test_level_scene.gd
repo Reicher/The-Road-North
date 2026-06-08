@@ -83,7 +83,7 @@ func run() -> void:
 
 	var road_card: CardView
 	for card in hand.cards:
-		if card.category == DeckController.ROAD_CATEGORY:
+		if card.category == GameConstants.ROAD_CATEGORY:
 			road_card = card
 			break
 	_assert(road_card != null, "Expected the opening hand to include a road card for drag interaction")
@@ -188,9 +188,9 @@ func _all_level_cards_are_difficult(cards: Array[Dictionary]) -> bool:
 		var tile_definition: Resource = card.get("tile_definition")
 		var is_dead_end := tile_definition != null and str(tile_definition.get("display_name")) == "Dead End"
 		if encounter.get("type", "") != GameMap.ENCOUNTER_ENEMY and event_type not in [
-			DeckController.EVENT_DESTROY_TILE,
-			DeckController.EVENT_ROTATE_TILE,
-			DeckController.EVENT_AMBUSH,
+			GameConstants.EVENT_DESTROY_TILE,
+			GameConstants.EVENT_ROTATE_TILE,
+			GameConstants.EVENT_AMBUSH,
 		] and not is_dead_end:
 			return false
 	return true

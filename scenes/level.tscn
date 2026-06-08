@@ -46,6 +46,7 @@ deck_controller_path = NodePath("../DeckController")
 
 [node name="Camera3D" type="Camera3D" parent="."]
 current = true
+projection = 1
 script = ExtResource("4_tbxl1")
 map_path = NodePath("../Map")
 player_path = NodePath("../Player")

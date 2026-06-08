@@ -5,15 +5,19 @@ const LEVEL_SCENES: Array[PackedScene] = [
 	preload("res://levels/level_002.tscn"),
 ]
 const SHOP_SCENE := preload("res://ui/shop.tscn")
-const LEVEL_NAMES := ["", "3 bridges"]
+const SaveManager = preload("res://scripts/save_manager.gd")
+const LEVEL_NAMES := ["Level 1", "3 bridges"]
+# Map sizes per level — avoids instantiating next scene just to query playable_width/height
+const LEVEL_MAP_SIZES := [5, 7]
 
+const DEBUG_OVERLAY_SCENE := preload("res://ui/debug_overlay.tscn")
 const DEBUG_LABEL_TEXT := "Debug"
-const DEBUG_HAND_SHORTCUTS := {
-	KEY_Q: "likely",
-	KEY_W: "roads",
-	KEY_E: "enemies",
-	KEY_R: "rewards",
-	KEY_T: "events",
+const DEBUG_HAND_ACTIONS := {
+	"debug_hand_likely": "likely",
+	"debug_hand_roads": "roads",
+	"debug_hand_enemies": "enemies",
+	"debug_hand_rewards": "rewards",
+	"debug_hand_events": "events",
 }
 
 var _current_level_index := 0
@@ -27,33 +31,42 @@ var _shop_layer: CanvasLayer
 
 
 func _ready() -> void:
+	assert(LEVEL_NAMES.size() == LEVEL_SCENES.size(), "LEVEL_NAMES and LEVEL_SCENES must have the same size")
+	assert(LEVEL_MAP_SIZES.size() == LEVEL_SCENES.size(), "LEVEL_MAP_SIZES and LEVEL_SCENES must have the same size")
 	_ensure_debug_overlay()
-	_load_level(0)
+	_try_load_save()
+	_load_level(_current_level_index)
 
 
-func _input(event: InputEvent) -> void:
-	if not (event is InputEventKey) or not event.pressed or event.echo:
+func _unhandled_input(event: InputEvent) -> void:
+	if not event.is_pressed() or event.is_echo():
 		return
-	if event.keycode == KEY_D:
+
+	if event.is_action_pressed("debug_toggle"):
 		_set_debug_mode_enabled(not _debug_mode_enabled)
 		get_viewport().set_input_as_handled()
 		return
+
 	if not _debug_mode_enabled:
 		return
-	if event.keycode == KEY_1:
+
+	if event.is_action_pressed("debug_level_1"):
 		_level_start_progression.clear()
 		_load_level(0)
 		get_viewport().set_input_as_handled()
-	elif event.keycode == KEY_2:
+	elif event.is_action_pressed("debug_level_2"):
 		_level_start_progression.clear()
 		_load_level(1)
 		get_viewport().set_input_as_handled()
-	elif event.keycode == KEY_ENTER or event.keycode == KEY_KP_ENTER:
+	elif event.is_action_pressed("debug_complete_level"):
 		_complete_current_level()
 		get_viewport().set_input_as_handled()
-	elif DEBUG_HAND_SHORTCUTS.has(event.keycode):
-		_show_debug_hand(DEBUG_HAND_SHORTCUTS[event.keycode])
-		get_viewport().set_input_as_handled()
+	else:
+		for action in DEBUG_HAND_ACTIONS:
+			if event.is_action_pressed(action):
+				_show_debug_hand(DEBUG_HAND_ACTIONS[action])
+				get_viewport().set_input_as_handled()
+				return
 
 
 func _load_level(level_index: int) -> void:
@@ -92,20 +105,9 @@ func _configure_level_end_screen() -> void:
 func _ensure_debug_overlay() -> void:
 	if _debug_layer != null:
 		return
-	_debug_layer = CanvasLayer.new()
-	_debug_layer.name = "DebugOverlay"
-	_debug_layer.layer = 100
+	_debug_layer = DEBUG_OVERLAY_SCENE.instantiate() as CanvasLayer
 	add_child(_debug_layer)
-
-	_debug_label = Label.new()
-	_debug_label.name = "DebugLabel"
-	_debug_label.text = DEBUG_LABEL_TEXT
-	_debug_label.visible = false
-	_debug_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_debug_label.add_theme_font_size_override("font_size", 18)
-	_debug_label.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	_debug_label.position = Vector2(8.0, -28.0)
-	_debug_layer.add_child(_debug_label)
+	_debug_label = _debug_layer.get_node("DebugLabel") as Label
 
 
 func _set_debug_mode_enabled(enabled: bool) -> void:
@@ -122,7 +124,7 @@ func _complete_current_level() -> void:
 	if map == null or player == null:
 		return
 	player.grid_position = map.get_goal_position()
-	player.call("_check_run_won")
+	player.check_run_won()
 
 
 func _show_debug_hand(kind: String) -> void:
@@ -148,6 +150,7 @@ func _on_restart_level_requested() -> void:
 func _on_restart_game_requested() -> void:
 	_close_shop()
 	_level_start_progression.clear()
+	SaveManager.delete_save()
 	_load_level(0)
 
 
@@ -229,10 +232,7 @@ func _open_shop() -> void:
 	progression.erase("removed_base_card_this_shop")
 	var deck_controller := _current_level.get_node_or_null("DeckController") as DeckController
 	var available_base_cards: Array = deck_controller.deck_components.get(DeckBuilder.DECK_SOURCE_BASE, []) if deck_controller != null else []
-	var next_scene := LEVEL_SCENES[_current_level_index + 1].instantiate()
-	var next_map := next_scene.get_node("Map") as GameMap
-	var map_size := mini(next_map.playable_width, next_map.playable_height)
-	next_scene.free()
+	var map_size: int = LEVEL_MAP_SIZES[_current_level_index + 1] if _current_level_index + 1 < LEVEL_MAP_SIZES.size() else 5
 	_shop = SHOP_SCENE.instantiate() as Control
 	_shop_layer = CanvasLayer.new()
 	_shop_layer.name = "ShopLayer"
@@ -249,6 +249,7 @@ func _open_shop() -> void:
 func _on_shop_play_next_requested(progression: Dictionary) -> void:
 	_level_start_progression = progression.duplicate(true)
 	_close_shop()
+	_save_progress()
 	_load_level(_current_level_index + 1)
 
 
@@ -260,3 +261,17 @@ func _close_shop() -> void:
 	if _shop_layer != null:
 		_shop_layer.queue_free()
 		_shop_layer = null
+
+
+func _try_load_save() -> void:
+	var save_data := SaveManager.load_progression()
+	if save_data.is_empty():
+		return
+	_current_level_index = clampi(int(save_data.get("level_index", 0)), 0, LEVEL_SCENES.size() - 1)
+	var progression: Variant = save_data.get("progression", {})
+	if progression is Dictionary and not progression.is_empty():
+		_level_start_progression = progression.duplicate(true)
+
+
+func _save_progress() -> void:
+	SaveManager.save_progression(_level_start_progression, _current_level_index)

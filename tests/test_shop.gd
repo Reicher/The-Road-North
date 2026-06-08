@@ -26,7 +26,7 @@ func run() -> void:
 		{"category": "Road", "tile_definition": STRAIGHT},
 		{"category": "Road", "tile_definition": STRAIGHT},
 		{"category": "Road", "tile_definition": CORNER},
-		{"category": "Event", "event_type": DeckController.EVENT_DRAW_TWO, "title": "Idea"},
+		{"category": "Event", "event_type": GameConstants.EVENT_DRAW_TWO, "title": "Idea"},
 	])
 	await process_frame
 	var shop_scroll := shop.get_node("ShopScroll") as ScrollContainer
@@ -54,7 +54,7 @@ func run() -> void:
 	for offer_node in card_row.get_children():
 		var card := offer_node.get_node("Card") as CardView
 		_assert(card != null and card.size.is_equal_approx(Vector2(174.0, 250.0)), "Expected shop offers to use the in-game CardView at hand size")
-		_assert(card.title == "It was all a dream" and card.category == DeckController.EVENT_CATEGORY, "Expected shop CardView to show the special event data")
+		_assert(card.title == "It was all a dream" and card.category == GameConstants.EVENT_CATEGORY, "Expected shop CardView to show the special event data")
 		_assert(card.card_base_texture_path == CardView.DEFAULT_CARD_BASE_TEXTURE_PATH, "Expected shop cards to use the same painted card design as gameplay")
 		_assert((offer_node.get_node("BuyButton") as Button).icon != null, "Expected special card prices to use the gold resource icon")
 
@@ -99,8 +99,8 @@ func run() -> void:
 	hand.set_cards([{
 		"title": "It was all a dream",
 		"detail": "Restart the current level.",
-		"category": DeckController.EVENT_CATEGORY,
-		"event_type": DeckController.EVENT_RESTART_LEVEL,
+		"category": GameConstants.EVENT_CATEGORY,
+		"event_type": GameConstants.EVENT_RESTART_LEVEL,
 	}])
 	var restart_result := {"count": 0}
 	deck.restart_level_requested.connect(func() -> void: restart_result["count"] += 1)

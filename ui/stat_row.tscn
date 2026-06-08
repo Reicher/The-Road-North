@@ -1,0 +1,33 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/stat_row.gd" id="1_row"]
+
+[node name="StatRow" type="HBoxContainer"]
+custom_minimum_size = Vector2(200, 64)
+mouse_filter = 2
+theme_override_constants/separation = 13
+script = ExtResource("1_row")
+
+[node name="Icon" type="TextureRect" parent="."]
+custom_minimum_size = Vector2(54, 54)
+layout_mode = 2
+size_flags_vertical = 4
+expand_mode = 3
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Value" type="Label" parent="."]
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_colors/font_color = Color(1, 0.96, 0.84, 1)
+theme_override_font_sizes/font_size = 38
+text = "0"
+vertical_alignment = 1
+
+[node name="Gain" type="Label" parent="."]
+visible = false
+layout_mode = 2
+size_flags_vertical = 1
+theme_override_font_sizes/font_size = 38
+text = "+0"
+vertical_alignment = 1

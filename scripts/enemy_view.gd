@@ -2,7 +2,7 @@ class_name EnemyView
 extends Node3D
 
 const ENEMY_COLOR := Color(0.78, 0.12, 0.10)
-const ENEMY_MODEL_SCALE := 0.5
+const ENEMY_MODEL_SCALE := 0.66
 const POWER_DISPLAY_PIXEL_SIZE := 0.0015
 const POWER_ICON := preload("res://assets/images/stat_power.png")
 const ModelAssets = preload("res://scripts/model_assets.gd")
@@ -47,6 +47,8 @@ func play_defeat(knock_direction: Vector3) -> void:
 		knock_tween.tween_property(self, "rotation", target_rotation, knock_down_duration)
 		knock_tween.tween_property(self, "position", target_position, knock_down_duration)
 		await knock_tween.finished
+		if not is_inside_tree():
+			return
 	else:
 		rotation = target_rotation
 		position = target_position
@@ -59,6 +61,8 @@ func play_defeat(knock_direction: Vector3) -> void:
 		fade_tween.tween_property(self, "scale", Vector3.ONE * 0.82, fade_out_duration)
 		_tween_visual_alpha(fade_tween, self, fade_out_duration)
 		await fade_tween.finished
+		if not is_inside_tree():
+			return
 
 	visible = false
 

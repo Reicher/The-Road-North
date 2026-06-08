@@ -8,6 +8,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("1_2vjgq")
 
 [node name="InventoryFrame" type="PanelContainer" parent="."]
@@ -20,6 +21,7 @@ layout_mode = 0
 focus_mode = 0
 mouse_filter = 0
 text = ""
+expand_icon = true
 
 [node name="InventoryOverlay" type="PanelContainer" parent="."]
 visible = false
@@ -40,6 +42,7 @@ alignment = 1
 
 [node name="Title" type="Label" parent="InventoryOverlay/ContentMargin/Stack"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
 theme_override_font_sizes/font_size = 18
 text = "Inventory"
 horizontal_alignment = 1

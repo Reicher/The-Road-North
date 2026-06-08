@@ -90,7 +90,7 @@ func _on_placement_started(card: CardView) -> void:
 	if _is_terminal_state():
 		return
 	_set_player_input_enabled(false)
-	if card.event_type in DeckController.TARGETED_EVENT_TYPES:
+	if card.event_type in GameConstants.TARGETED_EVENT_TYPES:
 		state = RunState.EVENT_TARGETING
 	else:
 		state = RunState.PLACEMENT_MODE

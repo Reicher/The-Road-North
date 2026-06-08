@@ -24,27 +24,33 @@ custom_minimum_size = Vector2(128, 128)
 mouse_filter = 2
 
 [node name="RotateButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(56, 56)
 layout_mode = 0
 offset_left = 36.0
 offset_right = 92.0
 offset_bottom = 56.0
+focus_mode = 0
 script = ExtResource("2_action")
 action = 0
 
 [node name="ConfirmButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(56, 56)
 layout_mode = 0
 offset_top = 72.0
 offset_right = 56.0
 offset_bottom = 128.0
+focus_mode = 0
 disabled = true
 script = ExtResource("2_action")
 action = 1
 
 [node name="CancelButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(56, 56)
 layout_mode = 0
 offset_left = 72.0
 offset_top = 72.0
 offset_right = 128.0
 offset_bottom = 128.0
+focus_mode = 0
 script = ExtResource("2_action")
 action = 2

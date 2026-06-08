@@ -60,10 +60,6 @@ func _ready() -> void:
 	if _ready_completed:
 		return
 	_ready_completed = true
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var current_size := size
-	if current_size.x <= 0.0 or current_size.y <= 0.0:
-		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	resized.connect(_layout_inventory)
 	_bind_scene_nodes()
 	_refresh_slots()
@@ -297,38 +293,14 @@ func _bind_scene_nodes() -> void:
 	_drag_ghost = get_node("DragGhost") as TextureRect
 
 	_backpack_button.custom_minimum_size = button_size
-	_backpack_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	_backpack_button.text = ""
 	_backpack_button.icon = _load_backpack_icon()
-	_backpack_button.expand_icon = true
 	_backpack_button.add_theme_stylebox_override("normal", _transparent_stylebox())
 	_backpack_button.add_theme_stylebox_override("hover", _transparent_stylebox())
 	_backpack_button.add_theme_stylebox_override("pressed", _transparent_stylebox())
 	if not _backpack_button.pressed.is_connected(toggle_inventory):
 		_backpack_button.pressed.connect(toggle_inventory)
-	_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_frame.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, UIStyle.panel_fill(self), UIStyle.panel_border(self), 10, 3))
-	_overlay.visible = false
-	_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	_overlay.scale = Vector2.ONE
-	_overlay.modulate.a = 1.0
 	_overlay.add_theme_stylebox_override("panel", _transparent_stylebox())
-	_overlay_title.add_theme_color_override("font_color", UIStyle.text(self))
-	_overlay_title.add_theme_font_size_override("font_size", 18)
-	_slot_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_slot_row.add_theme_constant_override("separation", int(slot_spacing))
-	_tooltip.visible = false
-	_tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_tooltip_name.add_theme_font_size_override("font_size", 13)
-	_tooltip_name.add_theme_color_override("font_color", UIStyle.text(self))
-	_tooltip_effect.add_theme_font_size_override("font_size", 12)
-	_tooltip_effect.add_theme_color_override("font_color", UIStyle.muted_text(self))
-	_drag_ghost.visible = false
-	_drag_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_drag_ghost.z_index = 1000
-	_drag_ghost.top_level = true
-	_drag_ghost.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_drag_ghost.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 
 
 func _load_backpack_icon() -> Texture2D:
@@ -353,12 +325,9 @@ func _refresh_slots() -> void:
 		var slot_button := _slot_row.get_child(slot_index) as Button
 		if slot_button == null:
 			continue
-		slot_button.focus_mode = Control.FOCUS_NONE
 		var active_slot_size := get_slot_size()
 		slot_button.custom_minimum_size = active_slot_size
 		slot_button.size = active_slot_size
-		slot_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		slot_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		slot_button.add_theme_constant_override("icon_max_width", int(active_slot_size.x))
 		_apply_slot_style(slot_button)
 		slot_button.text = ""
@@ -467,9 +436,7 @@ func _cancel_item_drag() -> void:
 
 
 func _mark_input_handled() -> void:
-	var viewport := get_viewport() if is_inside_tree() else null
-	if viewport != null:
-		viewport.set_input_as_handled()
+	UIUtils.mark_input_handled(self)
 
 
 func _show_drag_ghost(item: Dictionary, canvas_position: Vector2, tint := Color.WHITE) -> void:
@@ -490,11 +457,7 @@ func _update_drag_ghost(canvas_position: Vector2) -> void:
 
 
 func _event_canvas_position(event: InputEvent, source_button: Button) -> Vector2:
-	if source_button == null:
-		return Vector2.ZERO
-	if event is InputEventMouse:
-		return source_button.get_global_position() + event.position
-	return source_button.get_global_rect().get_center()
+	return UIUtils.event_canvas_position(event, source_button)
 
 
 func _on_item_pressed(slot_index: int, slot_button: Button) -> void:

@@ -2,16 +2,21 @@ class_name ItemIconLibrary
 extends RefCounted
 
 const ICON_PATHS := {
+	"binoculars": "res://assets/images/item_binoculars.svg",
 	"dagger": "res://assets/images/item_dagger.png",
 	"item": "res://assets/images/item_item.png",
 	"katana": "res://assets/images/item_katana.png",
-	"kikare": "res://assets/images/item_binoculars.svg",
 	"knife": "res://assets/images/item_knife.png",
 	"machete": "res://assets/images/item_machete.png",
 	"sword": "res://assets/images/item_sword.png",
 }
 
 static var _cache: Dictionary = {}
+
+
+## Call between level loads to free unused icon memory.
+static func clear_cache() -> void:
+	_cache.clear()
 
 
 static func get_icon(item: Dictionary) -> Texture2D:

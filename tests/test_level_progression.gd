@@ -90,7 +90,7 @@ func run() -> void:
 	_assert(first_inventory.add_item({"name": "Sword", "effect": "+4 Power", "power_bonus": 4}), "Expected progression test item to fit in backpack")
 
 	first_player.grid_position = first_map.get_goal_position()
-	_assert(first_player.call("_check_run_won"), "Expected reaching the first goal to complete the level")
+	_assert(first_player.check_run_won(), "Expected reaching the first goal to complete the level")
 	var shop := main.find_child("Shop", true, false) as Control
 	_assert(shop != null, "Expected the shop to open immediately after the first goal")
 	_assert((shop.get_parent() as CanvasLayer).layer == 50, "Expected shop to render above all level UI")
@@ -122,8 +122,8 @@ func run() -> void:
 	second_hand.set_cards([{
 		"title": "It was all a dream",
 		"detail": "Restart the current level.",
-		"category": DeckController.EVENT_CATEGORY,
-		"event_type": DeckController.EVENT_RESTART_LEVEL,
+		"category": GameConstants.EVENT_CATEGORY,
+		"event_type": GameConstants.EVENT_RESTART_LEVEL,
 	}])
 	_assert(second_deck.play_immediate_event(second_hand.cards[0]), "Expected dream special card to request a level restart")
 	await process_frame
@@ -154,7 +154,7 @@ func run() -> void:
 	_assert((second_level.get_node("UI/Inventory") as InventoryUI).get_active_items().size() == 2, "Expected Restart level to restore the backpack held at level start")
 
 	second_player.grid_position = second_map.get_goal_position()
-	_assert(second_player.call("_check_run_won"), "Expected reaching the final goal to complete the game")
+	_assert(second_player.check_run_won(), "Expected reaching the final goal to complete the game")
 	_assert(second_screen.visible, "Expected the final win screen to show")
 	_assert(not second_hand.visible, "Expected the card hand to hide on the final win screen")
 	_assert(second_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "You won", "Expected final win text")

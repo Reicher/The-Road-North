@@ -3,6 +3,7 @@ extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
 const ItemIconLibrary = preload("res://scripts/item_icon_library.gd")
+const ITEM_SLOT_SCENE := preload("res://ui/item_slot.tscn")
 const FULL_INVENTORY_FLASH_COLOR := Color(1.0, 0.32, 0.28)
 const FULL_INVENTORY_FLASH_DURATION := 0.28
 
@@ -13,6 +14,7 @@ const FULL_INVENTORY_FLASH_DURATION := 0.28
 var loot: Array[Dictionary] = []
 
 var _player: GamePlayer
+var _rewards: PlayerRewards
 var _inventory: InventoryUI
 var _dimmer: ColorRect
 var _panel: PanelContainer
@@ -34,13 +36,10 @@ func _ready() -> void:
 	if _ready_completed:
 		return
 	_ready_completed = true
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_resolve_paths()
 	resized.connect(_layout_loot)
 	_bind_scene_nodes()
 	_layout_loot()
-	visible = false
 	set_process_input(true)
 
 
@@ -122,29 +121,10 @@ func _bind_scene_nodes() -> void:
 	_tooltip_effect = get_node("ItemTooltip/ContentMargin/Text/ItemEffect") as Label
 	_drag_ghost = get_node("DragGhost") as TextureRect
 
-	_dimmer.visible = false
-	_dimmer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_panel.visible = false
-	_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	_loot_list.add_theme_constant_override("separation", 6)
-	_loot_list.alignment = BoxContainer.ALIGNMENT_CENTER
-	_loot_list.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if not _take_all_button.pressed.is_connected(take_all):
 		_take_all_button.pressed.connect(take_all)
 	if not _close_button.pressed.is_connected(close_loot):
 		_close_button.pressed.connect(close_loot)
-	_tooltip.visible = false
-	_tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_tooltip_name.add_theme_font_size_override("font_size", 13)
-	_tooltip_name.add_theme_color_override("font_color", UIStyle.text(self))
-	_tooltip_effect.add_theme_font_size_override("font_size", 12)
-	_tooltip_effect.add_theme_color_override("font_color", UIStyle.muted_text(self))
-	_drag_ghost.visible = false
-	_drag_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_drag_ghost.z_index = 1000
-	_drag_ghost.top_level = true
-	_drag_ghost.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_drag_ghost.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 
 
 func _refresh_loot() -> void:
@@ -158,39 +138,33 @@ func _refresh_loot() -> void:
 		var entry := loot[index]
 		if _is_item_loot(entry):
 			var loot_slot_size := _get_loot_slot_size()
-			var item_button := Button.new()
-			item_button.name = "LootItem%d" % index
-			item_button.text = ""
-			item_button.icon = ItemIconLibrary.get_icon(entry.get("item", {}))
-			item_button.expand_icon = true
-			item_button.focus_mode = Control.FOCUS_NONE
-			item_button.custom_minimum_size = loot_slot_size
-			item_button.size = loot_slot_size
-			item_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-			item_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-			item_button.add_theme_constant_override("icon_max_width", int(loot_slot_size.x))
-			item_button.gui_input.connect(_on_item_gui_input.bind(index, item_button))
-			_loot_list.add_child(item_button)
+			var item_slot := ITEM_SLOT_SCENE.instantiate() as ItemSlot
+			item_slot.name = "LootItem%d" % index
+			item_slot.slot_size = loot_slot_size
+			item_slot.configure(entry.get("item", {}), index)
+			item_slot.slot_gui_input.connect(_on_item_slot_gui_input)
+			_loot_list.add_child(item_slot)
 
 
-func _on_item_gui_input(event: InputEvent, item_index: int, source_button: Button) -> void:
+func _on_item_slot_gui_input(event: InputEvent, slot: ItemSlot) -> void:
+	var item_index := slot.slot_index
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		source_button.accept_event()
+		slot.accept_event()
 		if event.pressed:
-			_start_drag(item_index, source_button, _event_canvas_position(event, source_button))
+			_start_drag(item_index, slot, _event_canvas_position(event, slot))
 		else:
-			_finish_drag(_event_canvas_position(event, source_button))
+			_finish_drag(_event_canvas_position(event, slot))
 	elif event is InputEventMouseMotion and _dragged_item_index == item_index:
-		source_button.accept_event()
-		_update_drag(_event_canvas_position(event, source_button))
+		slot.accept_event()
+		_update_drag(_event_canvas_position(event, slot))
 	elif event is InputEventScreenTouch:
-		source_button.accept_event()
+		slot.accept_event()
 		if event.pressed:
-			_start_drag(item_index, source_button, event.position)
+			_start_drag(item_index, slot, event.position)
 		else:
 			_finish_drag(event.position)
 	elif event is InputEventScreenDrag and _dragged_item_index == item_index:
-		source_button.accept_event()
+		slot.accept_event()
 		_update_drag(event.position)
 
 
@@ -312,9 +286,18 @@ func _cancel_backpack_drag() -> void:
 
 
 func _collect_loot_entry(entry: Dictionary) -> bool:
-	if _collect_resource_entry(entry):
+	if _rewards != null:
+		return _rewards.collect_entry(entry)
+	return false
+
+
+func _collect_resource_entry(entry: Dictionary) -> bool:
+	var kind := str(entry.get("kind", "item"))
+	if kind == "food" or kind == "gold":
+		if _rewards != null:
+			_rewards.collect_entry(entry)
 		return true
-	return _is_item_loot(entry) and _inventory != null and _inventory.add_item(entry.get("item", {}).duplicate(true))
+	return false
 
 
 func _can_take_all() -> bool:
@@ -351,19 +334,6 @@ func _reset_full_inventory_flash() -> void:
 		_panel.self_modulate = Color.WHITE
 
 
-func _collect_resource_entry(entry: Dictionary) -> bool:
-	var kind := str(entry.get("kind", "item"))
-	if kind == "food":
-		if _player != null:
-			_player.add_food(int(entry.get("amount", 0)))
-		return true
-	if kind == "gold":
-		if _player != null:
-			_player.add_gold(int(entry.get("amount", 0)))
-		return true
-	return false
-
-
 func _is_item_loot(entry: Dictionary) -> bool:
 	return str(entry.get("kind", "item")) == "item"
 
@@ -371,6 +341,8 @@ func _is_item_loot(entry: Dictionary) -> bool:
 func _resolve_paths() -> void:
 	if _player == null:
 		_player = get_node_or_null(player_path) as GamePlayer
+	if _player != null and _rewards == null:
+		_rewards = _player.get_node_or_null("Rewards") as PlayerRewards
 	if _inventory == null:
 		_inventory = get_node_or_null(inventory_path) as InventoryUI
 		if _inventory != null:
@@ -392,26 +364,20 @@ func get_loot_item_index_at_canvas_position(canvas_position: Vector2) -> int:
 	if _loot_list == null or not is_open():
 		return -1
 	for index in _loot_list.get_child_count():
-		var item_button := _loot_list.get_child(index) as Button
-		if item_button != null and item_button.get_global_rect().has_point(canvas_position):
-			var item_index := int(str(item_button.name).trim_prefix("LootItem"))
+		var item_slot := _loot_list.get_child(index) as ItemSlot
+		if item_slot != null and item_slot.get_global_rect().has_point(canvas_position):
+			var item_index := item_slot.slot_index
 			if item_index >= 0 and item_index < loot.size() and _is_item_loot(loot[item_index]):
 				return item_index
 	return -1
 
 
 func _event_canvas_position(event: InputEvent, source_button: Button) -> Vector2:
-	if source_button == null:
-		return Vector2.ZERO
-	if event is InputEventMouse:
-		return source_button.get_global_position() + event.position
-	return source_button.get_global_rect().get_center()
+	return UIUtils.event_canvas_position(event, source_button)
 
 
 func _mark_input_handled() -> void:
-	var viewport := get_viewport() if is_inside_tree() else null
-	if viewport != null:
-		viewport.set_input_as_handled()
+	UIUtils.mark_input_handled(self)
 
 
 func _show_item_tooltip(item_index: int, source_button: Button) -> void:

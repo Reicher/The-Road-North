@@ -4,31 +4,6 @@ extends Node
 signal deck_count_changed(cards_remaining: int, total_cards: int)
 signal restart_level_requested
 
-const ROAD_CATEGORY := "Road"
-const EVENT_CATEGORY := "Event"
-const EVENT_DESTROY_TILE := "destroy_tile"
-const EVENT_DRAW_TWO := "draw_two"
-const EVENT_ROTATE_TILE := "rotate_tile"
-const EVENT_LUCKY_FIND := "lucky_find"
-const EVENT_CLEAR_PATH := "clear_path"
-const EVENT_AMBUSH := "ambush"
-const EVENT_WILD_BERRIES := "wild_berries"
-const EVENT_LOST_BELONGINGS := "lost_belongings"
-const EVENT_RESTART_LEVEL := "restart_level"
-const TARGETED_EVENT_TYPES: Array[String] = [
-	EVENT_DESTROY_TILE,
-	EVENT_ROTATE_TILE,
-	EVENT_CLEAR_PATH,
-	EVENT_AMBUSH,
-	EVENT_WILD_BERRIES,
-	EVENT_LOST_BELONGINGS,
-]
-const ENCOUNTER_EVENT_TYPES: Array[String] = [
-	EVENT_CLEAR_PATH,
-	EVENT_AMBUSH,
-	EVENT_WILD_BERRIES,
-	EVENT_LOST_BELONGINGS,
-]
 const GameBalance = preload("res://scripts/game_balance.gd")
 
 const HAND_SIZE := 4
@@ -76,9 +51,10 @@ func _ready() -> void:
 		push_warning("DeckController needs a DeckBuilder child at deck_builder_path.")
 		return
 
-	start_run()
 	if not _hand.card_drag_finished.is_connected(_on_card_drag_finished):
 		_hand.card_drag_finished.connect(_on_card_drag_finished)
+	# Note: start_run() is called externally by main._configure_player_deck()
+	# to allow deck modifiers to be applied first.
 
 
 func start_run() -> void:
@@ -112,7 +88,7 @@ func _apply_player_deck_modifiers() -> void:
 	var base_cards: Array = deck_components.get(DeckBuilder.DECK_SOURCE_BASE, [])
 	for removal in player_removed_base_cards:
 		for index in base_cards.size():
-			if _card_signature(base_cards[index]) == removal:
+			if GameConstants.card_signature(base_cards[index]) == removal:
 				base_cards.remove_at(index)
 				break
 	deck_components[DeckBuilder.DECK_SOURCE_BASE] = base_cards
@@ -125,10 +101,7 @@ func _apply_player_deck_modifiers() -> void:
 
 
 func _card_signature(card: Dictionary) -> String:
-	var definition: Resource = card.get("tile_definition")
-	if definition != null:
-		return "road:%s" % str(definition.get("display_name"))
-	return "event:%s" % str(card.get("event_type", card.get("title", "")))
+	return GameConstants.card_signature(card)
 
 
 func shuffle_deck() -> void:
@@ -217,7 +190,7 @@ func consume_card(card: CardView) -> bool:
 
 
 func _on_card_drag_finished(card: CardView, canvas_position: Vector2, activated: bool, released_over_hand: bool) -> void:
-	if card.category == ROAD_CATEGORY:
+	if card.category == GameConstants.ROAD_CATEGORY:
 		return
 	if not activated or released_over_hand or _map == null:
 		return
@@ -227,17 +200,17 @@ func _on_card_drag_finished(card: CardView, canvas_position: Vector2, activated:
 
 
 func play_immediate_event(card: CardView) -> bool:
-	if card.event_type == EVENT_DRAW_TWO:
+	if card.event_type == GameConstants.EVENT_DRAW_TWO:
 		if consume_card(card):
 			draw_extra_cards(2)
 			_hand.set_inactive(false)
 			return true
-	elif card.event_type == EVENT_LUCKY_FIND:
+	elif card.event_type == GameConstants.EVENT_LUCKY_FIND:
 		if consume_card(card):
 			_apply_lucky_find()
 			_hand.set_inactive(false)
 			return true
-	elif card.event_type == EVENT_RESTART_LEVEL:
+	elif card.event_type == GameConstants.EVENT_RESTART_LEVEL:
 		if consume_card(card):
 			_hand.set_inactive(false)
 			restart_level_requested.emit()

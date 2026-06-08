@@ -3,26 +3,15 @@ extends Node3D
 
 signal tile_pressed(grid_position: Vector2i)
 
-const DIRECTIONS: Dictionary = {
-	"north": Vector2i(0, -1),
-	"east": Vector2i(1, 0),
-	"south": Vector2i(0, 1),
-	"west": Vector2i(-1, 0),
-}
+const DIRECTIONS := GameConstants.DIRECTIONS
+const OPPOSITE_DIRECTIONS := GameConstants.OPPOSITE_DIRECTIONS
 
-const OPPOSITE_DIRECTIONS: Dictionary = {
-	"north": "south",
-	"east": "west",
-	"south": "north",
-	"west": "east",
-}
-
-const ENCOUNTER_ENEMY := "enemy"
-const ENCOUNTER_BERRY_BUSH := "berry_bush"
-const ENCOUNTER_CACHE := "cache"
-const FEATURE_MOUNTAIN := "mountain"
-const FEATURE_RIVER := "river"
-const FEATURE_BRIDGE := "bridge"
+const ENCOUNTER_ENEMY := GameConstants.ENCOUNTER_ENEMY
+const ENCOUNTER_BERRY_BUSH := GameConstants.ENCOUNTER_BERRY_BUSH
+const ENCOUNTER_CACHE := GameConstants.ENCOUNTER_CACHE
+const FEATURE_MOUNTAIN := GameConstants.FEATURE_MOUNTAIN
+const FEATURE_RIVER := GameConstants.FEATURE_RIVER
+const FEATURE_BRIDGE := GameConstants.FEATURE_BRIDGE
 
 @export_range(1, 64, 1) var playable_width := 9:
 	set(value):

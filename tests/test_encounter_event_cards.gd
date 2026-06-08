@@ -96,11 +96,11 @@ func _make_fixture() -> Dictionary:
 	ui.add_child(hand)
 	hand._ready()
 	hand.set_cards([
-		_encounter_card("Ambush", DeckController.EVENT_AMBUSH, {"type": GameMap.ENCOUNTER_ENEMY, "power": 2}),
+		_encounter_card("Ambush", GameConstants.EVENT_AMBUSH, {"type": GameMap.ENCOUNTER_ENEMY, "power": 2}),
 		_clear_path_card(),
-		_encounter_card("Wild Berries", DeckController.EVENT_WILD_BERRIES, {"type": GameMap.ENCOUNTER_BERRY_BUSH, "loot": [{"kind": "food", "amount": 3}]}),
+		_encounter_card("Wild Berries", GameConstants.EVENT_WILD_BERRIES, {"type": GameMap.ENCOUNTER_BERRY_BUSH, "loot": [{"kind": "food", "amount": 3}]}),
 		_clear_path_card(),
-		_encounter_card("Lost Belongings", DeckController.EVENT_LOST_BELONGINGS, {"type": GameMap.ENCOUNTER_CACHE, "loot": [{"kind": "item", "item": {"name": "Knife", "effect": "+1 Power", "power_bonus": 1}}]}),
+		_encounter_card("Lost Belongings", GameConstants.EVENT_LOST_BELONGINGS, {"type": GameMap.ENCOUNTER_CACHE, "loot": [{"kind": "item", "item": {"name": "Knife", "effect": "+1 Power", "power_bonus": 1}}]}),
 		_clear_path_card(),
 		_clear_path_card(),
 	])
@@ -138,7 +138,7 @@ func _clear_path_card() -> Dictionary:
 	return {
 		"category": "Event",
 		"title": "Clear Path",
-		"event_type": DeckController.EVENT_CLEAR_PATH,
+		"event_type": GameConstants.EVENT_CLEAR_PATH,
 	}
 
 

@@ -1,9 +1,32 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/player_stats_ui.gd" id="1_sgy2y"]
+[ext_resource type="PackedScene" path="res://ui/stat_row.tscn" id="2_row"]
 
-[node name="PlayerStats" type="Control"]
+[node name="PlayerStats" type="VBoxContainer"]
 anchors_preset = 0
-offset_right = 82.0
-offset_bottom = 114.0
+offset_right = 240.0
+offset_bottom = 330.0
+mouse_filter = 2
+theme_override_constants/separation = 2
 script = ExtResource("1_sgy2y")
+
+[node name="DeckRow" parent="." instance=ExtResource("2_row")]
+layout_mode = 2
+stat_name = "deck"
+
+[node name="FoodRow" parent="." instance=ExtResource("2_row")]
+layout_mode = 2
+stat_name = "food"
+
+[node name="GoldRow" parent="." instance=ExtResource("2_row")]
+layout_mode = 2
+stat_name = "gold"
+
+[node name="HealthRow" parent="." instance=ExtResource("2_row")]
+layout_mode = 2
+stat_name = "health"
+
+[node name="PowerRow" parent="." instance=ExtResource("2_row")]
+layout_mode = 2
+stat_name = "power"

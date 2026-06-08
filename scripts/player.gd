@@ -18,7 +18,6 @@ signal run_won
 @export var inventory_path: NodePath
 @export var loot_ui_path: NodePath
 @export var rewards_path: NodePath = NodePath("Rewards")
-@export var combat_path: NodePath = NodePath("Combat")
 @export var start_position := Vector2i(-1, -1)
 @export var starting_food := GameBalance.STARTING_FOOD
 @export var starting_gold := 0
@@ -43,7 +42,6 @@ var _map: GameMap
 var _inventory: InventoryUI
 var _loot_ui: LootUI
 var _rewards: PlayerRewards
-var _combat: Node
 var _moving := false
 var _move_target := Vector2i.ZERO
 var _combat_running := false
@@ -61,11 +59,6 @@ func _ready() -> void:
 		push_warning("Player needs a Rewards child at rewards_path.")
 		return
 	_rewards.setup(self, _inventory, _loot_ui, _map)
-	_combat = get_node_or_null(combat_path)
-	if _combat == null:
-		push_warning("Player needs a Combat child at combat_path.")
-		return
-	_combat.setup(self, _map)
 	_ensure_visuals()
 
 	if _map == null:
@@ -88,7 +81,9 @@ func _ready() -> void:
 
 
 func can_move_to(target_position: Vector2i) -> bool:
-	if _map == null or _game_over or _run_won or _moving or _combat_running or food <= 0:
+	if _map == null or _game_over or _run_won or _moving or _combat_running:
+		return false
+	if food <= 0 and target_position != _map.get_goal_position():
 		return false
 	return _map.can_move_between(grid_position, target_position)
 
@@ -103,7 +98,7 @@ func move_to(target_position: Vector2i) -> bool:
 	food -= 1
 	food_changed.emit(food)
 
-	var enemy_data: Dictionary = _combat.get_enemy_data(target_position)
+	var enemy_data: Dictionary = _get_enemy_data(target_position)
 	if not enemy_data.is_empty() and int(enemy_data.get("health", 0)) > 0:
 		_move_into_enemy(target_position, enemy_data, input_enabled_before_move)
 		return true
@@ -222,7 +217,7 @@ func _finish_move(target_position: Vector2i) -> void:
 	grid_position = target_position
 	_moving = false
 	moved.emit(grid_position)
-	if _check_run_won():
+	if check_run_won():
 		return
 	_check_game_over()
 	if _game_over:
@@ -282,7 +277,7 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previou
 	_combat_running = true
 	input_enabled = false
 
-	_combat.reveal_enemy_at(target_position, enemy_data)
+	_reveal_enemy_at(target_position, enemy_data)
 	_set_visual_encounter_data(target_position, enemy_data)
 
 	var target_world_position := _map.grid_to_world(target_position)
@@ -298,14 +293,14 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previou
 
 
 func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previous_input_enabled: bool, combat_direction: Vector3) -> void:
-	var enemy_damage: int = _combat.get_damage_from(enemy_data)
+	var enemy_damage := maxi(0, int(enemy_data.get("power", 0)) - get_total_power())
 	set_health(maxi(0, health - enemy_damage), false)
 
 	position = _map.grid_to_world(target_position)
 	grid_position = target_position
 	_moving = false
 	moved.emit(grid_position)
-	if _check_run_won():
+	if check_run_won():
 		_combat_running = false
 		return
 	_check_game_over()
@@ -313,12 +308,16 @@ func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previ
 		_combat_running = false
 		return
 
-	_combat.clear_enemy_at(target_position)
+	_map.clear_encounter(target_position)
 	await _play_enemy_defeat(target_position, combat_direction)
+	if not is_inside_tree():
+		return
 	_clear_visual_encounter_data(target_position)
 
 	if post_combat_loot_delay > 0.0:
 		await get_tree().create_timer(post_combat_loot_delay).timeout
+	if not is_inside_tree():
+		return
 	_rewards.open_enemy_loot(enemy_data)
 	input_enabled = previous_input_enabled
 	_combat_running = false
@@ -368,12 +367,12 @@ func _check_game_over() -> void:
 	if _game_over or _run_won:
 		return
 	if _map != null and grid_position == _map.get_goal_position():
-		_check_run_won()
+		check_run_won()
 		return
 	var reason := ""
 	if health <= 0:
 		reason = "health"
-	elif food <= 0:
+	elif food <= 0 and not _is_adjacent_to_goal():
 		reason = "food"
 	if reason.is_empty():
 		return
@@ -382,7 +381,15 @@ func _check_game_over() -> void:
 	game_over.emit(reason)
 
 
-func _check_run_won() -> bool:
+func _is_adjacent_to_goal() -> bool:
+	if _map == null:
+		return false
+	var goal := _map.get_goal_position()
+	var delta := goal - grid_position
+	return absi(delta.x) + absi(delta.y) == 1 and _map.can_move_between(grid_position, goal)
+
+
+func check_run_won() -> bool:
 	if _map == null or _game_over or _run_won:
 		return false
 	if grid_position != _map.get_goal_position():
@@ -391,3 +398,22 @@ func _check_run_won() -> bool:
 	input_enabled = false
 	run_won.emit()
 	return true
+
+
+func _get_enemy_data(target_position: Vector2i) -> Dictionary:
+	if _map == null:
+		return {}
+	var tile_data: Variant = _map.get_tile(target_position)
+	if not (tile_data is Dictionary):
+		return {}
+	var encounter: Dictionary = tile_data.get("encounter", {})
+	if str(encounter.get("type", "")) != GameMap.ENCOUNTER_ENEMY:
+		return {}
+	return encounter
+
+
+func _reveal_enemy_at(target_position: Vector2i, enemy_data: Dictionary) -> void:
+	if _map == null:
+		return
+	enemy_data["revealed"] = true
+	_map.update_encounter_data(target_position, enemy_data)

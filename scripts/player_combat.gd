@@ -1,3 +1,4 @@
+class_name PlayerCombat
 extends Node
 
 var _player: GamePlayer

@@ -6,15 +6,15 @@ const CARD_DEFINITION_SCRIPT = preload("res://scripts/card_definition.gd")
 const DEFAULT_CARD_BASE_TEXTURE_PATH := "res://assets/images/card_base.png"
 const FALLBACK_EVENT_ART_TEXTURE_PATH := "res://assets/images/card_art_event.png"
 const EVENT_ART_TEXTURES := {
-	DeckController.EVENT_DESTROY_TILE: "res://assets/images/card_art_event_destroy_tile.png",
-	DeckController.EVENT_DRAW_TWO: "res://assets/images/card_art_event_draw_two.png",
-	DeckController.EVENT_ROTATE_TILE: "res://assets/images/card_art_event_rotate_tile.png",
-	DeckController.EVENT_LUCKY_FIND: "res://assets/images/card_art_event_lucky_find.png",
+	GameConstants.EVENT_DESTROY_TILE: "res://assets/images/card_art_event_destroy_tile.png",
+	GameConstants.EVENT_DRAW_TWO: "res://assets/images/card_art_event_draw_two.png",
+	GameConstants.EVENT_ROTATE_TILE: "res://assets/images/card_art_event_rotate_tile.png",
+	GameConstants.EVENT_LUCKY_FIND: "res://assets/images/card_art_event_lucky_find.png",
 }
 const MARKER_ONLY_EVENT_TYPES := [
-	DeckController.EVENT_AMBUSH,
-	DeckController.EVENT_WILD_BERRIES,
-	DeckController.EVENT_LOST_BELONGINGS,
+	GameConstants.EVENT_AMBUSH,
+	GameConstants.EVENT_WILD_BERRIES,
+	GameConstants.EVENT_LOST_BELONGINGS,
 ]
 const ROAD_ART_TEXTURES := {
 	"Straight Road": "res://assets/images/card_art_road_straight.png",
@@ -90,6 +90,11 @@ var _detail_label: Label
 var _touch_button: Button
 static var _texture_cache := {}
 
+
+## Call between level loads to free unused texture memory.
+static func clear_texture_cache() -> void:
+	_texture_cache.clear()
+
 const TITLE_RECT := Rect2(14.0, 12.0, 122.0, 52.0)
 const ART_RECT := Rect2(18.0, 72.0, 114.0, 62.0)
 const NO_DETAIL_ART_RECT := Rect2(18.0, 94.0, 114.0, 62.0)
@@ -109,7 +114,6 @@ func _ready() -> void:
 	if size == Vector2.ZERO:
 		size = custom_minimum_size
 	pivot_offset = size * 0.5
-	mouse_filter = Control.MOUSE_FILTER_STOP
 	_bind_scene_nodes()
 	_layout_content()
 	_refresh_text()
@@ -167,9 +171,6 @@ func _bind_scene_nodes() -> void:
 	_category_label = get_node("Category") as Label
 	_detail_label = get_node("Detail") as Label
 	_touch_button = get_node("TouchButton") as Button
-	_title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_category_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_detail_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_title_label.add_theme_color_override("font_color", UIStyle.card_text(self))
 	_category_label.add_theme_color_override("font_color", UIStyle.card_muted_text(self))
 	_detail_label.add_theme_color_override("font_color", UIStyle.card_text(self))
@@ -260,7 +261,7 @@ func _title_from_definition() -> String:
 
 
 func _card_header_text() -> String:
-	if category != DeckController.ROAD_CATEGORY or tile_definition == null:
+	if category != GameConstants.ROAD_CATEGORY or tile_definition == null:
 		return title
 	return _title_from_definition()
 
@@ -287,7 +288,7 @@ func get_card_art_rect() -> Rect2:
 
 
 func _card_art_texture() -> Texture2D:
-	if category == DeckController.EVENT_CATEGORY:
+	if category == GameConstants.EVENT_CATEGORY:
 		if event_type in MARKER_ONLY_EVENT_TYPES:
 			return null
 		return _load_texture(str(EVENT_ART_TEXTURES.get(event_type, FALLBACK_EVENT_ART_TEXTURE_PATH)))
@@ -317,7 +318,7 @@ static func _load_texture(path: String) -> Texture2D:
 
 
 func _category_badge_text() -> String:
-	if category == DeckController.EVENT_CATEGORY:
+	if category == GameConstants.EVENT_CATEGORY:
 		return "EVENT"
 	if _encounter_type() == GameMap.ENCOUNTER_ENEMY:
 		return "ROAD + ENEMY"
@@ -331,7 +332,7 @@ func _category_badge_text() -> String:
 
 
 func _compact_detail_text() -> String:
-	if category == DeckController.ROAD_CATEGORY:
+	if category == GameConstants.ROAD_CATEGORY:
 		return ""
 	if detail.is_empty():
 		if _encounter_type() == GameMap.ENCOUNTER_BERRY_BUSH:

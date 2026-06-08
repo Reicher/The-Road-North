@@ -1,17 +1,10 @@
 class_name PlayerStatsUI
-extends Control
+extends VBoxContainer
 
 const STAT_ICON_SIZE := 54.0
 const STAT_VALUE_FONT_SIZE := 38
 const STAT_ROW_HEIGHT := 64.0
-
-const ICON_PATHS := {
-	"food": "res://assets/images/stat_food.png",
-	"gold": "res://assets/images/stat_gold.png",
-	"health": "res://assets/images/stat_health.png",
-	"deck": "res://assets/images/stat_deck.png",
-	"power": "res://assets/images/stat_power.png",
-}
+const ICON_PATHS := GameConstants.STAT_ICON_PATHS
 
 @export var player_path: NodePath
 @export var deck_controller_path: NodePath
@@ -24,20 +17,42 @@ const ICON_PATHS := {
 var _player: GamePlayer
 var _deck_controller: DeckController
 var _last_values: Dictionary = {}
-var _pulse_strength: Dictionary = {}
-var _pulse_sign: Dictionary = {}
-var _gain_amounts: Dictionary = {}
-var _pulse_tweens: Dictionary = {}
-var _icon_cache: Dictionary = {}
+var _deck_row: StatRow
+var _food_row: StatRow
+var _gold_row: StatRow
+var _health_row: StatRow
+var _power_row: StatRow
+
+## Backward-compatible accessors for tests
+var _pulse_strength: Dictionary:
+	get:
+		var d := {}
+		for stat_name in ["food", "gold", "health", "power"]:
+			d[stat_name] = _get_row(stat_name)._pulse_strength
+		return d
+var _pulse_sign: Dictionary:
+	get:
+		var d := {}
+		for stat_name in ["food", "gold", "health", "power"]:
+			d[stat_name] = _get_row(stat_name)._pulse_sign
+		return d
+var _gain_amounts: Dictionary:
+	get:
+		var d := {}
+		for stat_name in ["food", "gold", "health", "power"]:
+			d[stat_name] = _get_row(stat_name)._gain_amount
+		return d
 
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	position = Vector2(left_margin, top_margin)
+	_deck_row = $DeckRow as StatRow
+	_food_row = $FoodRow as StatRow
+	_gold_row = $GoldRow as StatRow
+	_health_row = $HealthRow as StatRow
+	_power_row = $PowerRow as StatRow
 	_player = get_node_or_null(player_path) as GamePlayer
 	_deck_controller = get_node_or_null(deck_controller_path) as DeckController
-	custom_minimum_size = Vector2(240.0, row_height * 5.0 + 10.0)
-	size = custom_minimum_size
-	position = Vector2(left_margin, top_margin)
 	if _player != null and not _player.health_changed.is_connected(_on_player_health_changed):
 		_player.health_changed.connect(_on_player_health_changed)
 	if _player != null and not _player.base_power_changed.is_connected(_on_player_base_power_changed):
@@ -52,51 +67,25 @@ func _ready() -> void:
 	if inventory != null and not inventory.stats_changed.is_connected(_on_inventory_stats_changed):
 		inventory.stats_changed.connect(_on_inventory_stats_changed)
 	_last_values = _get_current_values()
-	queue_redraw()
+	_refresh_all_displays()
 
 
-func _draw() -> void:
-	_draw_stat_row(0, "deck", _get_deck_display())
-	_draw_stat_row(1, "food", _get_food())
-	_draw_stat_row(2, "gold", _get_gold())
-	_draw_stat_row(3, "health", _get_health_display())
-	_draw_stat_row(4, "power", _get_power())
+func sync_without_feedback() -> void:
+	_deck_row.sync_without_feedback()
+	_food_row.sync_without_feedback()
+	_gold_row.sync_without_feedback()
+	_health_row.sync_without_feedback()
+	_power_row.sync_without_feedback()
+	_last_values = _get_current_values()
+	_refresh_all_displays()
 
 
-func _draw_stat_row(index: int, stat_name: String, value: Variant) -> void:
-	var row_center := Vector2(icon_size * 0.5 + 7.0, 5.0 + row_height * float(index) + row_height * 0.5)
-	var pulse := float(_pulse_strength.get(stat_name, 0.0))
-	var sign := int(_pulse_sign.get(stat_name, 1))
-	var change_amount := int(_gain_amounts.get(stat_name, 0))
-	var change_color := _get_stat_glow_color(stat_name, sign)
-	if pulse > 0.0:
-		var glow := change_color
-		glow.a = 0.22 + pulse * 0.46
-		draw_circle(row_center, icon_size * (0.48 + pulse * 0.16), glow)
-		draw_arc(row_center, icon_size * (0.64 + pulse * 0.15), 0.0, TAU, 28, glow.lightened(0.20), maxf(2.0, 5.0 * pulse))
-
-	var icon := _get_stat_icon(stat_name)
-	if icon != null:
-		var icon_rect := Rect2(row_center - Vector2.ONE * icon_size * 0.5, Vector2.ONE * icon_size)
-		var icon_color := Color.WHITE
-		if pulse > 0.0:
-			icon_color = Color.WHITE.lerp(change_color, 0.62 * pulse)
-		draw_texture_rect(icon, icon_rect, false, icon_color)
-
-	var font: Font = ThemeDB.fallback_font
-	var font_size := STAT_VALUE_FONT_SIZE
-	var text_position := Vector2(row_center.x + icon_size * 0.5 + 13.0, row_center.y + 15.0)
-	draw_string_outline(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, 7, Color(0.10, 0.08, 0.05, 0.92))
-	var value_color := Color(1.0, 0.96, 0.84)
-	if pulse > 0.0:
-		value_color = value_color.lerp(change_color, 0.86 * pulse)
-	draw_string(font, text_position, str(value), HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, value_color)
-	if pulse > 0.0 and change_amount != 0:
-		var value_width := font.get_string_size(str(value), HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size).x
-		var gain_position := text_position + Vector2(value_width + 8.0, 0.0)
-		var change_text := "%+d" % change_amount
-		draw_string_outline(font, gain_position, change_text, HORIZONTAL_ALIGNMENT_LEFT, 76.0, font_size, 7, Color(0.10, 0.08, 0.05, 0.94))
-		draw_string(font, gain_position, change_text, HORIZONTAL_ALIGNMENT_LEFT, 76.0, font_size, change_color)
+func _refresh_all_displays() -> void:
+	_deck_row.set_display_value(_get_deck_display())
+	_food_row.set_display_value(_get_food())
+	_gold_row.set_display_value(_get_gold())
+	_health_row.set_display_value(_get_health_display())
+	_power_row.set_display_value(_get_power())
 
 
 func _get_food() -> int:
@@ -148,7 +137,7 @@ func _on_player_gold_changed(_gold: int) -> void:
 
 
 func _on_deck_count_changed(_cards_remaining: int, _total_cards: int) -> void:
-	queue_redraw()
+	_deck_row.set_display_value(_get_deck_display())
 
 
 func _on_inventory_stats_changed() -> void:
@@ -159,55 +148,42 @@ func _on_player_base_power_changed(_base_power: int) -> void:
 	_handle_value_change("power", _get_power())
 
 
-func sync_without_feedback() -> void:
-	for tween in _pulse_tweens.values():
-		if tween is Tween:
-			(tween as Tween).kill()
-	_pulse_tweens.clear()
-	_pulse_strength.clear()
-	_pulse_sign.clear()
-	_gain_amounts.clear()
-	_last_values = _get_current_values()
-	queue_redraw()
-
-
 func _handle_value_change(stat_name: String, value: int) -> void:
 	var previous := int(_last_values.get(stat_name, value))
 	_last_values[stat_name] = value
-	if value == previous:
-		queue_redraw()
-		return
-	_start_pulse(stat_name, value - previous)
+	_get_row(stat_name).set_display_value(_get_display_for(stat_name))
+	if value != previous:
+		_get_row(stat_name).trigger_pulse(value - previous)
 
 
-func _start_pulse(stat_name: String, change: int) -> void:
-	var existing_change := int(_gain_amounts.get(stat_name, 0))
-	var is_same_active_change := signi(existing_change) == signi(change) and float(_pulse_strength.get(stat_name, 0.0)) > 0.0
-	_pulse_strength[stat_name] = 1.0
-	_pulse_sign[stat_name] = 1 if change > 0 else -1
-	_gain_amounts[stat_name] = existing_change + change if is_same_active_change else change
-	var existing_tween := _pulse_tweens.get(stat_name) as Tween
-	if existing_tween != null:
-		existing_tween.kill()
-	var tween := create_tween()
-	_pulse_tweens[stat_name] = tween
-	tween.set_trans(Tween.TRANS_SINE)
-	tween.set_ease(Tween.EASE_OUT)
-	tween.tween_method(_set_pulse.bind(stat_name), 1.0, 0.0, gain_pulse_duration)
-	tween.finished.connect(_finish_pulse.bind(stat_name))
-	queue_redraw()
+func _get_row(stat_name: String) -> StatRow:
+	match stat_name:
+		"deck":
+			return _deck_row
+		"food":
+			return _food_row
+		"gold":
+			return _gold_row
+		"health":
+			return _health_row
+		"power":
+			return _power_row
+	return _food_row
 
 
-func _set_pulse(value: float, stat_name: String) -> void:
-	_pulse_strength[stat_name] = value
-	queue_redraw()
-
-
-func _finish_pulse(stat_name: String) -> void:
-	_pulse_strength[stat_name] = 0.0
-	_gain_amounts[stat_name] = 0
-	_pulse_tweens.erase(stat_name)
-	queue_redraw()
+func _get_display_for(stat_name: String) -> Variant:
+	match stat_name:
+		"deck":
+			return _get_deck_display()
+		"food":
+			return _get_food()
+		"gold":
+			return _get_gold()
+		"health":
+			return _get_health_display()
+		"power":
+			return _get_power()
+	return 0
 
 
 func _get_current_values() -> Dictionary:
@@ -219,27 +195,22 @@ func _get_current_values() -> Dictionary:
 	}
 
 
-func _get_stat_icon(stat_name: String) -> Texture2D:
-	if _icon_cache.has(stat_name):
-		return _icon_cache[stat_name]
-	var path := str(ICON_PATHS.get(stat_name, ""))
-	if path.is_empty():
-		return null
-	var texture := load(path) as Texture2D
-	if texture == null:
-		push_warning("Could not load stat icon: %s" % path)
-		return null
-	_icon_cache[stat_name] = texture
-	return texture
-
-
 func _get_inventory() -> InventoryUI:
 	if _player == null or _player.inventory_path.is_empty():
 		return null
 	return _player.get_node_or_null(_player.inventory_path) as InventoryUI
 
 
-func _get_stat_glow_color(stat_name: String, sign: int) -> Color:
+## Backward-compatible icon loader for tests.
+func _get_stat_icon(stat_name: String) -> Texture2D:
+	var path := str(ICON_PATHS.get(stat_name, ""))
+	if path.is_empty():
+		return null
+	return load(path) as Texture2D
+
+
+## Backward-compatible glow color for tests.
+static func _get_stat_glow_color(_stat_name: String, sign: int) -> Color:
 	if sign < 0:
 		return Color(1.0, 0.32, 0.22)
 	return Color(0.32, 1.0, 0.38)
