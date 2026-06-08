@@ -223,6 +223,7 @@ func _make_event_cards(count: int, rng: RandomNumberGenerator, config: Dictionar
 		{"title": "Ambush", "detail": "Add an enemy to a road.", "event_type": GameConstants.EVENT_AMBUSH},
 		{"title": "Wild Berries", "detail": "Add a berry bush to a road.", "event_type": GameConstants.EVENT_WILD_BERRIES},
 		{"title": "Lost Belongings", "detail": "Add a cache to a road.", "event_type": GameConstants.EVENT_LOST_BELONGINGS},
+		{"title": "Sleep", "detail": "Discard hand and redraw.", "event_type": GameConstants.EVENT_SLEEP},
 	]
 	_shuffle_cards(event_templates, rng)
 	var cards: Array[Dictionary] = []
@@ -349,3 +350,13 @@ func _shuffle_ints(values: Array[int], rng: RandomNumberGenerator) -> void:
 		var value := values[index]
 		values[index] = values[swap_index]
 		values[swap_index] = value
+
+
+func make_level_specific_cards(level: int, config: Dictionary) -> Array[Dictionary]:
+	var cards: Array[Dictionary] = []
+	if level >= 2:
+		cards.append(_make_event_card("It Was All a Dream", "Restart the level.", GameConstants.EVENT_RESTART_LEVEL))
+	var bridge_definition: Resource = config.get("bridge_definition")
+	if level == 2 and bridge_definition != null:
+		cards.append(_make_road_card(bridge_definition))
+	return cards

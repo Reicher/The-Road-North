@@ -11,7 +11,6 @@ Godot 4.6, modular scene-oriented structure. Root folders: `scenes/`, `scripts/`
 Responsibilities:
 - Load levels in sequence, carry/restore/reset progression
 - Open between-level shop, apply pending potion bonuses
-- Save/load via SaveManager for mid-run persistence
 - Configure player deck modifiers (removals, special cards)
 - Debug shortcuts (keyboard only)
 
@@ -156,12 +155,6 @@ No generic effect engine, no economy system, no equipment framework beyond stron
 Standalone `Control` instantiated by Main. Features: food (5/4g), heal (2HP/5g), power potion (8g), max-health potion (10g), sell zone, two item offers (Dagger 7g, Machete 12g), three special-card offers, deck overlay with one removal per shop (base 12g, +6g each). Protected types: Straight, Corner, T-Junction.
 
 Emits `play_next_requested(progression)`. Potions stored as `pending_*` keys, applied by Main on next level load.
-
----
-
-## SaveManager
-
-Static `RefCounted`. Persists to `user://save_data.json`: version, level index, full progression dictionary, timestamp. Main saves after shop and loads on startup.
 
 ---
 

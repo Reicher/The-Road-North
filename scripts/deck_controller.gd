@@ -21,6 +21,7 @@ const HAND_SIZE := 4
 @export var t_junction_definition: Resource = preload("res://data/road_t_junction.tres")
 @export var four_way_definition: Resource = preload("res://data/road_four_way.tres")
 @export var dead_end_definition: Resource = preload("res://data/road_dead_end.tres")
+@export var bridge_definition: Resource = preload("res://data/road_bridge.tres")
 
 var deck: Array[Dictionary] = []
 var starting_deck: Array[Dictionary] = []
@@ -68,7 +69,9 @@ func start_run() -> void:
 
 
 func generate_deck() -> void:
-	deck_components = _deck_builder.make_deck_components(_get_deck_size(), _rng, _deck_config())
+	var config := _deck_config()
+	deck_components = _deck_builder.make_deck_components(_get_deck_size(), _rng, config)
+	_inject_level_specific_cards(config)
 	_apply_player_deck_modifiers()
 	deck = _deck_builder.combine_deck_components(deck_components)
 	starting_deck = deck.duplicate(true)
@@ -218,6 +221,11 @@ func play_immediate_event(card: CardView) -> bool:
 			_apply_lucky_find()
 			_hand.set_inactive(false)
 			return true
+	elif card.event_type == GameConstants.EVENT_SLEEP:
+		if consume_card(card):
+			_discard_and_refill_hand()
+			_hand.set_inactive(false)
+			return true
 	elif card.event_type == GameConstants.EVENT_RESTART_LEVEL:
 		if consume_card(card):
 			_hand.set_inactive(false)
@@ -233,6 +241,29 @@ func _apply_lucky_find() -> void:
 		_player.add_food(3)
 	else:
 		_player.add_gold(4)
+
+
+func _discard_and_refill_hand() -> void:
+	if _hand == null:
+		return
+	_hand.set_cards([])
+	for _index in hand_size:
+		var card: Dictionary = draw_card()
+		if card.is_empty():
+			break
+		_hand.add_card(card)
+	_check_exhaustion()
+
+
+func _inject_level_specific_cards(config: Dictionary) -> void:
+	var level_cards: Array[Dictionary] = _deck_builder.make_level_specific_cards(level, config)
+	if level_cards.is_empty():
+		return
+	var level_component: Array = deck_components.get(DeckBuilder.DECK_SOURCE_LEVEL, [])
+	for card in level_cards:
+		card["deck_source"] = DeckBuilder.DECK_SOURCE_LEVEL
+		level_component.append(card)
+	deck_components[DeckBuilder.DECK_SOURCE_LEVEL] = level_component
 
 
 func _get_deck_size() -> int:
@@ -276,6 +307,7 @@ func _make_deck_config(deck_level: int, map_size: int) -> Dictionary:
 			"four_way": four_way_definition,
 			"dead_end": dead_end_definition,
 		},
+		"bridge_definition": bridge_definition,
 	}
 
 

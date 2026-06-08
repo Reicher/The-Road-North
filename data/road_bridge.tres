@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="TileDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/tile_definition.gd" id="1_bridge"]
+
+[resource]
+script = ExtResource("1_bridge")
+display_name = "Bridge"
+opens_north = true
+opens_south = true
+placeable_on_river = true
+visual_identity = "bridge"

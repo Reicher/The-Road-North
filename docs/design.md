@@ -56,7 +56,7 @@ Tap an adjacent connected tile to move. Rules:
 - Backtracking allowed if roads and food exist
 - Tweened hop animation; input disabled during move
 
-Starting stats: 10 food, 4 health, 0 gold, 1 base power, a Knife (+1 power).
+Starting stats: 10 food, 4 health, 0 gold, 0 base power, a Knife (+1 power).
 
 Food, gold, health, max health, base power, and backpack carry between levels. Restarting a level restores level-start values. Restarting the game resets everything.
 
@@ -92,7 +92,7 @@ Features:
 
 Protected road types (Straight, Corner, T-Junction) cannot have their last copy removed. Potion bonuses apply only to the next map.
 
-Special card: "It was all a dream" restarts the current level from its saved state.
+Special card: "It Was All a Dream" is a level card injected on levels 2+; it restarts the current level from its saved state.
 
 ---
 
@@ -107,13 +107,15 @@ Tap to focus (card lifts and enlarges). Drag upward to play:
 - Dragging back into hand cancels; releasing outside both cancels
 - Release over map: preview stays, controls appear (rotate/confirm/cancel)
 
-Immediate events (Idea, Lucky Find, It was all a dream) trigger on release over map. No manual reorder in v1.
+Immediate events (Idea, Lucky Find, Sleep, It Was All a Dream) trigger on release over map. No manual reorder in v1.
 
 ---
 
 ## Road Cards
 
 Types: Straight, Corner, T-Junction (20%), Four-Way (15%), Dead End (20%). Straight and Corner split the remainder equally.
+
+Special road: **Bridge** — a straight road that may be placed on river tiles (normal connection rules still apply). Injected as a level card on level 2.
 
 Can be rotated before placement. Some carry hidden encounters (enemy, berry bush, cache). Encounter counts scale with map size and level:
 - Level 1: 4 enemy, 2 berry, 2 cache
@@ -131,7 +133,7 @@ Validity requires: empty tile, within range, connects correctly to player's tile
 
 ## Event Cards
 
-Eight types, dealt from shuffled set before repeating:
+Eight base types plus level-specific events, dealt from shuffled set before repeating:
 
 | Event | Effect |
 |-------|--------|
@@ -143,6 +145,8 @@ Eight types, dealt from shuffled set before repeating:
 | Ambush | Add enemy to a road |
 | Wild Berries | Add berry bush to a road |
 | Lost Belongings | Add cache to a road |
+| Sleep | Discard full hand, redraw to normal hand size |
+| It Was All a Dream | Restart level with fresh shuffle and reset state (level card, levels 2+) |
 
 Targeting rules: same orthogonal range as road placement. Cannot target start, goal, or player's tile. Clear Path requires an encounter present; Ambush/Wild Berries/Lost Belongings require no encounter. Mirage/Doubt share targeting restrictions; Doubt previews clockwise rotation.
 

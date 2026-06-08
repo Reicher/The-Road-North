@@ -5,7 +5,6 @@ const LEVEL_SCENES: Array[PackedScene] = [
 	preload("res://levels/level_002.tscn"),
 ]
 const SHOP_SCENE := preload("res://ui/shop.tscn")
-const SaveManager = preload("res://scripts/save_manager.gd")
 const LEVEL_NAMES := ["Level 1", "3 bridges"]
 # Map sizes per level — avoids instantiating next scene just to query playable_width/height
 const LEVEL_MAP_SIZES := [5, 7]
@@ -34,7 +33,6 @@ func _ready() -> void:
 	assert(LEVEL_NAMES.size() == LEVEL_SCENES.size(), "LEVEL_NAMES and LEVEL_SCENES must have the same size")
 	assert(LEVEL_MAP_SIZES.size() == LEVEL_SCENES.size(), "LEVEL_MAP_SIZES and LEVEL_SCENES must have the same size")
 	_ensure_debug_overlay()
-	_try_load_save()
 	_load_level(_current_level_index)
 
 
@@ -60,6 +58,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("debug_complete_level"):
 		_complete_current_level()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("debug_add_gold"):
+		_debug_add_gold()
 		get_viewport().set_input_as_handled()
 	else:
 		for action in DEBUG_HAND_ACTIONS:
@@ -127,6 +128,14 @@ func _complete_current_level() -> void:
 	player.check_run_won()
 
 
+func _debug_add_gold() -> void:
+	if _current_level == null:
+		return
+	var player := _current_level.get_node_or_null("Player") as GamePlayer
+	if player != null:
+		player.add_gold(5)
+
+
 func _show_debug_hand(kind: String) -> void:
 	if _current_level == null:
 		return
@@ -150,7 +159,6 @@ func _on_restart_level_requested() -> void:
 func _on_restart_game_requested() -> void:
 	_close_shop()
 	_level_start_progression.clear()
-	SaveManager.delete_save()
 	_load_level(0)
 
 
@@ -249,7 +257,6 @@ func _open_shop() -> void:
 func _on_shop_play_next_requested(progression: Dictionary) -> void:
 	_level_start_progression = progression.duplicate(true)
 	_close_shop()
-	_save_progress()
 	_load_level(_current_level_index + 1)
 
 
@@ -263,15 +270,3 @@ func _close_shop() -> void:
 		_shop_layer = null
 
 
-func _try_load_save() -> void:
-	var save_data := SaveManager.load_progression()
-	if save_data.is_empty():
-		return
-	_current_level_index = clampi(int(save_data.get("level_index", 0)), 0, LEVEL_SCENES.size() - 1)
-	var progression: Variant = save_data.get("progression", {})
-	if progression is Dictionary and not progression.is_empty():
-		_level_start_progression = progression.duplicate(true)
-
-
-func _save_progress() -> void:
-	SaveManager.save_progression(_level_start_progression, _current_level_index)

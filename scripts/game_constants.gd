@@ -27,6 +27,7 @@ const EVENT_AMBUSH := "ambush"
 const EVENT_WILD_BERRIES := "wild_berries"
 const EVENT_LOST_BELONGINGS := "lost_belongings"
 const EVENT_RESTART_LEVEL := "restart_level"
+const EVENT_SLEEP := "sleep"
 
 const TARGETED_EVENT_TYPES: Array[String] = [
 	EVENT_DESTROY_TILE,

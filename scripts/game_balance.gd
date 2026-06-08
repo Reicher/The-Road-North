@@ -2,7 +2,7 @@ class_name GameBalance
 extends RefCounted
 
 const STARTING_HEALTH := 4
-const BASE_POWER := 1
+const BASE_POWER := 0
 const STARTING_FOOD := 10
 const INTRO_BASE_DECK_SIZE := 18
 const INTRO_BASE_MAP_SIZE := 5

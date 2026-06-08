@@ -524,7 +524,8 @@ func _is_valid_tile_target(grid_position: Vector2i) -> bool:
 
 
 func _get_road_placement_hint(grid_position: Vector2i, connections: Dictionary) -> String:
-	return _validator.get_road_placement_hint(grid_position, connections)
+	var allow_river: bool = active_definition != null and active_definition.get("placeable_on_river") == true
+	return _validator.get_road_placement_hint(grid_position, connections, allow_river)
 
 
 func _get_tile_target_hint(grid_position: Vector2i) -> String:

@@ -26,7 +26,7 @@ func setup(map: GameMap, player: GamePlayer, target_range_func: Callable) -> voi
 	_target_range_func = target_range_func
 
 
-func get_road_placement_hint(grid_position: Vector2i, connections: Dictionary) -> String:
+func get_road_placement_hint(grid_position: Vector2i, connections: Dictionary, placeable_on_river: bool = false) -> String:
 	if _is_too_far_away(grid_position):
 		return HINT_TOO_FAR
 	if grid_position == _player.grid_position:
@@ -34,12 +34,13 @@ func get_road_placement_hint(grid_position: Vector2i, connections: Dictionary) -
 	if _map.get_tile(grid_position) != null:
 		return HINT_OCCUPIED
 	if not _map.can_build_on_fixed_feature(grid_position):
-		return HINT_TERRAIN_BLOCKS
+		if not placeable_on_river or not _is_river_feature(grid_position):
+			return HINT_TERRAIN_BLOCKS
 	if _road_leads_off_map(grid_position, connections):
 		return HINT_ROAD_OFF_MAP
 	if _road_mismatches_player_tile(grid_position, connections):
 		return HINT_CONNECT_TO_PLAYER
-	if not _map.can_place_tile(grid_position, connections):
+	if not _map.can_place_tile(grid_position, connections, placeable_on_river):
 		return HINT_ROAD_DOESNT_FIT
 	return ""
 
@@ -124,6 +125,11 @@ func _road_mismatches_player_tile(grid_position: Vector2i, connections: Dictiona
 	var opens_to_player: bool = connections.get(direction_name, false) == true
 	var player_opens_back: bool = player_connections.get(opposite_direction, false) == true
 	return opens_to_player != player_opens_back
+
+
+func _is_river_feature(grid_position: Vector2i) -> bool:
+	var feature := _map.get_fixed_feature(grid_position)
+	return str(feature.get("type", "")) == GameConstants.FEATURE_RIVER
 
 
 static func _direction_name_for_delta(delta: Vector2i) -> String:

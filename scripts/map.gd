@@ -184,13 +184,14 @@ func get_goal_position() -> Vector2i:
 	return Vector2i(playable_width / 2, 0)
 
 
-func can_place_tile(grid_position: Vector2i, connections: Dictionary = {}) -> bool:
+func can_place_tile(grid_position: Vector2i, connections: Dictionary = {}, allow_river: bool = false) -> bool:
 	if not is_inside_playable_area(grid_position):
 		return false
 	if tiles.has(grid_position):
 		return false
 	if not can_build_on_fixed_feature(grid_position):
-		return false
+		if not allow_river or str(get_fixed_feature(grid_position).get("type", "")) != FEATURE_RIVER:
+			return false
 
 	for direction_name in DIRECTIONS:
 		var direction: Vector2i = DIRECTIONS.get(direction_name, Vector2i.ZERO) as Vector2i
