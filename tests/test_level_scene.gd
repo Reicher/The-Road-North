@@ -59,6 +59,8 @@ func run() -> void:
 	_assert(deck_controller.hand_size == 4, "Expected level 001 to configure a four-card hand")
 	_assert(deck_controller.level == 1, "Expected level 001 enemies to use power one through three")
 	_assert(deck_controller.total_cards() == 18, "Expected level 001 deck size to use its authored 5x5 map size")
+	_assert(deck_controller.deck_components["base"].size() == 18 and deck_controller.deck_components["level"].is_empty(), "Expected level 001 to use only the base deck")
+	_assert(deck_controller.deck_components["player_special"].is_empty(), "Expected player special cards to remain an empty concept")
 	_assert(placement.get_target_range() == 1, "Expected the player to start with target range one")
 	inventory.add_item({"name": "Kikare", "effect": "Placera kort längre bort.", "target_range_bonus": 1})
 	_assert(placement.get_target_range() == 2, "Expected Kikare in the inventory to increase target range")
@@ -152,6 +154,10 @@ func run() -> void:
 	_assert(second_map.get_fixed_feature_connections(Vector2i(2, 3))["north"] == true, "Expected level 002 bridges to connect across the river")
 	_assert(second_deck_controller.hand_size == 4, "Expected level 002 to configure a four-card hand")
 	_assert(second_deck_controller.level == 2, "Expected level 002 enemies to use power four through six")
+	_assert(second_deck_controller.deck_components["base"].size() == 18 and second_deck_controller.deck_components["level"].size() == 7, "Expected level 002 to combine the base deck with seven level cards")
+	_assert(_count_enemy_cards(second_deck_controller.deck_components["base"]) == 4, "Expected level 002 to retain the level-one base deck recipe")
+	_assert(_all_level_cards_are_difficult(second_deck_controller.deck_components["level"]), "Expected level 002 level cards to prioritize difficult cards")
+	_assert(second_deck_controller.deck_components["player_special"].is_empty(), "Expected player special cards to remain an empty concept")
 	_assert(second_camera.reserved_bottom_path == NodePath("../UI/Hand"), "Expected camera to reserve the card hand area when sizing the map viewport")
 	_assert(is_equal_approx(second_camera.pan_margin_x_tiles, 3.0), "Expected camera to allow visual forest margin beyond the left and right edges")
 	_assert(is_equal_approx(second_camera.pan_margin_z_tiles, 3.0), "Expected camera to allow visual forest margin beyond the top and bottom edges")
@@ -173,3 +179,26 @@ func _assert(condition: bool, message: String) -> void:
 		return
 	push_error(message)
 	quit(1)
+
+
+func _all_level_cards_are_difficult(cards: Array[Dictionary]) -> bool:
+	for card in cards:
+		var encounter: Dictionary = card.get("encounter", {})
+		var event_type := str(card.get("event_type", ""))
+		var tile_definition: Resource = card.get("tile_definition")
+		var is_dead_end := tile_definition != null and str(tile_definition.get("display_name")) == "Dead End"
+		if encounter.get("type", "") != GameMap.ENCOUNTER_ENEMY and event_type not in [
+			DeckController.EVENT_DESTROY_TILE,
+			DeckController.EVENT_ROTATE_TILE,
+			DeckController.EVENT_AMBUSH,
+		] and not is_dead_end:
+			return false
+	return true
+
+
+func _count_enemy_cards(cards: Array[Dictionary]) -> int:
+	var count := 0
+	for card in cards:
+		if (card.get("encounter", {}) as Dictionary).get("type", "") == GameMap.ENCOUNTER_ENEMY:
+			count += 1
+	return count

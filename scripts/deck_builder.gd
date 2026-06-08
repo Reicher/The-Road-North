@@ -8,6 +8,9 @@ const GameBalance = preload("res://scripts/game_balance.gd")
 
 const ENCOUNTER_ENEMY := "enemy"
 const ROAD_SUBTYPES: Array[String] = ["straight", "corner", "t_junction", "four_way", "dead_end"]
+const DECK_SOURCE_BASE := "base"
+const DECK_SOURCE_LEVEL := "level"
+const DECK_SOURCE_PLAYER_SPECIAL := "player_special"
 
 
 func make_deck(deck_size: int, rng: RandomNumberGenerator, config: Dictionary) -> Array[Dictionary]:
@@ -20,6 +23,63 @@ func make_deck(deck_size: int, rng: RandomNumberGenerator, config: Dictionary) -
 	for event_card in _make_event_cards(event_count, rng, config):
 		cards.append(event_card)
 	return cards
+
+
+func make_deck_components(deck_size: int, rng: RandomNumberGenerator, config: Dictionary) -> Dictionary:
+	var component_counts: Dictionary = config.get("deck_components", {})
+	var components := {
+		DECK_SOURCE_BASE: [] as Array[Dictionary],
+		DECK_SOURCE_LEVEL: [] as Array[Dictionary],
+		DECK_SOURCE_PLAYER_SPECIAL: [] as Array[Dictionary],
+	}
+	var base_count := clampi(int(component_counts.get(DECK_SOURCE_BASE, deck_size)), 0, deck_size)
+	var base_config: Dictionary = config.get("base_deck_config", config)
+	components[DECK_SOURCE_BASE] = _mark_deck_source(make_deck(base_count, rng, base_config), DECK_SOURCE_BASE)
+
+	var level_count := clampi(int(component_counts.get(DECK_SOURCE_LEVEL, 0)), 0, deck_size - base_count)
+	if level_count > 0:
+		var level_candidates := make_deck(deck_size, rng, config)
+		level_candidates.sort_custom(_is_harder_card)
+		level_candidates.resize(level_count)
+		components[DECK_SOURCE_LEVEL] = _mark_deck_source(level_candidates, DECK_SOURCE_LEVEL)
+	return components
+
+
+func _mark_deck_source(cards: Array[Dictionary], source: String) -> Array[Dictionary]:
+	for card in cards:
+		card["deck_source"] = source
+	return cards
+
+
+func combine_deck_components(components: Dictionary) -> Array[Dictionary]:
+	var cards: Array[Dictionary] = []
+	for source in [DECK_SOURCE_BASE, DECK_SOURCE_LEVEL, DECK_SOURCE_PLAYER_SPECIAL]:
+		for card in components.get(source, []):
+			cards.append(card)
+	return cards
+
+
+func _is_harder_card(left: Dictionary, right: Dictionary) -> bool:
+	return _card_difficulty(left) > _card_difficulty(right)
+
+
+func _card_difficulty(card: Dictionary) -> int:
+	var encounter: Dictionary = card.get("encounter", {})
+	if encounter.get("type", "") == ENCOUNTER_ENEMY:
+		return 4
+	var event_type := str(card.get("event_type", ""))
+	if event_type in [
+		DeckController.EVENT_DESTROY_TILE,
+		DeckController.EVENT_ROTATE_TILE,
+		DeckController.EVENT_AMBUSH,
+	]:
+		return 3
+	var tile_definition: Resource = card.get("tile_definition")
+	if tile_definition != null and str(tile_definition.get("display_name")) == "Dead End":
+		return 2
+	if card.get("category", "") == DeckController.EVENT_CATEGORY:
+		return 1
+	return 0
 
 
 func make_debug_hand(kind: String, config: Dictionary) -> Array[Dictionary]:

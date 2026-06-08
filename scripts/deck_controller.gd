@@ -47,6 +47,7 @@ const HAND_SIZE := 4
 
 var deck: Array[Dictionary] = []
 var starting_deck: Array[Dictionary] = []
+var deck_components: Dictionary = {}
 var drawn_count := 0
 
 var _map: GameMap
@@ -87,7 +88,8 @@ func start_run() -> void:
 
 
 func generate_deck() -> void:
-	deck = _deck_builder.make_deck(_get_deck_size(), _rng, _deck_config())
+	deck_components = _deck_builder.make_deck_components(_get_deck_size(), _rng, _deck_config())
+	deck = _deck_builder.combine_deck_components(deck_components)
 	starting_deck = deck.duplicate(true)
 
 
@@ -228,9 +230,17 @@ func _emit_deck_count_changed() -> void:
 
 func _deck_config() -> Dictionary:
 	var map_size := _get_map_size()
-	var counts := GameBalance.deck_counts(level, map_size)
+	var config := _make_deck_config(level, map_size)
+	config["deck_components"] = GameBalance.deck_component_counts(level, map_size)
+	if level > 1:
+		config["base_deck_config"] = _make_deck_config(1, GameBalance.INTRO_BASE_MAP_SIZE)
+	return config
+
+
+func _make_deck_config(deck_level: int, map_size: int) -> Dictionary:
+	var counts := GameBalance.deck_counts(deck_level, map_size)
 	return {
-		"level": level,
+		"level": deck_level,
 		"map_size": map_size,
 		"road_count": counts["road_cards"],
 		"road_distribution": counts["road_distribution"],

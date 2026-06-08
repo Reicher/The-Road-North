@@ -25,10 +25,12 @@ func _test_deck_formulas() -> void:
 	_assert(int(counts["road_cards"]) == 14 and int(counts["event_cards"]) == 4, "Expected 75 percent road cards and remaining event cards")
 	_assert(counts["road_distribution"] == {"straight": 3, "corner": 3, "t_junction": 3, "four_way": 2, "dead_end": 3}, "Expected road subtype formulas to include more four-way intersections and dead ends")
 	_assert(counts["special_roads"] == {"enemy": 4, "loot": 2, "berry": 2}, "Expected 5x5 level one encounter counts")
+	_assert(GameBalance.deck_component_counts(1, 5) == {"base": 18, "level": 0, "player_special": 0}, "Expected level one to use only the base deck")
 
 	var level_two := GameBalance.deck_counts(2, 7)
 	_assert(level_two["road_distribution"] == {"straight": 4, "corner": 4, "t_junction": 4, "four_way": 3, "dead_end": 4}, "Expected level two road subtype distribution")
 	_assert(level_two["special_roads"] == {"enemy": 6, "loot": 3, "berry": 3}, "Expected 7x7 level two encounter counts")
+	_assert(GameBalance.deck_component_counts(2, 7) == {"base": 18, "level": 7, "player_special": 0}, "Expected level two to add seven level cards to the base deck")
 
 
 func _test_level_and_map_size_are_independent_inputs() -> void:

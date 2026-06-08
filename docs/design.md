@@ -141,7 +141,14 @@ Gameplay interaction should be temporarily disabled during movement tweening.
 
 # Cards and Decks
 
-Version 1 uses one generated deck per level.
+Each level's generated deck is combined from three named parts:
+- the base deck
+- the level deck
+- the player's special cards
+
+The base deck contains the normal shared card pool. Level 1 uses only the base deck. Level 2 combines the 18-card base deck with 7 level cards, prioritizing somewhat more difficult cards such as enemy roads, disruptive events, and dead ends.
+
+Player special cards are only a named, empty concept in version 1. They are intended to come from authored levels later, but no special cards, acquisition rules, or effects are implemented yet.
 
 There is no persistent personal deck or progression between games. The current run is a sequence of two authored levels. Completing level 1 advances to level 2 while carrying player resources and inventory. Restarting the game returns to level 1 with the initial player values.
 

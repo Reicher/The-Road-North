@@ -257,11 +257,13 @@ DeckController owns:
 
 DeckBuilder owns:
 - road and event card generation
+- base, level, and empty player-special deck components
+- combining deck components before shuffling
 - road subtype distribution
 - enemy, berry-bush, and cache encounter attachment
 - debug hand generation
 
-GameBalance is the shared source for starting values, deck-size formulas, encounter counts, enemy power ranges, and reward values.
+GameBalance is the shared source for starting values, deck-size and deck-component formulas, encounter counts, enemy power ranges, and reward values.
 
 The DeckController should not contain hand UI logic.
 

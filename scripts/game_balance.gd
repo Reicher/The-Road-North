@@ -4,6 +4,8 @@ extends RefCounted
 const STARTING_HEALTH := 4
 const BASE_POWER := 1
 const STARTING_FOOD := 10
+const INTRO_BASE_DECK_SIZE := 18
+const INTRO_BASE_MAP_SIZE := 5
 
 
 static func deck_counts(level: int, map_size: int) -> Dictionary:
@@ -26,6 +28,16 @@ static func deck_counts(level: int, map_size: int) -> Dictionary:
 		"event_cards": event_cards,
 		"road_distribution": road_distribution(road_cards),
 		"special_roads": special_road_counts(safe_level, safe_map_size, road_cards),
+	}
+
+
+static func deck_component_counts(level: int, map_size: int) -> Dictionary:
+	var total_cards := int(deck_counts(level, map_size)["total_cards"])
+	var base_cards := total_cards if level <= 1 else mini(INTRO_BASE_DECK_SIZE, total_cards)
+	return {
+		"base": base_cards,
+		"level": total_cards - base_cards,
+		"player_special": 0,
 	}
 
 
