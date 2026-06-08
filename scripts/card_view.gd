@@ -101,10 +101,10 @@ const NO_DETAIL_ART_RECT := Rect2(18.0, 94.0, 114.0, 62.0)
 const DETAIL_RECT := Rect2(14.0, 141.0, 122.0, 38.0)
 const CATEGORY_RECT := Rect2(22.0, 186.0, 106.0, 22.0)
 const TITLE_FONT_MAX := 19
-const TITLE_FONT_MIN := 14
-const CATEGORY_FONT_SIZE := 12
-const DETAIL_FONT_MAX := 13
-const DETAIL_FONT_MIN := 11
+const TITLE_FONT_MIN := 16
+const CATEGORY_FONT_SIZE := 14
+const DETAIL_FONT_MAX := 16
+const DETAIL_FONT_MIN := 14
 const BASE_CARD_SIZE := Vector2(150.0, 216.0)
 
 
@@ -336,19 +336,19 @@ func _compact_detail_text() -> String:
 		return ""
 	if detail.is_empty():
 		if _encounter_type() == GameMap.ENCOUNTER_BERRY_BUSH:
-			return "Plus food"
+			return "+Food"
 		if _encounter_type() == GameMap.ENCOUNTER_CACHE:
-			return "Plus treasure"
+			return "+Treasure"
 	if detail == "Enemy waits on this road.":
-		return "Hidden fight on this road."
+		return "Enemy ahead"
 	if detail == "Grants food when reached.":
-		return "Plus food"
+		return "+Food"
 	if detail == "Contains an item when reached.":
-		return "Plus treasure"
+		return "+Treasure"
 	if detail == "Draw two extra cards.":
-		return "Draw 2 cards."
+		return "Draw +2 cards"
 	if detail == "Destroy a placed tile.":
-		return "Destroy placed tile."
+		return "Remove a tile"
 	return detail
 
 

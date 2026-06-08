@@ -45,7 +45,7 @@ func add_list_button(text: String, disabled_state: bool, callback: Callable = Ca
 	return button
 
 
-func add_list_label(text: String, font_size := 16) -> Label:
+func add_list_label(text: String, font_size := 18) -> Label:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", font_size)

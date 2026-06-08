@@ -24,11 +24,12 @@ The 3D presentation does not change any gameplay rules.
 
 ## Map Structure
 
-Two authored levels:
+Three authored levels:
 - Level 1: 5×5, mountain at center
 - Level 2: 7×7, horizontal river with two bridge crossings
+- Level 3: 9×9, six scattered mountains with a pre-placed shortcut road guarded by a strong enemy
 
-Start at bottom center, goal at top center. Both are T-crossings facing inward. Coordinates: X left→right, Y top→bottom. Current positions: 5×5 start `(2,4)` goal `(2,0)`; 7×7 start `(3,6)` goal `(3,0)`.
+Start at bottom center, goal at top center. Both are T-crossings facing inward. Coordinates: X left→right, Y top→bottom. Current positions: 5×5 start `(2,4)` goal `(2,0)`; 7×7 start `(3,6)` goal `(3,0)`; 9×9 start `(4,8)` goal `(4,0)`.
 
 No gameplay border. A thick visual-only forest surrounds all edges so the camera never reveals empty void. A thin outline marks the playable boundary; no internal grid lines.
 
@@ -68,6 +69,7 @@ Each level's deck = base deck − player removals + level deck + player special 
 
 - Level 1: 18 cards (base only)
 - Level 2: 25 cards (18 base + 7 harder level cards)
+- Level 3: 32 cards (18 base + 14 level cards)
 
 Deck size formula: `round(map_size * 3.5 + 0.5)`, minus 1 card per 3 levels, floor at `shortest_path * 3`.
 
@@ -120,6 +122,7 @@ Special road: **Bridge** — a straight road that may be placed on river tiles (
 Can be rotated before placement. Some carry hidden encounters (enemy, berry bush, cache). Encounter counts scale with map size and level:
 - Level 1: 4 enemy, 2 berry, 2 cache
 - Level 2: 6 enemy, 3 berry, 3 cache
+- Level 3: 8 enemy, 4 berry, 4 cache
 
 Placement mode:
 - Preview follows drag, snaps to tiles; green = valid, red = invalid
@@ -158,7 +161,7 @@ If no valid targets exist, the player may cancel. Destroying tiles may create aw
 
 Encounters add risk/reward to route planning without changing the road-building loop.
 
-**Enemies:** power from level range (L1: 1–3, L2: 4–6). Trigger on move. Damage = max(0, enemy_power − player_power). Removed after combat. Grant gold.
+**Enemies:** power from level range (L1: 1–3, L2: 4–6, L3: 7–9). Trigger on move. Damage = max(0, enemy_power − player_power). Removed after combat. Grant gold.
 
 **Player power** = base power + strongest carried weapon bonus.
 
@@ -172,7 +175,7 @@ Encounters add risk/reward to route planning without changing the road-building 
 
 ## Win/Loss
 
-Reaching the goal on level 1 opens the shop. Reaching the goal on level 2 wins the game.
+Reaching the goal on a non-final level opens the shop. Reaching the goal on level 3 wins the game.
 
 Loss: 0 food remaining after a move, or 0 health. Loss screen restarts the level from captured level-start state. Soft-lock detection deferred.
 

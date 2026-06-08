@@ -3,11 +3,12 @@ extends Node
 const LEVEL_SCENES: Array[PackedScene] = [
 	preload("res://levels/level_001.tscn"),
 	preload("res://levels/level_002.tscn"),
+	preload("res://levels/level_003.tscn"),
 ]
 const SHOP_SCENE := preload("res://ui/shop.tscn")
-const LEVEL_NAMES := ["Level 1", "3 bridges"]
+const LEVEL_NAMES := ["Level 1", "3 bridges", "6 mountains"]
 # Map sizes per level — avoids instantiating next scene just to query playable_width/height
-const LEVEL_MAP_SIZES := [5, 7]
+const LEVEL_MAP_SIZES := [5, 7, 9]
 
 const DEBUG_OVERLAY_SCENE := preload("res://ui/debug_overlay.tscn")
 const DEBUG_LABEL_TEXT := "Debug"
@@ -129,6 +130,9 @@ func _complete_current_level() -> void:
 
 
 func _debug_add_gold() -> void:
+	if _shop != null:
+		_shop.debug_add_gold(5)
+		return
 	if _current_level == null:
 		return
 	var player := _current_level.get_node_or_null("Player") as GamePlayer
@@ -268,5 +272,3 @@ func _close_shop() -> void:
 	if _shop_layer != null:
 		_shop_layer.queue_free()
 		_shop_layer = null
-
-

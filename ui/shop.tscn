@@ -27,10 +27,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 18.0
-offset_top = 18.0
-offset_right = -18.0
-offset_bottom = -18.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
 horizontal_scroll_mode = 0
@@ -39,16 +39,16 @@ horizontal_scroll_mode = 0
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_bottom = 12
 
 [node name="ShopStack" type="VBoxContainer" parent="ShopScroll/ShopMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
 [node name="SummaryPanel" type="PanelContainer" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2
@@ -62,44 +62,36 @@ theme_override_constants/margin_bottom = 12
 
 [node name="SummaryStack" type="VBoxContainer" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 
-[node name="Heading" type="HBoxContainer" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack"]
+[node name="Title" type="Label" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack"]
 layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Title" type="Label" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/Heading"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
-theme_override_font_sizes/font_size = 30
+theme_override_colors/font_color = Color(0.12, 0.08, 0.04, 1)
+theme_override_font_sizes/font_size = 36
 text = "SHOP"
+horizontal_alignment = 1
 
-[node name="GoldChip" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/Heading" instance=ExtResource("2_chip")]
+[node name="ResourceRow" type="HBoxContainer" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack"]
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="GoldChip" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceRow" instance=ExtResource("2_chip")]
+layout_mode = 2
+size_flags_horizontal = 3
 stat_name = "gold"
 
-[node name="NextLabel" type="Label" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.45, 0.32, 0.2, 1)
-theme_override_font_sizes/font_size = 20
-text = "Next: ..."
-
-[node name="ResourceSummary" type="HBoxContainer" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="FoodChip" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceSummary" instance=ExtResource("2_chip")]
+[node name="FoodChip" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceRow" instance=ExtResource("2_chip")]
 layout_mode = 2
 size_flags_horizontal = 3
 stat_name = "food"
 
-[node name="HealthChip" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceSummary" instance=ExtResource("2_chip")]
+[node name="HealthChip" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceRow" instance=ExtResource("2_chip")]
 layout_mode = 2
 size_flags_horizontal = 3
 stat_name = "health"
 
-[node name="PowerChip" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceSummary" instance=ExtResource("2_chip")]
+[node name="PowerChip" parent="ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceRow" instance=ExtResource("2_chip")]
 layout_mode = 2
 size_flags_horizontal = 3
 stat_name = "power"
@@ -113,7 +105,7 @@ theme_override_constants/separation = 8
 custom_minimum_size = Vector2(130, 82)
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.93, 0.76, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 26
 text = "SELL"
 
 [node name="InventoryStack" type="VBoxContainer" parent="ShopScroll/ShopMargin/ShopStack/InventoryLine"]
@@ -122,8 +114,9 @@ size_flags_horizontal = 3
 
 [node name="InventoryTitle" type="Label" parent="ShopScroll/ShopMargin/ShopStack/InventoryLine/InventoryStack"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "Inventory"
+theme_override_colors/font_color = Color(1, 0.79, 0.31, 1)
+theme_override_font_sizes/font_size = 20
+text = "INVENTORY"
 horizontal_alignment = 2
 
 [node name="InventorySlots" type="HBoxContainer" parent="ShopScroll/ShopMargin/ShopStack/InventoryLine/InventoryStack"]
@@ -135,106 +128,119 @@ theme_override_constants/separation = 6
 [node name="ItemsTitle" type="Label" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.79, 0.31, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 20
 text = "ITEMS - DRAG TO EMPTY SLOT"
 
 [node name="ItemRow" type="HBoxContainer" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 10
 
 [node name="SurvivalTitle" type="Label" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.79, 0.31, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 20
 text = "SURVIVAL"
 
 [node name="SurvivalRow" type="HBoxContainer" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 10
 
 [node name="BuyFoodButton" type="Button" parent="ShopScroll/ShopMargin/ShopStack/SurvivalRow"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "+5
-4g"
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 26
+text = "+5 / 4g"
 
 [node name="BuyHealButton" type="Button" parent="ShopScroll/ShopMargin/ShopStack/SurvivalRow"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "+2
-5g"
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 26
+text = "+2 / 5g"
 
 [node name="PotionsTitle" type="Label" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.79, 0.31, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 20
 text = "POTIONS - NEXT MAP ONLY"
 
 [node name="PotionsRow" type="HBoxContainer" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 10
 
 [node name="BuyPowerButton" type="Button" parent="ShopScroll/ShopMargin/ShopStack/PotionsRow"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "+1 next map
-8g"
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 26
+text = "+1 / 8g"
 
 [node name="BuyMaxHealthButton" type="Button" parent="ShopScroll/ShopMargin/ShopStack/PotionsRow"]
-custom_minimum_size = Vector2(0, 64)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "+1 next map
-10g"
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 26
+text = "+1 / 10g"
 
 [node name="CardsTitle" type="Label" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.79, 0.31, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 20
 text = "CARDS"
 
 [node name="CardOffers" type="HBoxContainer" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 10
 
 [node name="DeckTitle" type="Label" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.79, 0.31, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 20
 text = "DECK"
 
 [node name="DeckRow" type="HBoxContainer" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 10
 
 [node name="RemoveButton" type="Button" parent="ShopScroll/ShopMargin/ShopStack/DeckRow"]
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 24
 text = "Remove base card / 12g"
 
 [node name="ViewDeckButton" type="Button" parent="ShopScroll/ShopMargin/ShopStack/DeckRow"]
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 24
 text = "View deck"
 
 [node name="BottomSpacer" type="Control" parent="ShopScroll/ShopMargin/ShopStack"]
-custom_minimum_size = Vector2(0, 8)
 layout_mode = 2
 size_flags_vertical = 3
 
 [node name="PlayNextButton" type="Button" parent="ShopScroll/ShopMargin/ShopStack"]
-custom_minimum_size = Vector2(0, 58)
+custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
+theme_override_font_sizes/font_size = 28
 text = "Play next map"
 
 [node name="DeckOverlay" parent="." instance=ExtResource("3_overlay")]

@@ -17,7 +17,7 @@ const MAX_HEALTH_POTION_PRICE := 10
 const REMOVAL_BASE_PRICE := 12
 const REMOVAL_PRICE_STEP := 6
 const SLOT_SIZE := Vector2(82.0, 82.0)
-const CARD_OFFER_SIZE := Vector2(174.0, 250.0)
+const CARD_OFFER_SIZE := Vector2(200.0, 290.0)
 const OFFER_ICON_SIZE := 42
 const STAT_ICON_PATHS := GameConstants.STAT_ICON_PATHS
 const PROTECTED_ROAD_TYPES := ["Straight Road", "Corner", "T-Junction"]
@@ -41,7 +41,6 @@ var _gold_chip: StatChip
 var _food_chip: StatChip
 var _health_chip: StatChip
 var _power_chip: StatChip
-var _next_label: Label
 var _sell_zone: Button
 var _slot_row: HBoxContainer
 var _item_row: HBoxContainer
@@ -86,6 +85,11 @@ func setup(next_progression: Dictionary, map_name: String, map_size: int, availa
 	_roll_card_offers()
 	if is_node_ready():
 		_refresh()
+
+
+func debug_add_gold(amount: int) -> void:
+	progression["gold"] = int(progression.get("gold", 0)) + amount
+	_refresh()
 
 
 func buy_food() -> bool:
@@ -196,11 +200,10 @@ func _bind_scene_nodes() -> void:
 	_shop_margin = $ShopScroll/ShopMargin as MarginContainer
 	_shop_stack = $ShopScroll/ShopMargin/ShopStack as VBoxContainer
 	_summary_panel = $ShopScroll/ShopMargin/ShopStack/SummaryPanel as PanelContainer
-	_gold_chip = $ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/Heading/GoldChip as StatChip
-	_next_label = $ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/NextLabel as Label
-	_food_chip = $ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceSummary/FoodChip as StatChip
-	_health_chip = $ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceSummary/HealthChip as StatChip
-	_power_chip = $ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceSummary/PowerChip as StatChip
+	_gold_chip = $ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceRow/GoldChip as StatChip
+	_food_chip = $ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceRow/FoodChip as StatChip
+	_health_chip = $ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceRow/HealthChip as StatChip
+	_power_chip = $ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/ResourceRow/PowerChip as StatChip
 	_sell_zone = $ShopScroll/ShopMargin/ShopStack/InventoryLine/SellZone as Button
 	_slot_row = $ShopScroll/ShopMargin/ShopStack/InventoryLine/InventoryStack/InventorySlots as HBoxContainer
 	_item_row = $ShopScroll/ShopMargin/ShopStack/ItemRow as HBoxContainer
@@ -254,10 +257,15 @@ func _refresh() -> void:
 	if _gold_chip == null:
 		return
 	_gold_chip.set_value("%d" % int(progression.get("gold", 0)))
-	_next_label.text = "Next: %s %dx%d" % [next_map_name, next_map_size, next_map_size]
+	_play_next_button.text = "Play next map: \"%s\" (%dx%d)" % [next_map_name, next_map_size, next_map_size]
 	_food_chip.set_value("%d" % int(progression.get("food", 0)))
-	_health_chip.set_value("%d/%d" % [int(progression.get("health", 0)), int(progression.get("max_health", 1))])
-	_power_chip.set_value("%d" % (int(progression.get("base_power", 0)) + _inventory_power()))
+	var pending_max_hp := int(progression.get("pending_max_health_bonus", 0))
+	var max_hp := int(progression.get("max_health", 1)) + pending_max_hp
+	var hp := int(progression.get("health", 0))
+	_health_chip.set_value("%d/%d" % [hp, max_hp])
+	var pending_power := int(progression.get("pending_power_bonus", 0))
+	var total_power := int(progression.get("base_power", 0)) + _inventory_power() + pending_power
+	_power_chip.set_value("%d" % total_power)
 	_refresh_inventory_slots()
 	_refresh_offers()
 	_remove_button.text = "Remove base card / %dg" % _removal_price()
@@ -286,6 +294,7 @@ func _refresh_offers() -> void:
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(150, 72)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.add_theme_font_size_override("font_size", 24)
 		button.text = "%s\n%s / %dg" % [offer["name"], offer["effect"], offer["price"]]
 		button.icon = ItemIconLibrary.get_icon(offer)
 		button.expand_icon = true
@@ -300,7 +309,7 @@ func _refresh_offers() -> void:
 		offer_stack.name = "CardOffer%d" % (index + 1)
 		offer_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		offer_stack.alignment = BoxContainer.ALIGNMENT_CENTER
-		offer_stack.add_theme_constant_override("separation", 6)
+		offer_stack.add_theme_constant_override("separation", 4)
 		var card := CARD_SCENE.instantiate() as CardView
 		card.name = "Card"
 		card.custom_minimum_size = CARD_OFFER_SIZE
@@ -313,6 +322,7 @@ func _refresh_offers() -> void:
 		)
 		var buy_button := _button("Buy / %dg" % int(offer["price"]), buy_special_card.bind(index))
 		buy_button.name = "BuyButton"
+		buy_button.add_theme_font_size_override("font_size", 24)
 		_apply_button_icon(buy_button, "gold")
 		buy_button.disabled = index in _purchased_card_offers
 		if buy_button.disabled:
@@ -346,8 +356,8 @@ func _show_deck_overlay(removal_mode: bool) -> void:
 		_deck_overlay.add_list_button(text, disabled_state, callback)
 	if not removal_mode:
 		for card in progression.get("player_special_cards", []):
-			_deck_overlay.add_list_label("Special: %s" % GameConstants.card_signature(card as Dictionary).trim_prefix("road:").trim_prefix("event:"), 16)
-		_deck_overlay.add_list_label("LevelDeck cards are added by the next map.", 15)
+			_deck_overlay.add_list_label("Special: %s" % GameConstants.card_signature(card as Dictionary).trim_prefix("road:").trim_prefix("event:"), 18)
+		_deck_overlay.add_list_label("Level cards added next map.", 18)
 	_deck_overlay.show_overlay(title_text)
 
 
@@ -438,9 +448,18 @@ func _slot_at(position: Vector2) -> int:
 func _spend_gold(price: int) -> bool:
 	var gold := int(progression.get("gold", 0))
 	if gold < price:
+		_flash_cannot_afford()
 		return false
 	progression["gold"] = gold - price
 	return true
+
+
+func _flash_cannot_afford() -> void:
+	if _gold_chip == null:
+		return
+	var tween := create_tween()
+	tween.tween_property(_gold_chip, "modulate", Color(1.0, 0.3, 0.3), 0.1)
+	tween.tween_property(_gold_chip, "modulate", Color.WHITE, 0.3)
 
 
 func _removal_price() -> int:

@@ -213,7 +213,9 @@ func can_place_tile(grid_position: Vector2i, connections: Dictionary = {}, allow
 			continue
 
 		if opens_to_neighbor and not can_build_on_fixed_feature(neighbor_position):
-			return false
+			var neighbor_feature_type := str(get_fixed_feature(neighbor_position).get("type", ""))
+			if neighbor_feature_type != FEATURE_RIVER:
+				return false
 
 		var neighbor_tile: Variant = get_tile(neighbor_position)
 		if neighbor_tile == null:

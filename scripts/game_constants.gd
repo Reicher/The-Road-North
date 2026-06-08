@@ -69,9 +69,9 @@ const OPPOSITE_DIRECTIONS: Dictionary = {
 const STAT_ICON_PATHS := {
 	"food": "res://assets/images/stat_food.png",
 	"gold": "res://assets/images/stat_gold.png",
-	"health": "res://assets/images/stat_health.png",
+	"health": "res://assets/images/stat_power.png",
 	"deck": "res://assets/images/stat_deck.png",
-	"power": "res://assets/images/stat_power.png",
+	"power": "res://assets/images/stat_health.png",
 }
 
 

@@ -182,7 +182,7 @@ func _initialize() -> void:
 	})
 	var event_detail_label := event_card.get_node("Detail") as Label
 	var event_category_label := event_card.get_node("Category") as Label
-	_assert(event_detail_label.text == "Destroy placed tile.", "Expected event cards to keep compact detail text")
+	_assert(event_detail_label.text == "Remove a tile", "Expected event cards to keep compact detail text")
 	_assert(event_card.get_card_art_rect() == CardView.ART_RECT, "Expected default-size event card art to stay above the detail text")
 	_assert(event_detail_label.offset_top > event_card.get_card_art_rect().end.y, "Expected event detail text to sit below the card art")
 	_assert(event_detail_label.offset_bottom < event_category_label.offset_top, "Expected event detail text to sit between art and category")

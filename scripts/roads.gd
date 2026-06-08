@@ -38,12 +38,16 @@ func seed_initial_tiles() -> void:
 			continue
 		var rotation_steps: int = int(tile_entry.get("rotation_steps", 0))
 		force_place_tile(grid_position, definition, rotation_steps)
+		var encounter: Dictionary = tile_entry.get("encounter", {})
+		if not encounter.is_empty():
+			set_encounter(grid_position, encounter)
 
 
 func place_tile(grid_position: Vector2i, definition: Resource, rotation_steps: int = 0, encounter_data: Dictionary = {}) -> bool:
 	var tile_data := make_tile_data(definition, rotation_steps, encounter_data)
 	var connections: Dictionary = tile_data.get("connections", {})
-	if not _map.can_place_tile(grid_position, connections):
+	var allow_river: bool = definition != null and definition.get("placeable_on_river") == true
+	if not _map.can_place_tile(grid_position, connections, allow_river):
 		return false
 
 	return _store_and_spawn_tile(grid_position, tile_data)

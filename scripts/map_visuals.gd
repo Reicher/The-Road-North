@@ -179,7 +179,7 @@ func _add_river(map: GameMap, parent: Node3D, rotation_steps: int) -> void:
 
 func _add_bridge(map: GameMap, parent: Node3D, rotation_steps: int) -> void:
 	var horizontal_river := posmod(rotation_steps, 2) == 0
-	var size := Vector3(map.tile_size * 0.30, 0.08, map.tile_size * 0.78) if horizontal_river else Vector3(map.tile_size * 0.78, 0.08, map.tile_size * 0.30)
+	var size := Vector3(map.tile_size * 0.30, 0.08, map.tile_size) if horizontal_river else Vector3(map.tile_size, 0.08, map.tile_size * 0.30)
 	_add_box(parent, "Bridge", size, Vector3(0.0, 0.09, 0.0), Color(0.55, 0.36, 0.18))
 
 
