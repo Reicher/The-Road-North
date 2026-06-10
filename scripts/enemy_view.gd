@@ -4,7 +4,7 @@ extends Node3D
 const ENEMY_COLOR := Color(0.78, 0.12, 0.10)
 const ENEMY_MODEL_SCALE := 0.66
 const POWER_DISPLAY_PIXEL_SIZE := 0.0015
-const POWER_ICON := preload("res://assets/images/stat_power.png")
+const POWER_ICON := preload("res://assets/images/stats/stat_power.png")
 const ModelAssets = preload("res://scripts/model_assets.gd")
 
 @export_range(0.0, 1.0, 0.01) var knock_down_duration := 0.24

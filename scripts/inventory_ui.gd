@@ -3,7 +3,7 @@ extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
 const ItemIconLibrary = preload("res://scripts/item_icon_library.gd")
-const BACKPACK_ICON_PATH := "res://assets/images/inventory_backpack.png"
+const BACKPACK_ICON_PATH := "res://assets/images/ui/inventory_backpack.png"
 
 signal item_drag_started(slot_index: int, item: Dictionary, source_button: Button, canvas_position: Vector2)
 signal item_drag_moved(canvas_position: Vector2)

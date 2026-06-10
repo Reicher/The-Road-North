@@ -2,13 +2,13 @@ class_name ItemIconLibrary
 extends RefCounted
 
 const ICON_PATHS := {
-	"binoculars": "res://assets/images/item_binoculars.svg",
-	"dagger": "res://assets/images/item_dagger.png",
-	"item": "res://assets/images/item_item.png",
-	"katana": "res://assets/images/item_katana.png",
-	"knife": "res://assets/images/item_knife.png",
-	"machete": "res://assets/images/item_machete.png",
-	"sword": "res://assets/images/item_sword.png",
+	"binoculars": "res://assets/images/items/item_binoculars.svg",
+	"dagger": "res://assets/images/items/item_dagger.png",
+	"item": "res://assets/images/items/item_fallback.png",
+	"katana": "res://assets/images/items/item_katana.png",
+	"knife": "res://assets/images/items/item_knife.png",
+	"machete": "res://assets/images/items/item_machete.png",
+	"sword": "res://assets/images/items/item_sword.png",
 }
 
 static var _cache: Dictionary = {}

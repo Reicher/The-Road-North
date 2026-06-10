@@ -189,14 +189,17 @@ func _initialize() -> void:
 	_assert(is_equal_approx(event_category_label.offset_top, CardView.CATEGORY_RECT.position.y), "Expected event category badge to use the bottom category position")
 	_assert(is_equal_approx(event_category_label.offset_bottom, CardView.CATEGORY_RECT.end.y), "Expected event category badge to sit at the bottom of the card")
 	for event_type in [
+		GameConstants.EVENT_CLEAR_PATH,
 		GameConstants.EVENT_AMBUSH,
 		GameConstants.EVENT_WILD_BERRIES,
 		GameConstants.EVENT_LOST_BELONGINGS,
+		GameConstants.EVENT_SLEEP,
+		GameConstants.EVENT_RESTART_LEVEL,
 	]:
 		event_card.event_type = event_type
-		_assert(event_card.call("_card_art_texture") == null, "Expected encounter-adding events not to show the fallback event star")
-	event_card.event_type = GameConstants.EVENT_CLEAR_PATH
-	_assert(event_card.call("_card_art_texture") != null, "Expected Clear Path to keep the fallback event star")
+		var event_art := event_card.call("_card_art_texture") as Texture2D
+		_assert(event_art != null, "Expected every implemented event to have dedicated card art")
+		_assert(event_art.get_size() == Vector2(132.0, 72.0), "Expected event placeholder art to use the shared card art size")
 	event_card.queue_free()
 
 	quit()

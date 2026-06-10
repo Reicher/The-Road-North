@@ -42,8 +42,8 @@ func _initialize() -> void:
 	_assert(PlayerStatsUI.STAT_VALUE_FONT_SIZE == 38, "Expected every resource value to use the larger shared font size")
 	for stat_name in ["food", "gold", "health", "deck", "power"]:
 		_assert(stats._get_stat_icon(stat_name) != null, "Expected exported stat texture to load for %s" % stat_name)
-	_assert(stats._get_stat_icon("health") == load("res://assets/images/stat_health.png"), "Expected health to use the health icon")
-	_assert(stats._get_stat_icon("power") == load("res://assets/images/stat_power.png"), "Expected power to use the power icon")
+	_assert(stats._get_stat_icon("health") == load("res://assets/images/stats/stat_health.png"), "Expected health to use the health icon")
+	_assert(stats._get_stat_icon("power") == load("res://assets/images/stats/stat_power.png"), "Expected power to use the power icon")
 	_assert(stats._get_health_display() == "4/4", "Expected stats HUD to show full starting health")
 	_assert(stats._get_deck_display() == "2/3", "Expected stats HUD to show remaining cards out of the level deck total")
 

@@ -48,13 +48,14 @@ func run() -> void:
 	var survival_index := _label_index(shop_stack, "SURVIVAL")
 	_assert(items_index >= 0 and survival_index >= 0 and items_index < survival_index, "Expected purchasable items immediately after inventory and before survival")
 	_assert(shop.card_offers.size() == 3, "Expected shop to roll exactly three special card offers")
-	_assert(_all_dream_cards(shop.card_offers), "Expected all three offers to show the only available special card")
+	_assert(_catalog_has_shop_only_specials(), "Expected the requested shop-only special cards to be purchasable")
+	_assert(_all_offers_are_cheaper_specials(shop.card_offers), "Expected every rolled card to come from the cheaper special-card catalog")
 	_assert(card_row.get_child_count() == 3, "Expected all three rolled special cards to render in the shop")
 	_assert(card_row.size.y >= shop.CARD_OFFER_SIZE.y, "Expected special cards to have the same visible size as cards in hand")
 	for offer_node in card_row.get_children():
 		var card := offer_node.get_node("Card") as CardView
 		_assert(card != null and card.size.is_equal_approx(Vector2(174.0, 250.0)), "Expected shop offers to use the in-game CardView at hand size")
-		_assert(card.title == "It was all a dream" and card.category == GameConstants.EVENT_CATEGORY, "Expected shop CardView to show the special event data")
+		_assert(card.category == GameConstants.EVENT_CATEGORY, "Expected shop CardView to show special event data")
 		_assert(card.card_base_texture_path == CardView.DEFAULT_CARD_BASE_TEXTURE_PATH, "Expected shop cards to use the same painted card design as gameplay")
 		_assert((offer_node.get_node("BuyButton") as Button).icon != null, "Expected special card prices to use the gold resource icon")
 
@@ -128,8 +129,40 @@ func _label_index(parent: Node, text: String) -> int:
 	return -1
 
 
-func _all_dream_cards(cards: Array[Dictionary]) -> bool:
+func _all_offers_are_cheaper_specials(cards: Array[Dictionary]) -> bool:
 	for card in cards:
-		if card.get("title", "") != "It was all a dream":
+		if int(card.get("price", 0)) <= 0 or int(card.get("price", 0)) >= 22:
+			return false
+		if not _catalog_event_types().has(str(card.get("event_type", ""))):
 			return false
 	return true
+
+
+func _catalog_has_shop_only_specials() -> bool:
+	var event_types := _catalog_event_types()
+	for required_type in [
+		GameConstants.EVENT_CLEAR_PATH,
+		GameConstants.EVENT_WILD_BERRIES,
+		GameConstants.EVENT_LOST_BELONGINGS,
+		GameConstants.EVENT_SLEEP,
+	]:
+		if not event_types.has(required_type):
+			return false
+	var wild_berries := _catalog_card(GameConstants.EVENT_WILD_BERRIES)
+	var lost_belongings := _catalog_card(GameConstants.EVENT_LOST_BELONGINGS)
+	return wild_berries.get("encounter", {}).get("type", "") == GameMap.ENCOUNTER_BERRY_BUSH \
+		and lost_belongings.get("encounter", {}).get("type", "") == GameMap.ENCOUNTER_CACHE
+
+
+func _catalog_event_types() -> Dictionary:
+	var event_types := {}
+	for card in ShopUI.SPECIAL_CARD_CATALOG:
+		event_types[str(card.get("event_type", ""))] = true
+	return event_types
+
+
+func _catalog_card(event_type: String) -> Dictionary:
+	for card in ShopUI.SPECIAL_CARD_CATALOG:
+		if card.get("event_type", "") == event_type:
+			return card
+	return {}

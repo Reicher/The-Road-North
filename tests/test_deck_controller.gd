@@ -91,10 +91,14 @@ func _initialize() -> void:
 	_assert(event_types.has(GameConstants.EVENT_DRAW_TWO), "Expected event deck to include Idea")
 	_assert(event_types.has(GameConstants.EVENT_ROTATE_TILE), "Expected event deck to include Doubt")
 	_assert(event_types.has(GameConstants.EVENT_LUCKY_FIND), "Expected event deck to include Lucky Find")
-	_assert(event_types.has(GameConstants.EVENT_CLEAR_PATH), "Expected event deck to include Clear Path")
 	_assert(event_types.has(GameConstants.EVENT_AMBUSH), "Expected event deck to include Ambush")
-	_assert(event_types.has(GameConstants.EVENT_WILD_BERRIES), "Expected event deck to include Wild Berries")
-	_assert(event_types.has(GameConstants.EVENT_LOST_BELONGINGS), "Expected event deck to include Lost Belongings")
+	for shop_only_type in [
+		GameConstants.EVENT_CLEAR_PATH,
+		GameConstants.EVENT_WILD_BERRIES,
+		GameConstants.EVENT_LOST_BELONGINGS,
+		GameConstants.EVENT_SLEEP,
+	]:
+		_assert(not event_types.has(shop_only_type), "Expected shop-only special cards to stay out of generated decks")
 	_assert(typed_definition_count == deck_controller.deck.size(), "Expected generated draw pile cards to keep typed card definitions")
 	_assert(enemy_road_count == 6, "Expected enemy road count to use level and map size")
 	_assert(enemy_power_values_are_level_scaled, "Expected level one enemy power to stay between one and three")

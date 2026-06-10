@@ -16,6 +16,8 @@ Godot 4.6.
 
 To run the game on an Android phone, follow [`docs/android.md`](docs/android.md).
 
+To deploy the web build to GitHub Pages, follow [`docs/web.md`](docs/web.md).
+
 ## Version 1 focus
 
 - square grid map

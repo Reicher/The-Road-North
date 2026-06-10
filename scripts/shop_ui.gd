@@ -27,7 +27,28 @@ const ITEM_OFFERS: Array[Dictionary] = [
 	{"name": "Machete", "effect": "+3 Power", "power_bonus": 3, "price": 12, "sell_price": 6},
 ]
 const SPECIAL_CARD_CATALOG: Array[Dictionary] = [
-	{"title": "It was all a dream", "detail": "Restart the current level.", "category": "Event", "event_type": "restart_level", "price": 22},
+	{"title": "Clear Path", "detail": "Remove an encounter from a road.", "category": GameConstants.EVENT_CATEGORY, "event_type": GameConstants.EVENT_CLEAR_PATH, "price": 8},
+	{
+		"title": "Wild Berries",
+		"detail": "Add a berry bush to a road.",
+		"category": GameConstants.EVENT_CATEGORY,
+		"event_type": GameConstants.EVENT_WILD_BERRIES,
+		"encounter": {"type": GameConstants.ENCOUNTER_BERRY_BUSH, "loot": [{"kind": "food", "amount": 3}]},
+		"price": 10,
+	},
+	{
+		"title": "Lost Belongings",
+		"detail": "Add a cache to a road.",
+		"category": GameConstants.EVENT_CATEGORY,
+		"event_type": GameConstants.EVENT_LOST_BELONGINGS,
+		"encounter": {
+			"type": GameConstants.ENCOUNTER_CACHE,
+			"loot": [{"kind": "item", "item": {"name": "Dagger", "effect": "+2 Power", "power_bonus": 2}}],
+		},
+		"price": 12,
+	},
+	{"title": "Sleep", "detail": "Discard hand and redraw.", "category": GameConstants.EVENT_CATEGORY, "event_type": GameConstants.EVENT_SLEEP, "price": 10},
+	{"title": "It was all a dream", "detail": "Restart the current level.", "category": GameConstants.EVENT_CATEGORY, "event_type": GameConstants.EVENT_RESTART_LEVEL, "price": 16},
 ]
 const CARD_OFFER_COUNT := 3
 

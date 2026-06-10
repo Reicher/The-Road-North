@@ -219,11 +219,7 @@ func _make_event_cards(count: int, rng: RandomNumberGenerator, config: Dictionar
 		{"title": "Idea", "detail": "Draw two extra cards.", "event_type": GameConstants.EVENT_DRAW_TWO},
 		{"title": "Doubt", "detail": "Rotate a placed tile.", "event_type": GameConstants.EVENT_ROTATE_TILE},
 		{"title": "Lucky Find", "detail": "Gain food or gold.", "event_type": GameConstants.EVENT_LUCKY_FIND},
-		{"title": "Clear Path", "detail": "Remove an encounter from a road.", "event_type": GameConstants.EVENT_CLEAR_PATH},
 		{"title": "Ambush", "detail": "Add an enemy to a road.", "event_type": GameConstants.EVENT_AMBUSH},
-		{"title": "Wild Berries", "detail": "Add a berry bush to a road.", "event_type": GameConstants.EVENT_WILD_BERRIES},
-		{"title": "Lost Belongings", "detail": "Add a cache to a road.", "event_type": GameConstants.EVENT_LOST_BELONGINGS},
-		{"title": "Sleep", "detail": "Discard hand and redraw.", "event_type": GameConstants.EVENT_SLEEP},
 	]
 	_shuffle_cards(event_templates, rng)
 	var cards: Array[Dictionary] = []
@@ -232,13 +228,8 @@ func _make_event_cards(count: int, rng: RandomNumberGenerator, config: Dictionar
 		var card := _make_event_card(template["title"], template["detail"], template["event_type"])
 		var event_type := str(template["event_type"])
 		var level := int(config.get("level", 1))
-		var map_size := int(config.get("map_size", 1))
 		if event_type == GameConstants.EVENT_AMBUSH:
 			_set_card_encounter(card, _make_enemy_encounter(rng, level))
-		elif event_type == GameConstants.EVENT_WILD_BERRIES:
-			_set_card_encounter(card, _make_reward_encounter(GameMap.ENCOUNTER_BERRY_BUSH, rng, level, map_size))
-		elif event_type == GameConstants.EVENT_LOST_BELONGINGS:
-			_set_card_encounter(card, _make_reward_encounter(GameMap.ENCOUNTER_CACHE, rng, level, map_size))
 		cards.append(card)
 	return cards
 

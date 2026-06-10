@@ -77,7 +77,10 @@ Composition: 75% road, 25% event. Shuffled once at level start; no reshuffle.
 
 Hand size: 4. Using a card draws a replacement. No discard. Player may freely mix movement and placement in any order.
 
-Player special cards are bought in the shop and persist for the run. Base-card removals are stored as modifiers; the authored deck is never changed.
+Player special cards are bought in the shop and persist for the run. Clear Path,
+Wild Berries, Lost Belongings, and Sleep are shop-only special cards and never
+appear in generated base or level decks. Base-card removals are stored as
+modifiers; the authored deck is never changed.
 
 ---
 
@@ -136,7 +139,7 @@ Validity requires: empty tile, within range, connects correctly to player's tile
 
 ## Event Cards
 
-Eight base types plus level-specific events, dealt from shuffled set before repeating:
+Five generated types, four shop-only special types, and level-specific events:
 
 | Event | Effect |
 |-------|--------|
@@ -144,11 +147,11 @@ Eight base types plus level-specific events, dealt from shuffled set before repe
 | Idea | Draw 2 extra cards |
 | Doubt | Rotate a placed tile |
 | Lucky Find | Gain 3 food or 4 gold |
-| Clear Path | Remove encounter from a road |
+| Clear Path | Remove encounter from a road (shop-only special) |
 | Ambush | Add enemy to a road |
-| Wild Berries | Add berry bush to a road |
-| Lost Belongings | Add cache to a road |
-| Sleep | Discard full hand, redraw to normal hand size |
+| Wild Berries | Add berry bush to a road (shop-only special) |
+| Lost Belongings | Add cache to a road (shop-only special) |
+| Sleep | Discard full hand, redraw to normal hand size (shop-only special) |
 | It Was All a Dream | Restart level with fresh shuffle and reset state (level card, levels 2+) |
 
 Targeting rules: same orthogonal range as road placement. Cannot target start, goal, or player's tile. Clear Path requires an encounter present; Ambush/Wild Berries/Lost Belongings require no encounter. Mirage/Doubt share targeting restrictions; Doubt previews clockwise rotation.

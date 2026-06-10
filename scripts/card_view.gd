@@ -3,30 +3,32 @@ extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
 const CARD_DEFINITION_SCRIPT = preload("res://scripts/card_definition.gd")
-const DEFAULT_CARD_BASE_TEXTURE_PATH := "res://assets/images/card_base.png"
-const FALLBACK_EVENT_ART_TEXTURE_PATH := "res://assets/images/card_art_event.png"
+const DEFAULT_CARD_BASE_TEXTURE_PATH := "res://assets/images/cards/card_base.png"
+const FALLBACK_EVENT_ART_TEXTURE_PATH := "res://assets/images/cards/card_art_event_fallback.png"
 const EVENT_ART_TEXTURES := {
-	GameConstants.EVENT_DESTROY_TILE: "res://assets/images/card_art_event_destroy_tile.png",
-	GameConstants.EVENT_DRAW_TWO: "res://assets/images/card_art_event_draw_two.png",
-	GameConstants.EVENT_ROTATE_TILE: "res://assets/images/card_art_event_rotate_tile.png",
-	GameConstants.EVENT_LUCKY_FIND: "res://assets/images/card_art_event_lucky_find.png",
+	GameConstants.EVENT_DESTROY_TILE: "res://assets/images/cards/card_art_event_destroy_tile.png",
+	GameConstants.EVENT_DRAW_TWO: "res://assets/images/cards/card_art_event_draw_two.png",
+	GameConstants.EVENT_ROTATE_TILE: "res://assets/images/cards/card_art_event_rotate_tile.png",
+	GameConstants.EVENT_LUCKY_FIND: "res://assets/images/cards/card_art_event_lucky_find.png",
+	GameConstants.EVENT_CLEAR_PATH: "res://assets/images/cards/card_art_event_clear_path.svg",
+	GameConstants.EVENT_AMBUSH: "res://assets/images/cards/card_art_event_ambush.svg",
+	GameConstants.EVENT_WILD_BERRIES: "res://assets/images/cards/card_art_event_wild_berries.svg",
+	GameConstants.EVENT_LOST_BELONGINGS: "res://assets/images/cards/card_art_event_lost_belongings.svg",
+	GameConstants.EVENT_SLEEP: "res://assets/images/cards/card_art_event_sleep.svg",
+	GameConstants.EVENT_RESTART_LEVEL: "res://assets/images/cards/card_art_event_restart_level.svg",
 }
-const MARKER_ONLY_EVENT_TYPES := [
-	GameConstants.EVENT_AMBUSH,
-	GameConstants.EVENT_WILD_BERRIES,
-	GameConstants.EVENT_LOST_BELONGINGS,
-]
 const ROAD_ART_TEXTURES := {
-	"Straight Road": "res://assets/images/card_art_road_straight.png",
-	"Corner": "res://assets/images/card_art_road_corner.png",
-	"T-Junction": "res://assets/images/card_art_road_t_junction.png",
-	"Four-Way Intersection": "res://assets/images/card_art_road_four_way.png",
-	"Dead End": "res://assets/images/card_art_road_dead_end.png",
+	"Straight Road": "res://assets/images/cards/card_art_road_straight.png",
+	"Corner": "res://assets/images/cards/card_art_road_corner.png",
+	"T-Junction": "res://assets/images/cards/card_art_road_t_junction.png",
+	"Four-Way Intersection": "res://assets/images/cards/card_art_road_four_way.png",
+	"Dead End": "res://assets/images/cards/card_art_road_dead_end.png",
+	"Bridge": "res://assets/images/cards/card_art_road_bridge.svg",
 }
 const ENCOUNTER_MARKER_TEXTURES := {
-	GameMap.ENCOUNTER_ENEMY: "res://assets/images/card_marker_danger.png",
-	GameMap.ENCOUNTER_BERRY_BUSH: "res://assets/images/card_marker_berry.png",
-	GameMap.ENCOUNTER_CACHE: "res://assets/images/card_marker_cache.png",
+	GameMap.ENCOUNTER_ENEMY: "res://assets/images/cards/card_marker_enemy.png",
+	GameMap.ENCOUNTER_BERRY_BUSH: "res://assets/images/cards/card_marker_berry.png",
+	GameMap.ENCOUNTER_CACHE: "res://assets/images/cards/card_marker_cache.png",
 }
 
 signal pointer_pressed(card: CardView, canvas_position: Vector2)
@@ -271,12 +273,14 @@ func _draw_card_art_texture(art_rect: Rect2) -> void:
 	if art_texture != null:
 		draw_texture_rect(art_texture, art_rect, false)
 
+	if category == GameConstants.EVENT_CATEGORY:
+		return
 	var marker_texture := _encounter_marker_texture()
 	if marker_texture == null:
 		return
 	var marker_size := marker_texture.get_size()
 	var marker_position := art_rect.get_center() - marker_size * 0.5
-	if event_type not in MARKER_ONLY_EVENT_TYPES and _encounter_type() != GameMap.ENCOUNTER_ENEMY:
+	if _encounter_type() != GameMap.ENCOUNTER_ENEMY:
 		marker_position += Vector2(-art_rect.size.x * 0.22, art_rect.size.y * 0.12)
 	draw_texture_rect(marker_texture, Rect2(marker_position, marker_size), false)
 
@@ -289,8 +293,6 @@ func get_card_art_rect() -> Rect2:
 
 func _card_art_texture() -> Texture2D:
 	if category == GameConstants.EVENT_CATEGORY:
-		if event_type in MARKER_ONLY_EVENT_TYPES:
-			return null
 		return _load_texture(str(EVENT_ART_TEXTURES.get(event_type, FALLBACK_EVENT_ART_TEXTURE_PATH)))
 	if tile_definition == null:
 		return null

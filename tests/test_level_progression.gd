@@ -56,9 +56,9 @@ func run() -> void:
 
 	_send_key(main, KEY_T)
 	await process_frame
-	_assert(first_hand.cards.size() == 8, "Expected debug T to show every event type")
+	_assert(first_hand.cards.size() == 8, "Expected debug T to show a full event-card debug hand")
 	_assert(_all_cards_match(first_hand.cards, "Event", ""), "Expected debug T hand to contain event cards")
-	_assert(_event_types(first_hand.cards).size() == 8, "Expected debug T hand to contain each event type once")
+	_assert(_event_types(first_hand.cards).size() == 5, "Expected debug T hand to contain only generated event types")
 	_send_key(main, KEY_ENTER)
 	await process_frame
 	_assert(main.find_child("Shop", true, false) != null, "Expected debug Enter to open the between-level shop")
