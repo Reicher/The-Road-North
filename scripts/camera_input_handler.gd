@@ -85,9 +85,17 @@ func handle_screen_touch(event: InputEventScreenTouch) -> void:
 	else:
 		_touch_points.erase(event.index)
 
-	_last_pinch_distance = 0.0
 	if _touch_points.size() == 2:
 		_last_pinch_center = _get_touch_center()
+		_last_pinch_distance = _get_touch_distance()
+	else:
+		_last_pinch_distance = 0.0
+
+
+func reset_touch_gesture() -> void:
+	_touch_points.clear()
+	_last_pinch_distance = 0.0
+	_last_pinch_center = Vector2.ZERO
 
 
 func handle_screen_drag(event: InputEventScreenDrag, current_size: float) -> void:

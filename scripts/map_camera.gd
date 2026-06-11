@@ -66,7 +66,7 @@ func _input(event: InputEvent) -> void:
 		return
 	if _input_handler.handle_scroll_zoom(event, _is_in_map_screen_area, size, zoom_step):
 		get_viewport().set_input_as_handled()
-	elif _input_handler.handle_mouse_pan(event, _is_in_map_screen_area):
+	elif _should_handle_mouse_pan(event) and _input_handler.handle_mouse_pan(event, _is_in_map_screen_area):
 		get_viewport().set_input_as_handled()
 	elif _input_handler.handle_trackpad_zoom(event, size, get_viewport().get_mouse_position()):
 		get_viewport().set_input_as_handled()
@@ -78,6 +78,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _map == null:
 		return
 	if _is_ui_item_drag_active():
+		_input_handler.reset_touch_gesture()
 		return
 
 	if event is InputEventScreenTouch:
@@ -88,6 +89,16 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _is_ui_item_drag_active() -> bool:
 	return get_tree().get_node_count_in_group("ui_item_drag_active") > 0
+
+
+func _should_handle_mouse_pan(event: InputEvent) -> bool:
+	if not OS.has_feature("web"):
+		return true
+	if event is InputEventMouseButton:
+		return event.button_index != MOUSE_BUTTON_LEFT
+	if event is InputEventMouseMotion:
+		return (event.button_mask & MOUSE_BUTTON_MASK_LEFT) == 0
+	return true
 
 
 func _on_input_zoom_requested(target_size: float, screen_anchor: Vector2) -> void:

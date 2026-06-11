@@ -108,6 +108,10 @@ const CATEGORY_FONT_SIZE := 14
 const DETAIL_FONT_MAX := 16
 const DETAIL_FONT_MIN := 14
 const BASE_CARD_SIZE := Vector2(150.0, 216.0)
+const NO_ACTIVE_POINTER := -2
+const MOUSE_POINTER := -1
+
+var _active_pointer_id := NO_ACTIVE_POINTER
 
 
 func _ready() -> void:
@@ -226,20 +230,28 @@ func _handle_pointer_input(event: InputEvent, source: Control) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		var canvas_position: Vector2 = source.get_global_transform_with_canvas() * event.position
 		if event.pressed:
+			if _active_pointer_id != NO_ACTIVE_POINTER:
+				return
+			_active_pointer_id = MOUSE_POINTER
 			pointer_pressed.emit(self, canvas_position)
-		else:
+		elif _active_pointer_id == MOUSE_POINTER:
 			pointer_released.emit(self, canvas_position)
+			_active_pointer_id = NO_ACTIVE_POINTER
 		source.accept_event()
-	elif event is InputEventMouseMotion and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
+	elif event is InputEventMouseMotion and _active_pointer_id == MOUSE_POINTER and (event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0:
 		pointer_moved.emit(self, source.get_global_transform_with_canvas() * event.position)
 		source.accept_event()
 	elif event is InputEventScreenTouch:
 		if event.pressed:
+			if _active_pointer_id != NO_ACTIVE_POINTER:
+				return
+			_active_pointer_id = event.index
 			pointer_pressed.emit(self, event.position)
-		else:
+		elif _active_pointer_id == event.index:
 			pointer_released.emit(self, event.position)
+			_active_pointer_id = NO_ACTIVE_POINTER
 		source.accept_event()
-	elif event is InputEventScreenDrag:
+	elif event is InputEventScreenDrag and _active_pointer_id == event.index:
 		pointer_moved.emit(self, event.position)
 		source.accept_event()
 

@@ -124,6 +124,22 @@ func _initialize() -> void:
 	hand.call("_on_card_pointer_released", touch_card, touch_position)
 	_assert(hand.get_focused_card() == touch_card, "Expected native card button to focus an overlapping card on mobile")
 	_assert((touch_card.get_node("Title") as Label).mouse_filter == Control.MOUSE_FILTER_IGNORE, "Expected card labels not to intercept touch input")
+	var pointer_presses: Array = []
+	var pointer_moves: Array = []
+	var pointer_releases: Array = []
+	touch_card.pointer_pressed.connect(func(_card: CardView, position: Vector2) -> void: pointer_presses.append(position))
+	touch_card.pointer_moved.connect(func(_card: CardView, position: Vector2) -> void: pointer_moves.append(position))
+	touch_card.pointer_released.connect(func(_card: CardView, position: Vector2) -> void: pointer_releases.append(position))
+	touch_card.call("_handle_pointer_input", _touch_event(0, touch_position, true), touch_button)
+	touch_card.call("_handle_pointer_input", _touch_event(1, touch_position + Vector2.UP * 20.0, true), touch_button)
+	touch_card.call("_handle_pointer_input", _drag_event(1, touch_position + Vector2.UP * 40.0), touch_button)
+	touch_card.call("_handle_pointer_input", _touch_event(1, touch_position + Vector2.UP * 40.0, false), touch_button)
+	_assert(pointer_presses.size() == 1, "Expected a card to keep the finger that started its interaction")
+	_assert(pointer_moves.is_empty(), "Expected a second finger not to move the active card interaction")
+	_assert(pointer_releases.is_empty(), "Expected a second finger not to release the active card interaction")
+	touch_card.call("_handle_pointer_input", _drag_event(0, touch_position + Vector2.UP * 40.0), touch_button)
+	touch_card.call("_handle_pointer_input", _touch_event(0, touch_position + Vector2.UP * 40.0, false), touch_button)
+	_assert(pointer_moves.size() == 1 and pointer_releases.size() == 1, "Expected the starting finger to keep moving and release the card")
 
 	var drag_card: CardView = touch_card
 	var drag_started: Array = []
@@ -210,3 +226,18 @@ func _assert(condition: bool, message: String) -> void:
 		return
 	push_error(message)
 	quit(1)
+
+
+func _touch_event(index: int, position: Vector2, pressed: bool) -> InputEventScreenTouch:
+	var event := InputEventScreenTouch.new()
+	event.index = index
+	event.position = position
+	event.pressed = pressed
+	return event
+
+
+func _drag_event(index: int, position: Vector2) -> InputEventScreenDrag:
+	var event := InputEventScreenDrag.new()
+	event.index = index
+	event.position = position
+	return event

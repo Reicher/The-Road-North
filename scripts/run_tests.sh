@@ -21,6 +21,7 @@ failed_tests=()
 
 tests=(
 	tests/test_model_assets.gd
+	tests/test_camera_input_handler.gd
 	tests/test_tile_definitions.gd
 	tests/test_game_balance.gd
 	tests/test_roads.gd
