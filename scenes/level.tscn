@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/map.gd" id="1_1fs71"]
 [ext_resource type="Script" path="res://scripts/level.gd" id="1_y88x2"]
@@ -13,6 +13,7 @@
 [ext_resource type="PackedScene" path="res://scenes/placement_controller.tscn" id="9_s8m4e"]
 [ext_resource type="PackedScene" path="res://ui/inventory.tscn" id="10_x63lj"]
 [ext_resource type="PackedScene" path="res://ui/loot.tscn" id="11_xw4gv"]
+[ext_resource type="PackedScene" path="res://ui/encounter.tscn" id="12_encounter"]
 
 [node name="Level" type="Node"]
 script = ExtResource("1_y88x2")
@@ -68,6 +69,10 @@ player_path = NodePath("../../Player")
 inventory_path = NodePath("../Inventory")
 
 [node name="Inventory" parent="UI" instance=ExtResource("10_x63lj")]
+
+[node name="Encounter" parent="UI" instance=ExtResource("12_encounter")]
+player_path = NodePath("../../Player")
+deck_controller_path = NodePath("../../DeckController")
 
 [node name="PlayerStats" parent="UI" instance=ExtResource("2_f2udl")]
 player_path = NodePath("../../Player")

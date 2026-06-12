@@ -29,6 +29,10 @@ const ENCOUNTER_MARKER_TEXTURES := {
 	GameMap.ENCOUNTER_ENEMY: "res://assets/images/cards/card_marker_enemy.png",
 	GameMap.ENCOUNTER_BERRY_BUSH: "res://assets/images/cards/card_marker_berry.png",
 	GameMap.ENCOUNTER_CACHE: "res://assets/images/cards/card_marker_cache.png",
+	GameMap.ENCOUNTER_CAMPFIRE: "res://assets/images/cards/card_marker_campfire.svg",
+	GameMap.ENCOUNTER_TAVERN: "res://assets/images/cards/card_marker_tavern.svg",
+	GameMap.ENCOUNTER_WITCH_HUT: "res://assets/images/cards/card_marker_witch_hut.svg",
+	GameMap.ENCOUNTER_SHRINE: "res://assets/images/cards/card_marker_shrine.svg",
 }
 
 signal pointer_pressed(card: CardView, canvas_position: Vector2)
@@ -277,6 +281,8 @@ func _title_from_definition() -> String:
 func _card_header_text() -> String:
 	if category != GameConstants.ROAD_CATEGORY or tile_definition == null:
 		return title
+	if _encounter_type() in GameConstants.PERMANENT_ENCOUNTER_TYPES:
+		return title
 	return _title_from_definition()
 
 
@@ -340,6 +346,8 @@ func _category_badge_text() -> String:
 		return "ROAD + FOOD"
 	if _encounter_type() == GameMap.ENCOUNTER_CACHE:
 		return "ROAD + LOOT"
+	if _encounter_type() in GameConstants.PERMANENT_ENCOUNTER_TYPES:
+		return "SPECIAL ROAD"
 	if not encounter_data.is_empty():
 		return "ROAD + LOOT"
 	return "ROAD"
@@ -347,6 +355,8 @@ func _category_badge_text() -> String:
 
 func _compact_detail_text() -> String:
 	if category == GameConstants.ROAD_CATEGORY:
+		if _encounter_type() in GameConstants.PERMANENT_ENCOUNTER_TYPES:
+			return detail
 		return ""
 	if detail.is_empty():
 		if _encounter_type() == GameMap.ENCOUNTER_BERRY_BUSH:

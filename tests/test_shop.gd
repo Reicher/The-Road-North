@@ -53,6 +53,7 @@ func run() -> void:
 	var survival_index := _label_index(shop_stack, "SURVIVAL")
 	_assert(items_index >= 0 and survival_index >= 0 and items_index < survival_index, "Expected purchasable items immediately after inventory and before survival")
 	_assert(shop.card_offers.size() == 3, "Expected shop to roll exactly three special card offers")
+	_assert(_offer_types_are_unique(shop.card_offers), "Expected shop special-card offers not to contain duplicate card types")
 	_assert(_catalog_has_shop_only_specials(), "Expected the requested shop-only special cards to be purchasable")
 	_assert(_all_offers_are_cheaper_specials(shop.card_offers), "Expected every rolled card to come from the cheaper special-card catalog")
 	_assert(card_row.get_child_count() == 3, "Expected all three rolled special cards to render in the shop")
@@ -60,7 +61,7 @@ func run() -> void:
 	for offer_node in card_row.get_children():
 		var card := offer_node.get_node("Card") as CardView
 		_assert(card != null and card.size.is_equal_approx(Vector2(174.0, 250.0)), "Expected shop offers to use the in-game CardView at hand size")
-		_assert(card.category == GameConstants.EVENT_CATEGORY, "Expected shop CardView to show special event data")
+		_assert(card.category in [GameConstants.EVENT_CATEGORY, GameConstants.ROAD_CATEGORY], "Expected shop CardView to show special event or special road data")
 		_assert(card.card_base_texture_path == CardView.DEFAULT_CARD_BASE_TEXTURE_PATH, "Expected shop cards to use the same painted card design as gameplay")
 		_assert((offer_node.get_node("BuyButton") as Button).icon != null, "Expected special card prices to use the gold resource icon")
 
@@ -177,6 +178,17 @@ func _overview_counts(parent: Node) -> Array[String]:
 	for child in parent.get_children():
 		texts.append((child.get_node("Count") as Label).text)
 	return texts
+
+
+func _offer_types_are_unique(cards: Array[Dictionary]) -> bool:
+	var seen := {}
+	for card in cards:
+		var encounter_type := str((card.get("encounter", {}) as Dictionary).get("type", ""))
+		var signature := "encounter:%s" % encounter_type if not encounter_type.is_empty() else "event:%s" % str(card.get("event_type", ""))
+		if seen.has(signature):
+			return false
+		seen[signature] = true
+	return true
 
 
 func _all_offers_are_cheaper_specials(cards: Array[Dictionary]) -> bool:

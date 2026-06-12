@@ -11,6 +11,17 @@ const EVENT_CATEGORY := "Event"
 const ENCOUNTER_ENEMY := "enemy"
 const ENCOUNTER_BERRY_BUSH := "berry_bush"
 const ENCOUNTER_CACHE := "cache"
+const ENCOUNTER_CAMPFIRE := "campfire"
+const ENCOUNTER_TAVERN := "tavern"
+const ENCOUNTER_WITCH_HUT := "witch_hut"
+const ENCOUNTER_SHRINE := "shrine"
+
+const PERMANENT_ENCOUNTER_TYPES: Array[String] = [
+	ENCOUNTER_CAMPFIRE,
+	ENCOUNTER_TAVERN,
+	ENCOUNTER_WITCH_HUT,
+	ENCOUNTER_SHRINE,
+]
 
 # --- Map Features ---
 const FEATURE_MOUNTAIN := "mountain"
@@ -78,6 +89,12 @@ const STAT_ICON_PATHS := {
 ## Returns a unique string signature for a card dictionary.
 ## Used by shop removal and deck modifier tracking.
 static func card_signature(card: Dictionary) -> String:
+	var encounter: Dictionary = card.get("encounter", {})
+	var encounter_type := str(encounter.get("type", ""))
+	if encounter_type in PERMANENT_ENCOUNTER_TYPES:
+		var special_definition: Resource = card.get("tile_definition")
+		var road_name := str(special_definition.get("display_name")) if special_definition != null else "Unassigned"
+		return "special_road:%s:%s" % [encounter_type, road_name]
 	var definition: Resource = card.get("tile_definition")
 	if definition != null:
 		return "road:%s" % str(definition.get("display_name"))

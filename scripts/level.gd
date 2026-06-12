@@ -14,18 +14,21 @@ enum RunState {
 @export var hand_path: NodePath = NodePath("UI/Hand")
 @export var placement_controller_path: NodePath = NodePath("PlacementController")
 @export var player_path: NodePath = NodePath("Player")
+@export var encounter_ui_path: NodePath = NodePath("UI/Encounter")
 
 var state := RunState.IDLE
 
 var _hand: HandUI
 var _placement_controller: PlacementController
 var _player: GamePlayer
+var _encounter_ui: Control
 
 
 func _ready() -> void:
 	_hand = get_node_or_null(hand_path) as HandUI
 	_placement_controller = get_node_or_null(placement_controller_path) as PlacementController
 	_player = get_node_or_null(player_path) as GamePlayer
+	_encounter_ui = get_node_or_null(encounter_ui_path) as Control
 
 	if _hand == null:
 		push_warning("Level needs a HandUI at hand_path.")
@@ -74,6 +77,10 @@ func _connect_player() -> void:
 		_player.game_over.connect(_on_game_over)
 	if not _player.run_won.is_connected(_on_run_won):
 		_player.run_won.connect(_on_run_won)
+	if not _player.permanent_encounter_reached.is_connected(_on_permanent_encounter_reached):
+		_player.permanent_encounter_reached.connect(_on_permanent_encounter_reached)
+	if _encounter_ui != null and not _encounter_ui.closed.is_connected(_on_encounter_closed):
+		_encounter_ui.closed.connect(_on_encounter_closed)
 
 
 func _on_card_focused(_card: CardView) -> void:
@@ -122,6 +129,18 @@ func _on_player_moved(_grid_position: Vector2i) -> void:
 		return
 	state = RunState.IDLE
 	_set_player_input_enabled(true)
+
+
+func _on_permanent_encounter_reached(_grid_position: Vector2i, encounter: Dictionary) -> void:
+	if _is_terminal_state() or _encounter_ui == null:
+		return
+	_set_player_input_enabled(false)
+	_encounter_ui.open(encounter)
+
+
+func _on_encounter_closed() -> void:
+	if not _is_terminal_state():
+		_set_player_input_enabled(true)
 
 
 func _on_game_over(_reason: String) -> void:

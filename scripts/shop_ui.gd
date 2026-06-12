@@ -5,6 +5,13 @@ const UIStyle = preload("res://scripts/ui_style.gd")
 const ItemIconLibrary = preload("res://scripts/item_icon_library.gd")
 const CARD_SCENE := preload("res://ui/card.tscn")
 const ITEM_SLOT_SCENE := preload("res://ui/item_slot.tscn")
+const SPECIAL_ROAD_DEFINITIONS: Array[Resource] = [
+	preload("res://data/road_straight.tres"),
+	preload("res://data/road_corner.tres"),
+	preload("res://data/road_t_junction.tres"),
+	preload("res://data/road_four_way.tres"),
+	preload("res://data/road_dead_end.tres"),
+]
 
 signal play_next_requested(progression: Dictionary)
 
@@ -56,6 +63,10 @@ const SPECIAL_CARD_CATALOG: Array[Dictionary] = [
 	},
 	{"title": "Sleep", "detail": "Discard hand and redraw.", "category": GameConstants.EVENT_CATEGORY, "event_type": GameConstants.EVENT_SLEEP, "price": 10},
 	{"title": "It was all a dream", "detail": "Restart the current level.", "category": GameConstants.EVENT_CATEGORY, "event_type": GameConstants.EVENT_RESTART_LEVEL, "price": 16},
+	{"title": "Campfire", "detail": "Trade food for health.", "category": GameConstants.ROAD_CATEGORY, "encounter": {"type": GameConstants.ENCOUNTER_CAMPFIRE}, "price": 10},
+	{"title": "Tavern", "detail": "Trade gold for food.", "category": GameConstants.ROAD_CATEGORY, "encounter": {"type": GameConstants.ENCOUNTER_TAVERN}, "price": 10},
+	{"title": "Witch's Hut", "detail": "Trade health for a special card.", "category": GameConstants.ROAD_CATEGORY, "encounter": {"type": GameConstants.ENCOUNTER_WITCH_HUT}, "price": 14},
+	{"title": "Shrine", "detail": "Trade food to draw two cards.", "category": GameConstants.ROAD_CATEGORY, "encounter": {"type": GameConstants.ENCOUNTER_SHRINE}, "price": 10},
 ]
 const CARD_OFFER_COUNT := 3
 
@@ -391,12 +402,30 @@ func _roll_card_offers() -> void:
 	card_offers.clear()
 	if SPECIAL_CARD_CATALOG.is_empty():
 		return
-	# Use gold as a lightweight seed so the same state produces the same offers
 	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(int(progression.get("gold", 0)) * 31 + int(progression.get("food", 0)) * 7)
-	for _index in CARD_OFFER_COUNT:
-		var offer_index := rng.randi_range(0, SPECIAL_CARD_CATALOG.size() - 1)
-		card_offers.append(SPECIAL_CARD_CATALOG[offer_index].duplicate(true))
+	rng.randomize()
+	card_offers = make_unique_catalog_offers(rng, CARD_OFFER_COUNT)
+
+
+static func make_unique_catalog_offers(rng: RandomNumberGenerator, count: int) -> Array[Dictionary]:
+	var available_indices: Array[int] = []
+	for index in SPECIAL_CARD_CATALOG.size():
+		available_indices.append(index)
+	var offers: Array[Dictionary] = []
+	for _index in mini(count, available_indices.size()):
+		var pool_index := rng.randi_range(0, available_indices.size() - 1)
+		var catalog_index := available_indices[pool_index]
+		available_indices.remove_at(pool_index)
+		offers.append(make_catalog_offer(SPECIAL_CARD_CATALOG[catalog_index], rng))
+	return offers
+
+
+static func make_catalog_offer(catalog_card: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
+	var offer := catalog_card.duplicate(true)
+	var encounter: Dictionary = offer.get("encounter", {})
+	if str(encounter.get("type", "")) in GameConstants.PERMANENT_ENCOUNTER_TYPES:
+		offer["tile_definition"] = SPECIAL_ROAD_DEFINITIONS[rng.randi_range(0, SPECIAL_ROAD_DEFINITIONS.size() - 1)]
+	return offer
 
 
 func _show_deck_overlay(removal_mode: bool) -> void:
@@ -460,6 +489,11 @@ func _grouped_overview_cards() -> Array[Dictionary]:
 
 
 func _card_display_name(card: Dictionary) -> String:
+	var encounter: Dictionary = card.get("encounter", {})
+	if str(encounter.get("type", "")) in GameConstants.PERMANENT_ENCOUNTER_TYPES:
+		var special_definition: Resource = card.get("tile_definition")
+		var road_name := str(special_definition.get("display_name")) if special_definition != null else "Road"
+		return "%s (%s)" % [str(card.get("title", "Special Road")), road_name]
 	var definition: Resource = card.get("tile_definition")
 	if definition != null:
 		return str(definition.get("display_name"))

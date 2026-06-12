@@ -183,6 +183,9 @@ func _capture_progression_with_extras(extras: Dictionary) -> Dictionary:
 	for key in ["player_removed_base_cards", "player_removed_card_count", "player_special_cards", "active_power_bonus", "active_max_health_bonus"]:
 		if extras.has(key):
 			progression[key] = extras[key].duplicate(true) if extras[key] is Array or extras[key] is Dictionary else extras[key]
+	var deck_controller := _current_level.get_node_or_null("DeckController") as DeckController if _current_level != null else null
+	if deck_controller != null:
+		progression["player_special_cards"] = deck_controller.player_special_cards.duplicate(true)
 	return progression
 
 

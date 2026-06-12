@@ -10,6 +10,7 @@ signal health_changed(health: int)
 signal base_power_changed(base_power: int)
 signal move_started(target_position: Vector2i)
 signal moved(grid_position: Vector2i)
+signal permanent_encounter_reached(grid_position: Vector2i, encounter: Dictionary)
 signal game_over(reason: String)
 signal run_won
 
@@ -383,6 +384,10 @@ func _find_visual_tile(target_position: Vector2i) -> RoadTile:
 
 func _resolve_reward_encounter_at(target_position: Vector2i) -> void:
 	if _map == null:
+		return
+	var encounter := _map.get_encounter(target_position)
+	if str(encounter.get("type", "")) in GameConstants.PERMANENT_ENCOUNTER_TYPES:
+		permanent_encounter_reached.emit(target_position, encounter.duplicate(true))
 		return
 	if _rewards.collect_reward_at(target_position):
 		_clear_visual_encounter_data(target_position)

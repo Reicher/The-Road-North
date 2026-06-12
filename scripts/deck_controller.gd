@@ -166,6 +166,17 @@ func draw_extra_cards(count: int) -> int:
 	return drawn
 
 
+func acquire_special_card(card: Dictionary) -> bool:
+	if card.is_empty():
+		return false
+	var acquired := card.duplicate(true)
+	acquired.erase("price")
+	player_special_cards.append(acquired.duplicate(true))
+	if _hand != null:
+		_hand.add_card(acquired)
+	return true
+
+
 func cards_remaining() -> int:
 	return deck.size()
 

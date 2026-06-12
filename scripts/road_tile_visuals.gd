@@ -199,6 +199,46 @@ func _draw_reward_encounter(encounter: Dictionary, tile_size: float) -> void:
 		_add_bush(tile_size, Vector3(0.0, 0.0, tile_size * 0.20), true)
 	elif kind == GameMap.ENCOUNTER_CACHE:
 		_add_box("Cache", Vector3(tile_size * 0.28, tile_size * 0.16, tile_size * 0.20), Vector3(0.0, GROUND_HEIGHT + tile_size * 0.08, tile_size * 0.18), Color(0.48, 0.27, 0.12))
+	elif kind == GameMap.ENCOUNTER_CAMPFIRE:
+		_add_campfire(tile_size)
+	elif kind == GameMap.ENCOUNTER_TAVERN:
+		_add_tavern(tile_size)
+	elif kind == GameMap.ENCOUNTER_WITCH_HUT:
+		_add_witch_hut(tile_size)
+	elif kind == GameMap.ENCOUNTER_SHRINE:
+		_add_shrine(tile_size)
+
+
+func _add_campfire(tile_size: float) -> void:
+	var center := Vector3(tile_size * 0.22, GROUND_HEIGHT, tile_size * 0.20)
+	var log_a := _add_box("CampfireLogA", Vector3(tile_size * 0.25, tile_size * 0.045, tile_size * 0.055), center + Vector3(0.0, tile_size * 0.025, 0.0), Color(0.32, 0.16, 0.07))
+	log_a.rotation.y = deg_to_rad(38.0)
+	var log_b := _add_box("CampfireLogB", Vector3(tile_size * 0.25, tile_size * 0.045, tile_size * 0.055), center + Vector3(0.0, tile_size * 0.03, 0.0), Color(0.42, 0.22, 0.09))
+	log_b.rotation.y = deg_to_rad(-38.0)
+	_add_cone("CampfireFlame", tile_size * 0.09, tile_size * 0.24, center + Vector3(0.0, tile_size * 0.15, 0.0), Color(1.0, 0.36, 0.06), 8)
+
+
+func _add_tavern(tile_size: float) -> void:
+	var center := Vector3(tile_size * 0.24, GROUND_HEIGHT, tile_size * 0.18)
+	_add_box("TavernBody", Vector3(tile_size * 0.32, tile_size * 0.25, tile_size * 0.26), center + Vector3(0.0, tile_size * 0.13, 0.0), Color(0.62, 0.40, 0.19))
+	_add_cone("TavernRoof", tile_size * 0.25, tile_size * 0.18, center + Vector3(0.0, tile_size * 0.34, 0.0), Color(0.55, 0.16, 0.10), 4)
+	_add_box("TavernSignPost", Vector3(tile_size * 0.025, tile_size * 0.22, tile_size * 0.025), center + Vector3(-tile_size * 0.23, tile_size * 0.12, 0.0), Color(0.25, 0.13, 0.05))
+	_add_box("TavernSign", Vector3(tile_size * 0.16, tile_size * 0.09, tile_size * 0.025), center + Vector3(-tile_size * 0.23, tile_size * 0.22, 0.0), Color(0.90, 0.67, 0.20))
+
+
+func _add_witch_hut(tile_size: float) -> void:
+	var center := Vector3(tile_size * 0.24, GROUND_HEIGHT, tile_size * 0.18)
+	_add_box("WitchHutBody", Vector3(tile_size * 0.30, tile_size * 0.24, tile_size * 0.25), center + Vector3(0.0, tile_size * 0.13, 0.0), Color(0.19, 0.16, 0.22))
+	var roof := _add_cone("WitchHutRoof", tile_size * 0.26, tile_size * 0.24, center + Vector3(0.0, tile_size * 0.37, 0.0), Color(0.37, 0.16, 0.48), 5)
+	roof.rotation.y = deg_to_rad(18.0)
+	_add_sphere("WitchHutGlow", tile_size * 0.045, center + Vector3(0.0, tile_size * 0.17, -tile_size * 0.14), Color(0.63, 0.95, 0.45))
+
+
+func _add_shrine(tile_size: float) -> void:
+	var center := Vector3(tile_size * 0.24, GROUND_HEIGHT, tile_size * 0.18)
+	_add_box("ShrineBase", Vector3(tile_size * 0.28, tile_size * 0.08, tile_size * 0.24), center + Vector3(0.0, tile_size * 0.04, 0.0), Color(0.40, 0.43, 0.46))
+	_add_box("ShrinePillar", Vector3(tile_size * 0.12, tile_size * 0.34, tile_size * 0.12), center + Vector3(0.0, tile_size * 0.23, 0.0), Color(0.58, 0.61, 0.62))
+	_add_sphere("ShrineLight", tile_size * 0.075, center + Vector3(0.0, tile_size * 0.45, 0.0), Color(0.38, 0.82, 1.0))
 
 
 func _add_road_tile_trees(openings: Dictionary, tile_size: float) -> void:

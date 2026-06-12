@@ -92,7 +92,7 @@ Features:
 - Sell items by dragging to sell zone
 - Buy food, healing, next-map-only potions
 - Two item offers (drag to empty slot)
-- Three random special-card offers (duplicates allowed)
+- Three random special-card offers, without duplicate card types in one shop
 - Deck overlay for viewing the full deck or removing one base or player special card (increasingly expensive)
 
 The removal menu is unavailable when the player cannot afford the current price. Protected road types (Straight, Corner, T-Junction) cannot have their last copy removed. Potion bonuses apply only to the next map.
@@ -121,6 +121,16 @@ Immediate events (Idea, Lucky Find, Sleep, It Was All a Dream) trigger on releas
 Types: Straight, Corner, T-Junction (20%), Four-Way (15%), Dead End (20%). Straight and Corner split the remainder equally.
 
 Special road: **Bridge** — a straight road that may be placed on river tiles (normal connection rules still apply). Injected as a level card on level 2.
+
+Player special road cards may carry permanent encounters. Each offer receives
+one of the five normal road shapes at random. These encounters remain on the
+map and open whenever the player reaches their road:
+
+- Campfire: trade 1 food for 1 health, without reducing food to 0
+- Tavern: trade 1 gold for 1 food
+- Witch's Hut: preview a random special card, then trade 2 health to add it
+  immediately to the hand and permanently to the player's special deck
+- Shrine: trade 1 food to draw 2 extra cards, without reducing food to 0
 
 Can be rotated before placement. Some carry hidden encounters (enemy, berry bush, cache). Encounter counts scale with map size and level:
 - Level 1: 4 enemy, 2 berry, 2 cache
