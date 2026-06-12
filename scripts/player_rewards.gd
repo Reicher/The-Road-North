@@ -76,7 +76,7 @@ func collect_entry(entry: Dictionary) -> bool:
 
 func _make_enemy_loot(enemy_data: Dictionary) -> Array[Dictionary]:
 	var enemy_power := maxi(1, int(enemy_data.get("power", 1)))
-	var default_level := floori(float(enemy_power - 1) / 3.0) + 1
+	var default_level := maxi(1, int(enemy_data.get("enemy_min_power", enemy_power)))
 	var level_rewards := GameBalance.enemy_rewards(default_level)
 	return [{
 		"kind": "gold",

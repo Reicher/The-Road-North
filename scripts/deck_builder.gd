@@ -11,6 +11,7 @@ const ROAD_SUBTYPES: Array[String] = ["straight", "corner", "t_junction", "four_
 const DECK_SOURCE_BASE := GameConstants.DECK_SOURCE_BASE
 const DECK_SOURCE_LEVEL := GameConstants.DECK_SOURCE_LEVEL
 const DECK_SOURCE_PLAYER_SPECIAL := GameConstants.DECK_SOURCE_PLAYER_SPECIAL
+const CACHE_RARE_WEAPON_CHANCE := 0.15
 
 
 func make_deck(deck_size: int, rng: RandomNumberGenerator, config: Dictionary) -> Array[Dictionary]:
@@ -184,7 +185,7 @@ func _make_one_of_each_road(config: Dictionary) -> Array[Dictionary]:
 
 func _make_debug_enemy_roads(roads: Array[Dictionary], level: int) -> Array[Dictionary]:
 	var cards: Array[Dictionary] = []
-	var minimum_power := maxi(1, level) * 3 - 2
+	var minimum_power := GameBalance.enemy_power_range(level).x
 	for index in roads.size():
 		var card: Dictionary = roads[index].duplicate(true)
 		_set_card_encounter(card, {
@@ -275,6 +276,19 @@ func _make_enemy_encounter(rng: RandomNumberGenerator, level: int) -> Dictionary
 	}
 
 
+func scale_encounters_to_level(cards: Array, rng: RandomNumberGenerator, level: int) -> void:
+	for raw_card in cards:
+		if raw_card is not Dictionary:
+			continue
+		var card := raw_card as Dictionary
+		var encounter: Dictionary = card.get("encounter", {})
+		var encounter_type := str(encounter.get("type", ""))
+		if encounter_type == ENCOUNTER_ENEMY:
+			_set_card_encounter(card, _make_enemy_encounter(rng, level))
+		elif encounter_type == GameMap.ENCOUNTER_CACHE:
+			_set_card_encounter(card, _make_reward_encounter(GameMap.ENCOUNTER_CACHE, rng, level))
+
+
 func _add_reward_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, berry_count: int, loot_count: int, level: int, map_size: int) -> void:
 	var eligible_indices: Array[int] = []
 	for index in cards.size():
@@ -307,11 +321,13 @@ func _make_reward_encounter(kind: Variant, rng: RandomNumberGenerator, level: in
 			"type": kind,
 			"loot": [{"kind": "food", "amount": GameBalance.berry_food(map_size)}],
 		}
-	var weapon_tier_start := maxi(1, level) * 3 - 1
+	var weapon_tier_start := maxi(1, level)
+	var normal_weapon_weight := (1.0 - CACHE_RARE_WEAPON_CHANCE) / 3.0
 	var item := ItemCatalog.make_binoculars() if rng.randf() < ItemCatalog.BINOCULARS_DROP_CHANCE else WeaponCatalog.roll_weapon(rng, weapon_tier_start, {
-		0: 0.55,
-		1: 0.30,
-		2: 0.15,
+		0: normal_weapon_weight,
+		1: normal_weapon_weight,
+		2: normal_weapon_weight,
+		3: CACHE_RARE_WEAPON_CHANCE,
 	})
 	return {
 		"type": kind,

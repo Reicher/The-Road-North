@@ -164,7 +164,7 @@ If no valid targets exist, the player may cancel. Destroying tiles may create aw
 
 Encounters add risk/reward to route planning without changing the road-building loop.
 
-**Enemies:** power from level range (L1: 1–3, L2: 4–6, L3: 7–9). Trigger on move. Damage = max(0, enemy_power − player_power). Removed after combat. Grant gold.
+**Enemies:** power is uniformly rolled from `level` to `level + 2`, giving an average of `level + 1` (L1: 1–3, L2: 2–4, L3: 3–5). All enemy encounters in the current level use that level's range, including enemies added by road cards and Ambush. Trigger on move. Damage = max(0, enemy_power − player_power). Removed after combat. Grant gold.
 
 **Player power** = base power + strongest carried weapon bonus.
 
@@ -172,7 +172,7 @@ Encounters add risk/reward to route planning without changing the road-building 
 
 **Inventory:** 3-slot backpack, starts with Walking Stick. Weapons: Walking Stick +1, Dagger +2, Hatchet +3, Machete +4, Sword +5, Mace +6, Spear +7, Sword & Shield +8, Great Axe +9. Only strongest weapon counts.
 
-Cache weapon tiers: level 1 drops +2–4, level 2 drops +5–7, and level 3 drops +8–9.
+Cache weapons normally have power from `level` to `level + 2`, evenly distributed, with a 15% chance for a rare `level + 3` weapon instead (L1: +1–3, rarely +4; L2: +2–4, rarely +5). If that power does not exist in the weapon catalog, available powers are used.
 
 **Binoculars:** Utility item, +1 target range (Manhattan distance 2). 15% cache drop chance instead of weapon.
 

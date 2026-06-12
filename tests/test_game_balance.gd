@@ -38,8 +38,8 @@ func _test_level_and_map_size_are_independent_inputs() -> void:
 	var level_three := GameBalance.deck_counts(3, 7)
 	_assert(int(level_two["total_cards"]) == int(level_three["total_cards"]), "Expected equal authored map sizes to use the same base deck size before a difficulty penalty applies")
 	_assert(int(level_three["special_roads"]["enemy"]) == int(level_two["special_roads"]["enemy"]) + 1, "Expected the higher level on the same map size to add an enemy road")
-	_assert(GameBalance.enemy_power_range(2) == Vector2i(4, 6), "Expected level two enemy range")
-	_assert(GameBalance.enemy_power_range(3) == Vector2i(7, 9), "Expected level three enemy range")
+	_assert(GameBalance.enemy_power_range(2) == Vector2i(2, 4), "Expected level two enemy range")
+	_assert(GameBalance.enemy_power_range(3) == Vector2i(3, 5), "Expected level three enemy range")
 
 
 func _test_reward_formulas() -> void:

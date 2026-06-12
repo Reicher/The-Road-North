@@ -73,6 +73,7 @@ func generate_deck() -> void:
 	deck_components = _deck_builder.make_deck_components(_get_deck_size(), _rng, config)
 	_inject_level_specific_cards(config)
 	_apply_player_deck_modifiers()
+	_scale_encounters_to_level()
 	deck = _deck_builder.combine_deck_components(deck_components)
 	starting_deck = deck.duplicate(true)
 
@@ -101,6 +102,11 @@ func _apply_player_deck_modifiers() -> void:
 		special["deck_source"] = DeckBuilder.DECK_SOURCE_PLAYER_SPECIAL
 		specials.append(special)
 	deck_components[DeckBuilder.DECK_SOURCE_PLAYER_SPECIAL] = specials
+
+
+func _scale_encounters_to_level() -> void:
+	for source in [DeckBuilder.DECK_SOURCE_BASE, DeckBuilder.DECK_SOURCE_LEVEL, DeckBuilder.DECK_SOURCE_PLAYER_SPECIAL]:
+		_deck_builder.scale_encounters_to_level(deck_components.get(source, []), _rng, level)
 
 
 func _card_signature(card: Dictionary) -> String:

@@ -77,7 +77,7 @@ static func special_road_counts(level: int, map_size: int, road_cards: int) -> D
 
 static func enemy_power_range(level: int) -> Vector2i:
 	var safe_level := maxi(1, level)
-	return Vector2i((safe_level - 1) * 3 + 1, safe_level * 3)
+	return Vector2i(safe_level, safe_level + 2)
 
 
 static func berry_food(map_size: int) -> int:

@@ -153,9 +153,11 @@ func run() -> void:
 	_assert(not second_map.can_place_tile(Vector2i(2, 3), {}), "Expected bridge fixed features to already provide a road crossing")
 	_assert(second_map.get_fixed_feature_connections(Vector2i(2, 3))["north"] == true, "Expected level 002 bridges to connect across the river")
 	_assert(second_deck_controller.hand_size == 4, "Expected level 002 to configure a four-card hand")
-	_assert(second_deck_controller.level == 2, "Expected level 002 enemies to use power four through six")
+	_assert(second_deck_controller.level == 2, "Expected level 002 enemies to use power two through four")
 	_assert(second_deck_controller.deck_components["base"].size() == 18 and second_deck_controller.deck_components["level"].size() == 7, "Expected level 002 to combine the base deck with seven level cards")
 	_assert(_count_enemy_cards(second_deck_controller.deck_components["base"]) == 4, "Expected level 002 to retain the level-one base deck recipe")
+	_assert(_all_enemy_cards_use_level_range(second_deck_controller.deck_components["base"], 2), "Expected level 002 base-deck enemies to scale to the current level")
+	_assert(_all_enemy_cards_use_level_range(second_deck_controller.deck_components["level"], 2), "Expected level 002 level-deck enemies and Ambush cards to use the current level")
 	_assert(_all_level_cards_are_difficult(second_deck_controller.deck_components["level"]), "Expected level 002 level cards to prioritize difficult cards")
 	_assert(second_deck_controller.deck_components["player_special"].is_empty(), "Expected player special cards to remain an empty concept")
 	_assert(second_camera.reserved_bottom_path == NodePath("../UI/Hand"), "Expected camera to reserve the card hand area when sizing the map viewport")
@@ -202,3 +204,14 @@ func _count_enemy_cards(cards: Array[Dictionary]) -> int:
 		if (card.get("encounter", {}) as Dictionary).get("type", "") == GameMap.ENCOUNTER_ENEMY:
 			count += 1
 	return count
+
+
+func _all_enemy_cards_use_level_range(cards: Array[Dictionary], level: int) -> bool:
+	for card in cards:
+		var encounter: Dictionary = card.get("encounter", {})
+		if encounter.get("type", "") != GameMap.ENCOUNTER_ENEMY:
+			continue
+		var power := int(encounter.get("power", 0))
+		if power < level or power > level + 2:
+			return false
+	return true

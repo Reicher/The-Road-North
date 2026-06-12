@@ -12,6 +12,7 @@ const SAMPLE_COUNT := 20000
 func _initialize() -> void:
 	_test_weapon_catalog()
 	_test_enemy_power_ranges()
+	_test_encounter_cards_scale_to_current_level()
 	_test_enemy_loot_is_only_gold()
 	_test_cache_loot_distribution()
 	_test_cache_weapon_tiers()
@@ -35,8 +36,8 @@ func _test_enemy_power_ranges() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 12345
 	for level in range(1, 4):
-		var enemy_min_power := level * 3 - 2
-		var enemy_max_power := level * 3
+		var enemy_min_power := level
+		var enemy_max_power := level + 2
 		var seen_powers := {}
 		for _index in 100:
 			var enemy: Dictionary = builder._make_enemy_encounter(rng, level)
@@ -45,6 +46,31 @@ func _test_enemy_power_ranges() -> void:
 			_assert(int(enemy["enemy_min_power"]) == enemy_min_power, "Expected enemy encounter to store its level minimum power")
 			seen_powers[enemy_power] = true
 		_assert(seen_powers.size() == 3, "Expected every level to generate all three enemy power values")
+	builder.free()
+
+
+func _test_encounter_cards_scale_to_current_level() -> void:
+	var builder = DECK_BUILDER_SCRIPT.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 24680
+	var cards := [
+		{
+			"category": GameConstants.EVENT_CATEGORY,
+			"event_type": GameConstants.EVENT_AMBUSH,
+			"encounter": {"type": GameMap.ENCOUNTER_ENEMY, "power": 9},
+		},
+		{
+			"category": GameConstants.EVENT_CATEGORY,
+			"event_type": GameConstants.EVENT_LOST_BELONGINGS,
+			"encounter": {"type": GameMap.ENCOUNTER_CACHE, "loot": [{"kind": "item", "item": WeaponCatalog.make_weapon(1)}]},
+		},
+	]
+	builder.scale_encounters_to_level(cards, rng, 4)
+	var enemy_encounter: Dictionary = cards[0]["encounter"]
+	_assert(int(enemy_encounter["power"]) >= 4 and int(enemy_encounter["power"]) <= 6, "Expected enemy cards to use the current level's power range")
+	_assert(int(enemy_encounter["enemy_min_power"]) == 4, "Expected scaled enemy cards to store the current level minimum power")
+	var cache_weapon := _weapon_from_loot(cards[1]["encounter"]["loot"])
+	_assert(cache_weapon.is_empty() or int(cache_weapon["power_bonus"]) >= 4, "Expected cache cards to use the current level's weapon range")
 	builder.free()
 
 
@@ -62,13 +88,23 @@ func _test_enemy_loot_is_only_gold() -> void:
 			var gold_amount := _gold_amount(loot)
 			_assert(gold_amount >= 2 and gold_amount <= 5, "Expected level one enemy gold range")
 		rewards.free()
+	var future_level_rewards = PLAYER_REWARDS_SCRIPT.new()
+	future_level_rewards.set_loot_seed(30000)
+	for _index in 100:
+		var loot: Array = future_level_rewards._make_enemy_loot({
+			"power": 6,
+			"enemy_min_power": 4,
+		})
+		var gold_amount := _gold_amount(loot)
+		_assert(gold_amount >= 8 and gold_amount <= 14, "Expected enemy reward fallback to use the encounter level rather than overlapping power")
+	future_level_rewards.free()
 
 
 func _test_cache_loot_distribution() -> void:
 	var builder = DECK_BUILDER_SCRIPT.new()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 56789
-	var counts := {2: 0, 3: 0, 4: 0}
+	var counts := {1: 0, 2: 0, 3: 0, 4: 0}
 	var weapon_count := 0
 	var binoculars_count := 0
 	for _index in SAMPLE_COUNT:
@@ -82,9 +118,11 @@ func _test_cache_loot_distribution() -> void:
 		if not _binoculars_from_loot(loot).is_empty():
 			binoculars_count += 1
 	_assert(weapon_count + binoculars_count == SAMPLE_COUNT, "Expected every cache item to be a weapon or Binoculars")
-	_assert(_conditional_ratio_is_close(counts[2], weapon_count, 0.55), "Expected level one cache Dagger chance to be 55 percent when a weapon drops")
-	_assert(_conditional_ratio_is_close(counts[3], weapon_count, 0.30), "Expected level one cache Hatchet chance to be 30 percent when a weapon drops")
-	_assert(_conditional_ratio_is_close(counts[4], weapon_count, 0.15), "Expected level one cache Machete chance to be 15 percent when a weapon drops")
+	var normal_weapon_chance := (1.0 - DeckBuilder.CACHE_RARE_WEAPON_CHANCE) / 3.0
+	_assert(_conditional_ratio_is_close(counts[1], weapon_count, normal_weapon_chance), "Expected level one cache Walking Stick chance to share the normal weapon range")
+	_assert(_conditional_ratio_is_close(counts[2], weapon_count, normal_weapon_chance), "Expected level one cache Dagger chance to share the normal weapon range")
+	_assert(_conditional_ratio_is_close(counts[3], weapon_count, normal_weapon_chance), "Expected level one cache Hatchet chance to share the normal weapon range")
+	_assert(_conditional_ratio_is_close(counts[4], weapon_count, DeckBuilder.CACHE_RARE_WEAPON_CHANCE), "Expected level one cache Machete chance to be the rare 15 percent drop")
 	_assert(_ratio_is_close(binoculars_count, ItemCatalog.BINOCULARS_DROP_CHANCE), "Expected caches on every level to have a 15 percent Binoculars chance")
 	builder.free()
 
@@ -94,8 +132,8 @@ func _test_cache_weapon_tiers() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 6122026
 	for level in range(1, 4):
-		var expected_min := 2 if level == 1 else level * 3 - 1
-		var expected_max := mini(level * 3 + 1, 9)
+		var expected_min := level
+		var expected_max := mini(level + 3, 9)
 		var seen_powers := {}
 		for _index in SAMPLE_COUNT:
 			var item := _weapon_from_loot(builder._make_reward_encounter(1, rng, level)["loot"])

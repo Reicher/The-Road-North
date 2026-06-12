@@ -36,7 +36,9 @@ initial_tiles = [{
 "rotation_steps": 0,
 "encounter": {
 "type": "enemy",
-"power": 9
+"power": 5,
+"gold_min": 6,
+"gold_max": 11
 }
 }]
 
