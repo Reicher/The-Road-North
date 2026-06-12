@@ -1,7 +1,6 @@
 class_name GamePlayer
 extends Node3D
 
-const PLAYER_MODEL_SCALE := 0.5
 const GameBalance = preload("res://scripts/game_balance.gd")
 const ModelAssets = preload("res://scripts/model_assets.gd")
 
@@ -202,7 +201,7 @@ func _rebuild_visuals() -> void:
 		child.queue_free()
 
 	var tile_size := _map.tile_size
-	var model := ModelAssets.instantiate_model(ModelAssets.PLAYER_MODEL, "Pawn", Vector3.ZERO, tile_size * PLAYER_MODEL_SCALE)
+	var model := ModelAssets.instantiate_model(ModelAssets.PLAYER_MODEL, "Pawn", Vector3.ZERO, tile_size * ModelAssets.PAWN_MODEL_SCALE)
 	if model != null:
 		_visual_root.add_child(model)
 

@@ -2,7 +2,6 @@ class_name EnemyView
 extends Node3D
 
 const ENEMY_COLOR := Color(0.78, 0.12, 0.10)
-const ENEMY_MODEL_SCALE := 0.66
 const POWER_DISPLAY_PIXEL_SIZE := 0.0015
 const POWER_ICON := preload("res://assets/images/stats/stat_power.png")
 const ModelAssets = preload("res://scripts/model_assets.gd")
@@ -78,7 +77,7 @@ func _rebuild() -> void:
 		return
 
 	var eye_color := Color(1.0, 0.84, 0.34)
-	var model := ModelAssets.instantiate_model(ModelAssets.ENEMY_MODEL, "EnemyModel", Vector3.ZERO, tile_size * ENEMY_MODEL_SCALE)
+	var model := ModelAssets.instantiate_model(ModelAssets.ENEMY_MODEL, "EnemyModel", Vector3.ZERO, tile_size * ModelAssets.PAWN_MODEL_SCALE)
 	if model != null:
 		_apply_material_override(model, _make_material(ENEMY_COLOR))
 		add_child(model)

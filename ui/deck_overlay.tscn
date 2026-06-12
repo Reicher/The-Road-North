@@ -24,12 +24,19 @@ theme_override_constants/margin_bottom = 16
 
 [node name="Stack" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
+theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="Margin/Stack"]
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.94, 0.78, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
+theme_override_colors/font_shadow_color = Color(1, 0.79, 0.31, 0.7)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 30
 text = "Deck"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Scroll" type="ScrollContainer" parent="Margin/Stack"]
 layout_mode = 2
@@ -38,6 +45,7 @@ size_flags_vertical = 3
 [node name="List" type="VBoxContainer" parent="Margin/Stack/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 6
 
 [node name="CloseButton" type="Button" parent="Margin/Stack"]
 layout_mode = 2

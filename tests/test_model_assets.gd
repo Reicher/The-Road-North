@@ -11,6 +11,7 @@ const MODEL_PATHS: Array[String] = [
 
 
 func _initialize() -> void:
+	_assert(ModelAssets.ENEMY_MODEL == ModelAssets.PLAYER_MODEL, "Expected enemy and player to use the same pawn model")
 	for path in MODEL_PATHS:
 		var model := ModelAssets.instantiate_model(path, "TestModel", Vector3(1.0, 2.0, 3.0), 2.0)
 		_assert(model != null, "Expected model asset to instantiate: %s" % path)

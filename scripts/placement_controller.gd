@@ -350,7 +350,7 @@ func _refresh_preview() -> void:
 	if not _card_drag_in_progress:
 		_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, true, invalid_hint)
 	else:
-		_controls_layer.show_hint(invalid_hint, _hand)
+		_controls_layer.show_hint(invalid_hint, _hand, preview_position, _map)
 	set_process(true)
 
 
@@ -420,7 +420,7 @@ func _refresh_tile_target() -> void:
 		if not _card_drag_in_progress:
 			_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, false, invalid_hint)
 	if _card_drag_in_progress:
-		_controls_layer.show_hint(invalid_hint, _hand)
+		_controls_layer.show_hint(invalid_hint, _hand, preview_position, _map)
 	_refresh_target_preview(valid_target)
 	set_process(true)
 

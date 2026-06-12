@@ -51,7 +51,7 @@ func show_preview_controls(
 	hint: String = ""
 ) -> void:
 	_resolve_nodes()
-	show_hint(hint, hand)
+	show_hint(hint, hand, preview_position, map)
 	rotate_button.visible = rotate_visible
 	rotate_button.disabled = not rotate_visible
 	confirm_button.disabled = not valid
@@ -59,11 +59,19 @@ func show_preview_controls(
 	position_buttons(preview_position, map, hand)
 
 
-func show_hint(text: String, hand: HandUI) -> void:
+func show_hint(
+	text: String,
+	hand: HandUI,
+	preview_position := Vector2i(-1, -1),
+	map: GameMap = null
+) -> void:
 	_resolve_nodes()
 	prompt_label.text = text
 	prompt_label.visible = not text.is_empty()
-	position_prompt(hand)
+	if preview_position.x >= 0 and map != null:
+		position_prompt_above_preview(preview_position, map, hand)
+	else:
+		position_prompt(hand)
 
 
 func hide_all() -> void:
@@ -77,7 +85,10 @@ func hide_all() -> void:
 
 func position_buttons(preview_position: Vector2i, map: GameMap, hand: HandUI) -> void:
 	_resolve_nodes()
-	position_prompt(hand)
+	if preview_position.x >= 0 and map != null:
+		position_prompt_above_preview(preview_position, map, hand)
+	else:
+		position_prompt(hand)
 	if not buttons.visible:
 		return
 
@@ -102,6 +113,30 @@ func position_prompt(hand: HandUI) -> void:
 	var prompt_y := maxf(8.0, card_top - prompt_size.y - 6.0)
 	prompt_label.size = prompt_size
 	prompt_label.position = Vector2((viewport_width - prompt_size.x) * 0.5, prompt_y)
+
+
+func position_prompt_above_preview(preview_position: Vector2i, map: GameMap, hand: HandUI) -> void:
+	_resolve_nodes()
+	if not prompt_label.visible or map == null:
+		return
+
+	var prompt_size := prompt_label.custom_minimum_size
+	var viewport_size := Vector2(_get_viewport_size().x, _get_map_screen_height(hand))
+	var canvas_position := map.grid_to_screen_position(preview_position)
+	var top_edge_position := map.grid_edge_to_screen_position(preview_position, false)
+	prompt_label.size = prompt_size
+	prompt_label.position = Vector2(
+		clampf(
+			canvas_position.x - prompt_size.x * 0.5,
+			8.0,
+			maxf(8.0, viewport_size.x - prompt_size.x - 8.0)
+		),
+		clampf(
+			top_edge_position.y - prompt_size.y - 6.0,
+			8.0,
+			maxf(8.0, viewport_size.y - prompt_size.y - 8.0)
+		)
+	)
 
 
 func _get_map_screen_height(hand: HandUI) -> float:

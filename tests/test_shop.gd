@@ -6,6 +6,8 @@ const MAP_SCENE := preload("res://scenes/map.tscn")
 const HAND_SCENE := preload("res://ui/hand.tscn")
 const STRAIGHT := preload("res://data/road_straight.tres")
 const CORNER := preload("res://data/road_corner.tres")
+const FOUR_WAY := preload("res://data/road_four_way.tres")
+const DEAD_END := preload("res://data/road_dead_end.tres")
 
 
 func _initialize() -> void:
@@ -23,9 +25,12 @@ func run() -> void:
 		"base_power": 1,
 		"inventory": [{"name": "Knife", "effect": "+1 Power", "power_bonus": 1}, {}, {}],
 	}, "3 bridges", 7, [
+		{"category": "Road", "tile_definition": DEAD_END},
 		{"category": "Road", "tile_definition": STRAIGHT},
+		{"category": "Road", "tile_definition": DEAD_END},
 		{"category": "Road", "tile_definition": STRAIGHT},
 		{"category": "Road", "tile_definition": CORNER},
+		{"category": "Road", "tile_definition": FOUR_WAY},
 		{"category": "Event", "event_type": GameConstants.EVENT_DRAW_TWO, "title": "Idea"},
 	])
 	await process_frame
@@ -58,6 +63,15 @@ func run() -> void:
 		_assert(card.category == GameConstants.EVENT_CATEGORY, "Expected shop CardView to show special event data")
 		_assert(card.card_base_texture_path == CardView.DEFAULT_CARD_BASE_TEXTURE_PATH, "Expected shop cards to use the same painted card design as gameplay")
 		_assert((offer_node.get_node("BuyButton") as Button).icon != null, "Expected special card prices to use the gold resource icon")
+
+	shop.call("_show_deck_overlay", true)
+	var deck_overlay := shop.find_child("DeckOverlay", true, false) as DeckOverlay
+	var deck_title := deck_overlay.find_child("Title", true, false) as Label
+	var deck_list := deck_overlay.find_child("List", true, false) as VBoxContainer
+	_assert(deck_title.text == "REMOVE BASE CARD", "Expected the removal overlay to use a clear, polished title")
+	_assert(deck_title.get_theme_color("font_color").is_equal_approx(Color(0.2, 0.14, 0.09, 1)), "Expected the deck title to contrast with the light panel")
+	_assert(_button_texts(deck_list) == ["Straight Road", "Straight Road", "Corner", "Four-Way Intersection", "Dead End", "Dead End", "draw_two"], "Expected base cards to be grouped by type with all Dead Ends together")
+	deck_overlay.hide_overlay()
 
 	_assert(shop.buy_food() and shop.progression["food"] == 7, "Expected food click purchase to add food immediately")
 	_assert(shop.buy_heal() and shop.progression["health"] == 4, "Expected heal click purchase to clamp at max health")
@@ -127,6 +141,15 @@ func _label_index(parent: Node, text: String) -> int:
 		if label != null and label.text == text:
 			return index
 	return -1
+
+
+func _button_texts(parent: Node) -> Array[String]:
+	var texts: Array[String] = []
+	for child in parent.get_children():
+		var button := child as Button
+		if button != null:
+			texts.append(button.text)
+	return texts
 
 
 func _all_offers_are_cheaper_specials(cards: Array[Dictionary]) -> bool:

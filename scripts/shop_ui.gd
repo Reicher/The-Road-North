@@ -21,6 +21,13 @@ const CARD_OFFER_SIZE := Vector2(200.0, 290.0)
 const OFFER_ICON_SIZE := 42
 const STAT_ICON_PATHS := GameConstants.STAT_ICON_PATHS
 const PROTECTED_ROAD_TYPES := ["Straight Road", "Corner", "T-Junction"]
+const BASE_CARD_SORT_ORDER := {
+	"Straight Road": 0,
+	"Corner": 1,
+	"T-Junction": 2,
+	"Four-Way Intersection": 3,
+	"Dead End": 4,
+}
 
 const ITEM_OFFERS: Array[Dictionary] = [
 	{"name": "Dagger", "effect": "+2 Power", "power_bonus": 2, "price": 7, "sell_price": 4},
@@ -368,8 +375,8 @@ func _roll_card_offers() -> void:
 
 func _show_deck_overlay(removal_mode: bool) -> void:
 	_deck_overlay.clear_list()
-	var title_text := "Remove BaseDeck card" if removal_mode else "View deck"
-	for index in base_cards.size():
+	var title_text := "REMOVE BASE CARD" if removal_mode else "BASE DECK"
+	for index in _sorted_base_card_indices():
 		var card := base_cards[index]
 		var text := GameConstants.card_signature(card).trim_prefix("road:").trim_prefix("event:")
 		var disabled_state := not removal_mode or not _can_remove_card(card) or bool(progression.get("removed_base_card_this_shop", false))
@@ -380,6 +387,26 @@ func _show_deck_overlay(removal_mode: bool) -> void:
 			_deck_overlay.add_list_label("Special: %s" % GameConstants.card_signature(card as Dictionary).trim_prefix("road:").trim_prefix("event:"), 18)
 		_deck_overlay.add_list_label("Level cards added next map.", 18)
 	_deck_overlay.show_overlay(title_text)
+
+
+func _sorted_base_card_indices() -> Array[int]:
+	var indices: Array[int] = []
+	for index in base_cards.size():
+		indices.append(index)
+	indices.sort_custom(func(left: int, right: int) -> bool:
+		var left_card := base_cards[left]
+		var right_card := base_cards[right]
+		var left_name := GameConstants.card_signature(left_card).trim_prefix("road:").trim_prefix("event:")
+		var right_name := GameConstants.card_signature(right_card).trim_prefix("road:").trim_prefix("event:")
+		var left_order := int(BASE_CARD_SORT_ORDER.get(left_name, BASE_CARD_SORT_ORDER.size()))
+		var right_order := int(BASE_CARD_SORT_ORDER.get(right_name, BASE_CARD_SORT_ORDER.size()))
+		if left_order != right_order:
+			return left_order < right_order
+		if left_name != right_name:
+			return left_name.naturalnocasecmp_to(right_name) < 0
+		return left < right
+	)
+	return indices
 
 
 func _can_remove_card(card: Dictionary) -> bool:

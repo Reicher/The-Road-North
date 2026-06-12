@@ -4,7 +4,8 @@ extends RefCounted
 const TREE_MODEL := "res://assets/models/tree.obj"
 const HOUSE_MODEL := "res://assets/models/house.obj"
 const PLAYER_MODEL := "res://assets/models/player_pawn_lightblue_no_shadow.obj"
-const ENEMY_MODEL := "res://assets/models/enemy.obj"
+const ENEMY_MODEL := PLAYER_MODEL
+const PAWN_MODEL_SCALE := 0.5
 
 static var _cache: Dictionary = {}
 

@@ -98,10 +98,12 @@ func _initialize() -> void:
 	_assert(not placement.has_valid_preview(), "Expected non-adjacent preview to be invalid")
 	_assert(_get_hint(placement) == "Too far away", "Expected range to be the highest-priority placement hint")
 	hand.set_inactive(true, false)
-	placement.get_node("PlacementControls").call("position_prompt", hand)
+	placement.get_node("PlacementControls").call("position_buttons", Vector2i(4, 6), map, hand)
+	var preview_top_edge := map.grid_edge_to_screen_position(Vector2i(4, 6), false)
 	_assert(
-		is_equal_approx(prompt_label.position.y + prompt_label.size.y + 6.0, hand.get_card_top_screen_y()),
-		"Expected placement helper text directly above the retracted cards"
+		prompt_label.position.y + prompt_label.size.y + 6.0 <= preview_top_edge.y + 0.01
+			or is_equal_approx(prompt_label.position.y, 8.0),
+		"Expected placement error text above the preview tile or clamped to the screen edge"
 	)
 	_assert(not map.are_cell_trees_visible(Vector2i(4, 6)), "Expected preview to hide the empty cell's existing trees")
 	_assert(not placement.confirm_placement(), "Expected confirm to reject invalid preview")

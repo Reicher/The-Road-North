@@ -65,8 +65,13 @@ func _initialize() -> void:
 		"power": 7,
 	}
 	await process_frame
+	var enemy_model := enemy_tile.get_node_or_null("Enemy/EnemyModel") as MeshInstance3D
 	var power_label := enemy_tile.get_node_or_null("Enemy/PowerLabel") as Label3D
 	var power_icon := enemy_tile.get_node_or_null("Enemy/PowerIcon") as Sprite3D
+	_assert(enemy_model != null, "Expected enemy tiles to show the shared pawn model")
+	_assert(enemy_model.scale.is_equal_approx(Vector3.ONE * TILE_SIZE * ModelAssets.PAWN_MODEL_SCALE), "Expected enemy pawn to use the player's model scale")
+	var enemy_material := enemy_model.material_override as StandardMaterial3D
+	_assert(enemy_material != null and enemy_material.albedo_color.is_equal_approx(EnemyView.ENEMY_COLOR), "Expected the shared enemy pawn model to be red")
 	_assert(power_label != null, "Expected revealed enemy tiles to show a power label")
 	_assert(power_icon != null, "Expected revealed enemy tiles to show a power icon")
 	_assert(power_label.text == "7", "Expected enemy power label to show the enemy power")
