@@ -114,6 +114,22 @@ func get_target_range_bonus() -> int:
 	return bonus
 
 
+func get_gold_multiplier() -> int:
+	var multiplier := 1
+	for item in items:
+		if not item.is_empty():
+			multiplier = maxi(multiplier, int(item.get("gold_multiplier", 1)))
+	return multiplier
+
+
+func get_max_health_bonus() -> int:
+	var bonus := 0
+	for item in items:
+		if not item.is_empty():
+			bonus += int(item.get("max_health_bonus", 0))
+	return bonus
+
+
 func get_active_items() -> Array[Dictionary]:
 	var active_items: Array[Dictionary] = []
 	for item in items:

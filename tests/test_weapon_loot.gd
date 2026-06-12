@@ -106,7 +106,8 @@ func _test_cache_loot_distribution() -> void:
 	rng.seed = 56789
 	var counts := {1: 0, 2: 0, 3: 0, 4: 0}
 	var weapon_count := 0
-	var binoculars_count := 0
+	var utility_count := 0
+	var utility_counts := {}
 	for _index in SAMPLE_COUNT:
 		var encounter: Dictionary = builder._make_reward_encounter(1, rng, 1)
 		var loot: Array = encounter["loot"]
@@ -115,15 +116,22 @@ func _test_cache_loot_distribution() -> void:
 		if not item.is_empty():
 			weapon_count += 1
 			counts[int(item["power_bonus"])] += 1
-		if not _binoculars_from_loot(loot).is_empty():
-			binoculars_count += 1
-	_assert(weapon_count + binoculars_count == SAMPLE_COUNT, "Expected every cache item to be a weapon or Binoculars")
+		var utility_item := _utility_item_from_loot(loot)
+		if not utility_item.is_empty():
+			utility_count += 1
+			var utility_name := str(utility_item.get("name", ""))
+			utility_counts[utility_name] = int(utility_counts.get(utility_name, 0)) + 1
+	_assert(weapon_count + utility_count == SAMPLE_COUNT, "Expected every cache item to be a weapon or utility item")
 	var normal_weapon_chance := (1.0 - DeckBuilder.CACHE_RARE_WEAPON_CHANCE) / 3.0
 	_assert(_conditional_ratio_is_close(counts[1], weapon_count, normal_weapon_chance), "Expected level one cache Walking Stick chance to share the normal weapon range")
 	_assert(_conditional_ratio_is_close(counts[2], weapon_count, normal_weapon_chance), "Expected level one cache Dagger chance to share the normal weapon range")
 	_assert(_conditional_ratio_is_close(counts[3], weapon_count, normal_weapon_chance), "Expected level one cache Hatchet chance to share the normal weapon range")
 	_assert(_conditional_ratio_is_close(counts[4], weapon_count, DeckBuilder.CACHE_RARE_WEAPON_CHANCE), "Expected level one cache Machete chance to be the rare 15 percent drop")
-	_assert(_ratio_is_close(binoculars_count, ItemCatalog.BINOCULARS_DROP_CHANCE), "Expected caches on every level to have a 15 percent Binoculars chance")
+	_assert(_ratio_is_close(utility_count, ItemCatalog.UTILITY_ITEM_DROP_CHANCE), "Expected caches on every level to have a total 15 percent utility item chance")
+	for utility_item in ItemCatalog.UTILITY_ITEMS:
+		var utility_name := str(utility_item["name"])
+		_assert(_conditional_ratio_is_close(int(utility_counts.get(utility_name, 0)), utility_count, 1.0 / ItemCatalog.UTILITY_ITEMS.size()), "Expected utility cache drops to be evenly distributed")
+		_assert(ItemIconLibrary.get_icon(utility_item) != null, "Expected every utility item to have an icon")
 	builder.free()
 
 
@@ -178,10 +186,12 @@ func _weapon_from_loot(loot: Array) -> Dictionary:
 	return {}
 
 
-func _binoculars_from_loot(loot: Array) -> Dictionary:
+func _utility_item_from_loot(loot: Array) -> Dictionary:
 	for entry in loot:
-		if entry is Dictionary and entry.get("kind", "") == "item" and entry.get("item", {}).get("name", "") == "Binoculars":
-			return entry.get("item", {})
+		if entry is Dictionary and entry.get("kind", "") == "item":
+			var item: Dictionary = entry.get("item", {})
+			if int(item.get("target_range_bonus", 0)) > 0 or int(item.get("gold_multiplier", 1)) > 1 or int(item.get("max_health_bonus", 0)) > 0:
+				return item
 	return {}
 
 

@@ -94,6 +94,17 @@ func run() -> void:
 	var gold_before_sell := int(shop.progression["gold"])
 	_assert(shop.sell_inventory_slot(1), "Expected inventory items to sell through the sell zone")
 	_assert(int(shop.progression["gold"]) > gold_before_sell, "Expected selling an item to increase gold")
+	shop.progression["inventory"] = [
+		{"name": "Goldsmith's Scale", "effect": "Gain twice as much gold.", "gold_multiplier": 2, "sell_price": 4},
+		{"name": "Field Medic's Bag", "effect": "+2 Max Health", "max_health_bonus": 2, "sell_price": 4},
+		{},
+	]
+	shop.progression["health"] = 6
+	shop.progression["max_health"] = 6
+	gold_before_sell = int(shop.progression["gold"])
+	_assert(shop.sell_inventory_slot(1), "Expected Field Medic's Bag to be sellable")
+	_assert(int(shop.progression["gold"]) == gold_before_sell + 8, "Expected Goldsmith's Scale to double gold gained from selling")
+	_assert(shop.progression["health"] == 4 and shop.progression["max_health"] == 4, "Expected selling Field Medic's Bag to remove its health bonus")
 	_assert(shop.buy_special_card(0) and shop.buy_special_card(1) and shop.buy_special_card(2), "Expected all three special cards to be purchasable")
 	_assert(shop.progression["player_special_cards"].size() == 3, "Expected purchased cards to persist as player special cards")
 	_assert(not shop.buy_special_card(0), "Expected each card offer to be purchasable only once")

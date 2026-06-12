@@ -174,7 +174,12 @@ Encounters add risk/reward to route planning without changing the road-building 
 
 Cache weapons normally have power from `level` to `level + 2`, evenly distributed, with a 15% chance for a rare `level + 3` weapon instead (L1: +1–3, rarely +4; L2: +2–4, rarely +5). If that power does not exist in the weapon catalog, available powers are used.
 
-**Binoculars:** Utility item, +1 target range (Manhattan distance 2). 15% cache drop chance instead of weapon.
+**Utility items:** Caches have a total 15% chance to contain a uniformly
+selected utility item instead of a weapon.
+
+- Binoculars: +1 target range (Manhattan distance 2)
+- Goldsmith's Scale: doubles all gold gained
+- Field Medic's Bag: +2 max health while carried
 
 ---
 

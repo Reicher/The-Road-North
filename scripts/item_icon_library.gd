@@ -2,8 +2,10 @@ class_name ItemIconLibrary
 extends RefCounted
 
 const ICON_PATHS := {
-	"binoculars": "res://assets/images/items/item_binoculars.svg",
+	"binoculars": "res://assets/images/items/item_binoculars.png",
 	"dagger": "res://assets/images/items/item_dagger.png",
+	"field medic's bag": "res://assets/images/items/item_field_medics_bag.png",
+	"goldsmith's scale": "res://assets/images/items/item_goldsmiths_scale.png",
 	"great axe": "res://assets/images/items/item_great_axe.png",
 	"hatchet": "res://assets/images/items/item_hatchet.png",
 	"item": "res://assets/images/items/item_fallback.png",

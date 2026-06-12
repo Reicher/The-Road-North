@@ -204,10 +204,10 @@ func _apply_progression(progression: Dictionary) -> void:
 		applied["active_max_health_bonus"] = pending_max_health
 	applied.erase("pending_power_bonus")
 	applied.erase("pending_max_health_bonus")
-	if player != null:
-		player.apply_progression_state(applied, false)
 	if inventory != null:
 		inventory.set_items(applied.get("inventory", []), false)
+	if player != null:
+		player.apply_progression_state(applied, false)
 	if stats != null:
 		stats.sync_without_feedback()
 	_level_start_progression = applied

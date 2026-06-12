@@ -323,7 +323,7 @@ func _make_reward_encounter(kind: Variant, rng: RandomNumberGenerator, level: in
 		}
 	var weapon_tier_start := maxi(1, level)
 	var normal_weapon_weight := (1.0 - CACHE_RARE_WEAPON_CHANCE) / 3.0
-	var item := ItemCatalog.make_binoculars() if rng.randf() < ItemCatalog.BINOCULARS_DROP_CHANCE else WeaponCatalog.roll_weapon(rng, weapon_tier_start, {
+	var item := ItemCatalog.roll_utility_item(rng) if rng.randf() < ItemCatalog.UTILITY_ITEM_DROP_CHANCE else WeaponCatalog.roll_weapon(rng, weapon_tier_start, {
 		0: normal_weapon_weight,
 		1: normal_weapon_weight,
 		2: normal_weapon_weight,

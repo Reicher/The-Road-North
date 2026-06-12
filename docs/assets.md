@@ -33,7 +33,9 @@
 | ✅ | stat_gold.png | 128×128 | HUD icon for gold (displayed 54×54) |
 | ✅ | stat_deck.png | 128×128 | HUD icon for deck size (displayed 54×54) |
 | ✅ | inventory_backpack.png | 144×144 | Backpack toggle button icon |
-| ✅ | item_binoculars.svg | 128×128 | Item icon: Binoculars (displayed 82–93) |
+| ✅ | item_binoculars.png | 94×94 | Item icon: Binoculars (displayed up to 93×93) |
+| ✅ | item_goldsmiths_scale.png | 94×94 | Item icon: Goldsmith's Scale (displayed up to 93×93) |
+| ✅ | item_field_medics_bag.png | 94×94 | Item icon: Field Medic's Bag (displayed up to 93×93) |
 | ✅ | item_walking_stick.png | 94×94 | Item icon: Walking Stick (displayed up to 93×93) |
 | ✅ | item_dagger.png | 94×94 | Item icon: Dagger (displayed up to 93×93) |
 | ✅ | item_hatchet.png | 94×94 | Item icon: Hatchet (displayed up to 93×93) |

@@ -1,13 +1,29 @@
 class_name ItemCatalog
 extends RefCounted
 
-const BINOCULARS_DROP_CHANCE := 0.15
+const UTILITY_ITEM_DROP_CHANCE := 0.15
 const BINOCULARS := {
 	"name": "Binoculars",
 	"effect": "Place cards further away.",
 	"target_range_bonus": 1,
 }
+const GOLDSMITHS_SCALE := {
+	"name": "Goldsmith's Scale",
+	"effect": "Gain twice as much gold.",
+	"gold_multiplier": 2,
+}
+const FIELD_MEDICS_BAG := {
+	"name": "Field Medic's Bag",
+	"effect": "+2 Max Health",
+	"max_health_bonus": 2,
+}
+
+const UTILITY_ITEMS: Array[Dictionary] = [
+	BINOCULARS,
+	GOLDSMITHS_SCALE,
+	FIELD_MEDICS_BAG,
+]
 
 
-static func make_binoculars() -> Dictionary:
-	return BINOCULARS.duplicate(true)
+static func roll_utility_item(rng: RandomNumberGenerator) -> Dictionary:
+	return UTILITY_ITEMS[rng.randi_range(0, UTILITY_ITEMS.size() - 1)].duplicate(true)

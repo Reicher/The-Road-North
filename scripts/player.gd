@@ -47,6 +47,7 @@ var _combat_running := false
 var _game_over := false
 var _run_won := false
 var _visual_root: Node3D
+var _inventory_max_health_bonus := 0
 
 
 func _ready() -> void:
@@ -58,6 +59,8 @@ func _ready() -> void:
 		push_warning("Player needs a Rewards child at rewards_path.")
 		return
 	_rewards.setup(self, _inventory, _loot_ui, _map)
+	if _inventory != null and not _inventory.stats_changed.is_connected(_on_inventory_stats_changed):
+		_inventory.stats_changed.connect(_on_inventory_stats_changed)
 	_ensure_visuals()
 
 	if _map == null:
@@ -73,6 +76,10 @@ func _ready() -> void:
 	gold = starting_gold
 	max_health = maxi(1, starting_max_health)
 	health = clampi(starting_health, 0, max_health)
+	_inventory_max_health_bonus = _get_inventory_max_health_bonus()
+	if _inventory_max_health_bonus > 0:
+		max_health += _inventory_max_health_bonus
+		health += _inventory_max_health_bonus
 	if not _map.tile_pressed.is_connected(_on_tile_pressed):
 		_map.tile_pressed.connect(_on_tile_pressed)
 
@@ -160,6 +167,7 @@ func apply_progression_state(state: Dictionary, emit_changes := true) -> void:
 	max_health = maxi(1, int(state.get("max_health", max_health)))
 	health = clampi(int(state.get("health", health)), 0, max_health)
 	base_power = int(state.get("base_power", base_power))
+	_inventory_max_health_bonus = _get_inventory_max_health_bonus()
 	if not emit_changes:
 		return
 	food_changed.emit(food)
@@ -178,8 +186,25 @@ func add_food(amount: int) -> void:
 func add_gold(amount: int) -> void:
 	if amount <= 0:
 		return
-	gold += amount
+	var multiplier := _inventory.get_gold_multiplier() if _inventory != null else 1
+	gold += amount * multiplier
 	gold_changed.emit(gold)
+
+
+func _get_inventory_max_health_bonus() -> int:
+	return _inventory.get_max_health_bonus() if _inventory != null else 0
+
+
+func _on_inventory_stats_changed() -> void:
+	var next_bonus := _get_inventory_max_health_bonus()
+	var difference := next_bonus - _inventory_max_health_bonus
+	if difference == 0:
+		return
+	_inventory_max_health_bonus = next_bonus
+	max_health = maxi(1, max_health + difference)
+	health = clampi(health + difference, 0, max_health)
+	health_changed.emit(health)
+	_check_game_over()
 
 
 func _get_default_starting_food() -> int:

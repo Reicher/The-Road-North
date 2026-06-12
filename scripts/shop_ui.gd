@@ -181,7 +181,12 @@ func sell_inventory_slot(slot_index: int) -> bool:
 	var item: Dictionary = inventory[slot_index]
 	if item.is_empty():
 		return false
-	progression["gold"] = int(progression.get("gold", 0)) + int(item.get("sell_price", maxi(1, int(item.get("power_bonus", 1)) * 2)))
+	var sale_price := int(item.get("sell_price", maxi(1, int(item.get("power_bonus", 1)) * 2)))
+	progression["gold"] = int(progression.get("gold", 0)) + sale_price * _inventory_gold_multiplier()
+	var max_health_bonus := int(item.get("max_health_bonus", 0))
+	if max_health_bonus > 0:
+		progression["max_health"] = maxi(1, int(progression.get("max_health", 1)) - max_health_bonus)
+		progression["health"] = mini(int(progression.get("health", 0)), int(progression["max_health"]))
 	inventory[slot_index] = {}
 	progression["inventory"] = inventory
 	_refresh()
@@ -592,6 +597,13 @@ func _inventory_power() -> int:
 	for item in progression.get("inventory", []):
 		highest = maxi(highest, int((item as Dictionary).get("power_bonus", 0)))
 	return highest
+
+
+func _inventory_gold_multiplier() -> int:
+	var multiplier := 1
+	for item in progression.get("inventory", []):
+		multiplier = maxi(multiplier, int((item as Dictionary).get("gold_multiplier", 1)))
+	return multiplier
 
 
 func _button(text: String, callback: Callable) -> Button:

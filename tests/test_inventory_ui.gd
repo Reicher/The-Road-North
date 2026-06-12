@@ -145,12 +145,29 @@ func _initialize() -> void:
 	_assert((slots.get_child(2) as Button).icon != null, "Expected moved inventory item to keep its icon")
 
 	inventory.set_items([
-		{"name": "Walking Stick", "effect": "+1 Power", "power_bonus": 1},
-		{"name": "Kikare", "effect": "Placera kort längre bort.", "target_range_bonus": 1},
-		{},
+		{"name": "Binoculars", "effect": "Place cards further away.", "target_range_bonus": 1},
+		{"name": "Goldsmith's Scale", "effect": "Gain twice as much gold.", "gold_multiplier": 2},
+		{"name": "Field Medic's Bag", "effect": "+2 Max Health", "max_health_bonus": 2},
 	])
-	_assert(inventory.get_target_range_bonus() == 1, "Expected Kikare to increase target range by one")
-	_assert(ItemIconLibrary.get_icon(inventory.get_items()[1]) != null, "Expected Kikare to have an item icon")
+	_assert(inventory.get_target_range_bonus() == 1, "Expected Binoculars to increase target range by one")
+	_assert(inventory.get_gold_multiplier() == 2, "Expected Goldsmith's Scale to double gold gains")
+	_assert(inventory.get_max_health_bonus() == 2, "Expected Field Medic's Bag to increase max health by two")
+	for item in inventory.get_items():
+		_assert(ItemIconLibrary.get_icon(item) != null, "Expected every utility item to have an item icon")
+	var player := GamePlayer.new()
+	player.gold = 1
+	player.health = 4
+	player.max_health = 4
+	player.set("_inventory", inventory)
+	player.set("_inventory_max_health_bonus", 0)
+	inventory.stats_changed.connect(player.call.bind("_on_inventory_stats_changed"))
+	player.call("_on_inventory_stats_changed")
+	player.add_gold(3)
+	_assert(player.gold == 7, "Expected Goldsmith's Scale to double gold gained by the player")
+	_assert(player.health == 6 and player.max_health == 6, "Expected Field Medic's Bag to add two current and max health")
+	inventory.replace_item_at_slot(2, {})
+	_assert(player.health == 4 and player.max_health == 4, "Expected removing Field Medic's Bag to remove its health bonus")
+	player.free()
 
 	quit()
 
