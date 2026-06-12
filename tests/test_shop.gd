@@ -23,8 +23,8 @@ func run() -> void:
 		"health": 2,
 		"max_health": 4,
 		"base_power": 1,
-		"inventory": [{"name": "Knife", "effect": "+1 Power", "power_bonus": 1}, {}, {}],
-	}, "3 bridges", 7, [
+		"inventory": [{"name": "Walking Stick", "effect": "+1 Power", "power_bonus": 1}, {}, {}],
+	}, "2 bridges", 7, [
 		{"category": "Road", "tile_definition": DEAD_END},
 		{"category": "Road", "tile_definition": STRAIGHT},
 		{"category": "Road", "tile_definition": DEAD_END},
@@ -67,11 +67,22 @@ func run() -> void:
 	shop.call("_show_deck_overlay", true)
 	var deck_overlay := shop.find_child("DeckOverlay", true, false) as DeckOverlay
 	var deck_title := deck_overlay.find_child("Title", true, false) as Label
-	var deck_list := deck_overlay.find_child("List", true, false) as VBoxContainer
-	_assert(deck_title.text == "REMOVE BASE CARD", "Expected the removal overlay to use a clear, polished title")
+	var deck_grid := deck_overlay.find_child("Grid", true, false) as GridContainer
+	_assert(deck_title.text == "REMOVE CARD", "Expected the removal overlay to use a clear, polished title")
 	_assert(deck_title.get_theme_color("font_color").is_equal_approx(Color(0.2, 0.14, 0.09, 1)), "Expected the deck title to contrast with the light panel")
-	_assert(_button_texts(deck_list) == ["Straight Road", "Straight Road", "Corner", "Four-Way Intersection", "Dead End", "Dead End", "draw_two"], "Expected base cards to be grouped by type with all Dead Ends together")
-	deck_overlay.hide_overlay()
+	_assert(deck_grid.columns == 3, "Expected the deck overview to show three full-size cards per row")
+	_assert(deck_grid.get_child_count() == 5, "Expected the deck overview to show one visual card per unique card type")
+	_assert(_overview_card_titles(deck_grid) == ["Straight Road", "Corner", "Four-Way Intersection", "Dead End", "Idea"], "Expected grouped base cards to keep the requested type order")
+	_assert(_overview_counts(deck_grid) == ["×2", "×1", "×1", "×2", "×1"], "Expected each visual card to show how many copies remain")
+	var straight_overview_card := deck_grid.get_child(0).get_node("Card") as CardView
+	_assert(straight_overview_card.size.is_equal_approx(CardView.BASE_CARD_SIZE), "Expected overview entries to use the card scene's original size")
+	straight_overview_card.pointer_released.emit(straight_overview_card, Vector2.ZERO)
+	var confirmation_shade := deck_overlay.find_child("ConfirmationShade", true, false) as Control
+	var confirmation_prompt := deck_overlay.find_child("Prompt", true, false) as Label
+	_assert(confirmation_shade.visible and confirmation_prompt.text == "Remove Straight Road from the deck for 12g?", "Expected tapping a removable card to ask for confirmation with its price")
+	_assert(shop.progression.get("player_removed_base_cards", []).is_empty(), "Expected tapping a card not to remove it before confirmation")
+	(deck_overlay.find_child("ConfirmButton", true, false) as Button).pressed.emit()
+	_assert(shop.progression["player_removed_base_cards"] == ["road:Straight Road"], "Expected confirming the popup to remove the selected card")
 
 	_assert(shop.buy_food() and shop.progression["food"] == 7, "Expected food click purchase to add food immediately")
 	_assert(shop.buy_heal() and shop.progression["health"] == 4, "Expected heal click purchase to clamp at max health")
@@ -86,7 +97,7 @@ func run() -> void:
 	_assert(shop.buy_special_card(0) and shop.buy_special_card(1) and shop.buy_special_card(2), "Expected all three special cards to be purchasable")
 	_assert(shop.progression["player_special_cards"].size() == 3, "Expected purchased cards to persist as player special cards")
 	_assert(not shop.buy_special_card(0), "Expected each card offer to be purchasable only once")
-	_assert(shop.remove_base_card(0), "Expected one removable BaseDeck card to be removable")
+	_assert(not shop.remove_base_card(0), "Expected one confirmed BaseDeck removal to use the shop's removal allowance")
 	_assert(not shop.remove_base_card(0), "Expected at most one BaseDeck removal per shop")
 	_assert(not shop._can_remove_card({"category": "Road", "tile_definition": CORNER}), "Expected the last important road-type copy to be protected")
 
@@ -143,12 +154,17 @@ func _label_index(parent: Node, text: String) -> int:
 	return -1
 
 
-func _button_texts(parent: Node) -> Array[String]:
+func _overview_card_titles(parent: Node) -> Array[String]:
 	var texts: Array[String] = []
 	for child in parent.get_children():
-		var button := child as Button
-		if button != null:
-			texts.append(button.text)
+		texts.append((child.get_node("Card/Title") as Label).text)
+	return texts
+
+
+func _overview_counts(parent: Node) -> Array[String]:
+	var texts: Array[String] = []
+	for child in parent.get_children():
+		texts.append((child.get_node("Count") as Label).text)
 	return texts
 
 

@@ -6,7 +6,7 @@ const LEVEL_SCENES: Array[PackedScene] = [
 	preload("res://levels/level_003.tscn"),
 ]
 const SHOP_SCENE := preload("res://ui/shop.tscn")
-const LEVEL_NAMES := ["Level 1", "3 bridges", "6 mountains"]
+const LEVEL_NAMES := ["Level 1", "2 bridges", "6 mountains"]
 # Map sizes per level — avoids instantiating next scene just to query playable_width/height
 const LEVEL_MAP_SIZES := [5, 7, 9]
 
@@ -180,7 +180,7 @@ func _capture_progression() -> Dictionary:
 
 func _capture_progression_with_extras(extras: Dictionary) -> Dictionary:
 	var progression := _capture_progression()
-	for key in ["player_removed_base_cards", "player_special_cards", "active_power_bonus", "active_max_health_bonus"]:
+	for key in ["player_removed_base_cards", "player_removed_card_count", "player_special_cards", "active_power_bonus", "active_max_health_bonus"]:
 		if extras.has(key):
 			progression[key] = extras[key].duplicate(true) if extras[key] is Array or extras[key] is Dictionary else extras[key]
 	return progression

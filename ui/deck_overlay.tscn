@@ -41,12 +41,96 @@ vertical_alignment = 1
 [node name="Scroll" type="ScrollContainer" parent="Margin/Stack"]
 layout_mode = 2
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
-[node name="List" type="VBoxContainer" parent="Margin/Stack/Scroll"]
+[node name="Grid" type="GridContainer" parent="Margin/Stack/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
+theme_override_constants/h_separation = 48
+theme_override_constants/v_separation = 32
+columns = 3
+
+[node name="ScrollHint" type="Label" parent="Margin/Stack"]
+visible = false
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
+theme_override_colors/font_shadow_color = Color(1, 0.79, 0.31, 0.7)
+theme_override_constants/shadow_offset_x = 1
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 20
+text = "SWIPE UP TO SEE MORE  ↓"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="CloseButton" type="Button" parent="Margin/Stack"]
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 text = "Close"
+
+[node name="ConfirmationShade" type="Control" parent="."]
+visible = false
+z_index = 10
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Shade" type="ColorRect" parent="ConfirmationShade"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.07, 0.05, 0.72)
+
+[node name="Center" type="CenterContainer" parent="ConfirmationShade"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="ConfirmationShade/Center"]
+custom_minimum_size = Vector2(460, 0)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="ConfirmationShade/Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 22
+
+[node name="Stack" type="VBoxContainer" parent="ConfirmationShade/Center/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Prompt" type="Label" parent="ConfirmationShade/Center/Panel/Margin/Stack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
+theme_override_font_sizes/font_size = 24
+text = "Remove this card?"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Buttons" type="HBoxContainer" parent="ConfirmationShade/Center/Panel/Margin/Stack"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="CancelButton" type="Button" parent="ConfirmationShade/Center/Panel/Margin/Stack/Buttons"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cancel"
+
+[node name="ConfirmButton" type="Button" parent="ConfirmationShade/Center/Panel/Margin/Stack/Buttons"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Remove"

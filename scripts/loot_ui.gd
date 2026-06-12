@@ -6,6 +6,7 @@ const ItemIconLibrary = preload("res://scripts/item_icon_library.gd")
 const ITEM_SLOT_SCENE := preload("res://ui/item_slot.tscn")
 const FULL_INVENTORY_FLASH_COLOR := Color(1.0, 0.32, 0.28)
 const FULL_INVENTORY_FLASH_DURATION := 0.28
+const TOOLTIP_VISIBLE_DURATION := 1.5
 
 @export var player_path: NodePath
 @export var inventory_path: NodePath
@@ -24,6 +25,8 @@ var _close_button: Button
 var _tooltip: PanelContainer
 var _tooltip_name: Label
 var _tooltip_effect: Label
+var _tooltip_item_index := -1
+var _tooltip_hide_tween: Tween
 var _dragged_item_index := -1
 var _drag_source_button: Button
 var _backpack_drag_slot_index := -1
@@ -96,6 +99,7 @@ func is_open() -> bool:
 
 func take_all() -> void:
 	_resolve_paths()
+	_hide_tooltip()
 	if not _can_take_all():
 		_flash_inventory_full()
 		return
@@ -384,7 +388,11 @@ func _show_item_tooltip(item_index: int, source_button: Button) -> void:
 	if item_index < 0 or item_index >= loot.size() or _tooltip == null:
 		_hide_tooltip()
 		return
+	if _tooltip.visible and _tooltip_item_index == item_index:
+		_hide_tooltip()
+		return
 	var item: Dictionary = loot[item_index].get("item", {})
+	_tooltip_item_index = item_index
 	_tooltip_name.text = str(item.get("name", "Item"))
 	_tooltip_effect.text = str(item.get("effect", ""))
 	_tooltip.visible = true
@@ -397,11 +405,27 @@ func _show_item_tooltip(item_index: int, source_button: Button) -> void:
 	target_position.x = clampf(target_position.x, 8.0, maxf(8.0, viewport_size.x - tooltip_size.x - 8.0))
 	target_position.y = clampf(target_position.y, 8.0, maxf(8.0, viewport_size.y - tooltip_size.y - 8.0))
 	_tooltip.position = target_position
+	_schedule_tooltip_hide()
 
 
 func _hide_tooltip() -> void:
+	if _tooltip_hide_tween != null:
+		_tooltip_hide_tween.kill()
+		_tooltip_hide_tween = null
 	if _tooltip != null:
 		_tooltip.visible = false
+	_tooltip_item_index = -1
+
+
+func _schedule_tooltip_hide() -> void:
+	if _tooltip_hide_tween != null:
+		_tooltip_hide_tween.kill()
+	_tooltip_hide_tween = create_tween()
+	_tooltip_hide_tween.tween_interval(TOOLTIP_VISIBLE_DURATION)
+	_tooltip_hide_tween.finished.connect(func() -> void:
+		_tooltip_hide_tween = null
+		_hide_tooltip()
+	)
 
 
 func _get_layout_size() -> Vector2:

@@ -30,7 +30,7 @@ func _initialize() -> void:
 	_assert(is_equal_approx(backpack_button.position.x + backpack_button.size.x, 702.0), "Expected backpack button right edge %s to keep its right margin" % (backpack_button.position.x + backpack_button.size.x))
 	_assert(not overlay.visible, "Expected inventory overlay to start closed")
 	_assert(inventory.get_active_items().size() == 1, "Expected player inventory to start with one visible weapon")
-	_assert(inventory.get_power_bonus() == 1, "Expected Knife to add one power")
+	_assert(inventory.get_power_bonus() == 1, "Expected Walking Stick to add one power")
 	_assert(inventory.get_target_range_bonus() == 0, "Expected the starting inventory not to increase target range")
 	var stats_signal_result := {"count": 0}
 	inventory.stats_changed.connect(func() -> void:
@@ -73,7 +73,7 @@ func _initialize() -> void:
 	_assert(tooltip.visible, "Expected pressing an item to show a tooltip")
 	var tooltip_name := tooltip.get_node("ContentMargin/Text/ItemName") as Label
 	var tooltip_effect := tooltip.get_node("ContentMargin/Text/ItemEffect") as Label
-	_assert(tooltip_name.text == "Knife", "Expected tooltip to show the item name")
+	_assert(tooltip_name.text == "Walking Stick", "Expected tooltip to show the item name")
 	_assert(tooltip_effect.text == "+1 Power", "Expected tooltip to show the item effect")
 	_assert(tooltip_name.get_theme_color("font_color") == UIStyle.text(inventory), "Expected tooltip name text to use the shared UI text color")
 	_assert(tooltip_effect.get_theme_color("font_color") == UIStyle.muted_text(inventory), "Expected tooltip effect text to use the shared UI muted text color")
@@ -131,7 +131,7 @@ func _initialize() -> void:
 	inventory._finish_item_drag(second_slot_center)
 	_assert(not inventory.is_in_group("ui_item_drag_active"), "Expected finishing item drag to unblock camera input")
 	_assert(inventory.get_active_items()[0]["name"] == "Dagger", "Expected dropping an inventory item onto another slot to swap them")
-	_assert(inventory.get_active_items()[1]["name"] == "Knife", "Expected replaced inventory item to move into the source slot")
+	_assert(inventory.get_active_items()[1]["name"] == "Walking Stick", "Expected replaced inventory item to move into the source slot")
 	first_slot_after_add = slots.get_child(0) as Button
 	second_slot_after_add = slots.get_child(1) as Button
 	var third_slot_after_swap := slots.get_child(2) as Button
@@ -145,7 +145,7 @@ func _initialize() -> void:
 	_assert((slots.get_child(2) as Button).icon != null, "Expected moved inventory item to keep its icon")
 
 	inventory.set_items([
-		{"name": "Knife", "effect": "+1 Power", "power_bonus": 1},
+		{"name": "Walking Stick", "effect": "+1 Power", "power_bonus": 1},
 		{"name": "Kikare", "effect": "Placera kort längre bort.", "target_range_bonus": 1},
 		{},
 	])

@@ -4,11 +4,15 @@ extends RefCounted
 const ICON_PATHS := {
 	"binoculars": "res://assets/images/items/item_binoculars.svg",
 	"dagger": "res://assets/images/items/item_dagger.png",
+	"great axe": "res://assets/images/items/item_great_axe.png",
+	"hatchet": "res://assets/images/items/item_hatchet.png",
 	"item": "res://assets/images/items/item_fallback.png",
-	"katana": "res://assets/images/items/item_katana.png",
-	"knife": "res://assets/images/items/item_knife.png",
+	"mace": "res://assets/images/items/item_mace.png",
 	"machete": "res://assets/images/items/item_machete.png",
+	"spear": "res://assets/images/items/item_spear.png",
 	"sword": "res://assets/images/items/item_sword.png",
+	"sword & shield": "res://assets/images/items/item_sword_and_shield.png",
+	"walking stick": "res://assets/images/items/item_walking_stick.png",
 }
 
 static var _cache: Dictionary = {}

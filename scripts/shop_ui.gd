@@ -31,7 +31,7 @@ const BASE_CARD_SORT_ORDER := {
 
 const ITEM_OFFERS: Array[Dictionary] = [
 	{"name": "Dagger", "effect": "+2 Power", "power_bonus": 2, "price": 7, "sell_price": 4},
-	{"name": "Machete", "effect": "+3 Power", "power_bonus": 3, "price": 12, "sell_price": 6},
+	{"name": "Hatchet", "effect": "+3 Power", "power_bonus": 3, "price": 12, "sell_price": 6},
 ]
 const SPECIAL_CARD_CATALOG: Array[Dictionary] = [
 	{"title": "Clear Path", "detail": "Remove an encounter from a road.", "category": GameConstants.EVENT_CATEGORY, "event_type": GameConstants.EVENT_CLEAR_PATH, "price": 8},
@@ -216,11 +216,32 @@ func remove_base_card(card_index: int) -> bool:
 	var removals: Array = progression.get("player_removed_base_cards", [])
 	removals.append(GameConstants.card_signature(base_cards[card_index]))
 	progression["player_removed_base_cards"] = removals
-	progression["removed_base_card_this_shop"] = true
 	base_cards.remove_at(card_index)
+	_finish_card_removal()
+	return true
+
+
+func remove_special_card(card_index: int) -> bool:
+	if bool(progression.get("removed_base_card_this_shop", false)):
+		return false
+	var cards: Array = progression.get("player_special_cards", [])
+	if card_index < 0 or card_index >= cards.size():
+		return false
+	if not _spend_gold(_removal_price()):
+		return false
+	cards.remove_at(card_index)
+	progression["player_special_cards"] = cards
+	progression["player_removed_card_count"] = int(progression.get("player_removed_card_count", progression.get("player_removed_base_cards", []).size())) + 1
+	_finish_card_removal()
+	return true
+
+
+func _finish_card_removal() -> void:
+	progression["removed_base_card_this_shop"] = true
+	if not progression.has("player_removed_card_count"):
+		progression["player_removed_card_count"] = progression.get("player_removed_base_cards", []).size()
 	_refresh()
 	_show_deck_overlay(true)
-	return true
 
 
 func _bind_scene_nodes() -> void:
@@ -296,8 +317,8 @@ func _refresh() -> void:
 	_power_chip.set_value("%d" % total_power)
 	_refresh_inventory_slots()
 	_refresh_offers()
-	_remove_button.text = "Remove base card / %dg" % _removal_price()
-	_remove_button.disabled = bool(progression.get("removed_base_card_this_shop", false))
+	_remove_button.text = "Remove card / %dg" % _removal_price()
+	_remove_button.disabled = bool(progression.get("removed_base_card_this_shop", false)) or int(progression.get("gold", 0)) < _removal_price()
 
 
 func _refresh_inventory_slots() -> void:
@@ -374,19 +395,70 @@ func _roll_card_offers() -> void:
 
 
 func _show_deck_overlay(removal_mode: bool) -> void:
-	_deck_overlay.clear_list()
-	var title_text := "REMOVE BASE CARD" if removal_mode else "BASE DECK"
+	_deck_overlay.clear_cards()
+	var title_text := "REMOVE CARD" if removal_mode else "DECK OVERVIEW"
+	var groups := _grouped_removable_cards() if removal_mode else _grouped_overview_cards()
+	for group in groups:
+		var card: Dictionary = group["card"]
+		var index := int(group["index"])
+		var text := _card_display_name(card)
+		var source := str(group["source"])
+		var disabled_state := not removal_mode or bool(progression.get("removed_base_card_this_shop", false))
+		if source == "base":
+			disabled_state = disabled_state or not _can_remove_card(card)
+		var callback := _confirm_card_removal.bind(source, index, text) if removal_mode else Callable()
+		_deck_overlay.add_card(card, int(group["count"]), disabled_state, callback)
+	_deck_overlay.show_overlay(title_text)
+
+
+func _confirm_card_removal(source: String, card_index: int, card_name: String) -> void:
+	var callback := remove_base_card.bind(card_index) if source == "base" else remove_special_card.bind(card_index)
+	_deck_overlay.show_removal_confirmation(card_name, _removal_price(), callback)
+
+
+func _grouped_base_cards() -> Array[Dictionary]:
+	var groups: Array[Dictionary] = []
+	var group_by_signature := {}
 	for index in _sorted_base_card_indices():
 		var card := base_cards[index]
-		var text := GameConstants.card_signature(card).trim_prefix("road:").trim_prefix("event:")
-		var disabled_state := not removal_mode or not _can_remove_card(card) or bool(progression.get("removed_base_card_this_shop", false))
-		var callback := remove_base_card.bind(index) if removal_mode else Callable()
-		_deck_overlay.add_list_button(text, disabled_state, callback)
-	if not removal_mode:
-		for card in progression.get("player_special_cards", []):
-			_deck_overlay.add_list_label("Special: %s" % GameConstants.card_signature(card as Dictionary).trim_prefix("road:").trim_prefix("event:"), 18)
-		_deck_overlay.add_list_label("Level cards added next map.", 18)
-	_deck_overlay.show_overlay(title_text)
+		var signature := GameConstants.card_signature(card)
+		if group_by_signature.has(signature):
+			var group_index := int(group_by_signature[signature])
+			groups[group_index]["count"] = int(groups[group_index]["count"]) + 1
+		else:
+			group_by_signature[signature] = groups.size()
+			groups.append({"card": card, "count": 1, "index": index, "source": "base"})
+	return groups
+
+
+func _grouped_removable_cards() -> Array[Dictionary]:
+	var groups := _grouped_base_cards()
+	var group_by_signature := {}
+	for index in groups.size():
+		group_by_signature[GameConstants.card_signature(groups[index]["card"])] = index
+	var special_cards: Array = progression.get("player_special_cards", [])
+	for card_index in special_cards.size():
+		var raw_card = special_cards[card_index]
+		var card := raw_card as Dictionary
+		var signature := GameConstants.card_signature(card)
+		if group_by_signature.has(signature):
+			var group_index := int(group_by_signature[signature])
+			groups[group_index]["count"] = int(groups[group_index]["count"]) + 1
+		else:
+			group_by_signature[signature] = groups.size()
+			groups.append({"card": card, "count": 1, "index": card_index, "source": "special"})
+	return groups
+
+
+func _grouped_overview_cards() -> Array[Dictionary]:
+	return _grouped_removable_cards()
+
+
+func _card_display_name(card: Dictionary) -> String:
+	var definition: Resource = card.get("tile_definition")
+	if definition != null:
+		return str(definition.get("display_name"))
+	return str(card.get("title", card.get("event_type", "")))
 
 
 func _sorted_base_card_indices() -> Array[int]:
@@ -396,8 +468,8 @@ func _sorted_base_card_indices() -> Array[int]:
 	indices.sort_custom(func(left: int, right: int) -> bool:
 		var left_card := base_cards[left]
 		var right_card := base_cards[right]
-		var left_name := GameConstants.card_signature(left_card).trim_prefix("road:").trim_prefix("event:")
-		var right_name := GameConstants.card_signature(right_card).trim_prefix("road:").trim_prefix("event:")
+		var left_name := _card_display_name(left_card)
+		var right_name := _card_display_name(right_card)
 		var left_order := int(BASE_CARD_SORT_ORDER.get(left_name, BASE_CARD_SORT_ORDER.size()))
 		var right_order := int(BASE_CARD_SORT_ORDER.get(right_name, BASE_CARD_SORT_ORDER.size()))
 		if left_order != right_order:
@@ -511,7 +583,8 @@ func _flash_cannot_afford() -> void:
 
 
 func _removal_price() -> int:
-	return REMOVAL_BASE_PRICE + int(progression.get("player_removed_base_cards", []).size()) * REMOVAL_PRICE_STEP
+	var removal_count := int(progression.get("player_removed_card_count", progression.get("player_removed_base_cards", []).size()))
+	return REMOVAL_BASE_PRICE + removal_count * REMOVAL_PRICE_STEP
 
 
 func _inventory_power() -> int:

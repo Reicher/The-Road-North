@@ -57,7 +57,7 @@ Tap an adjacent connected tile to move. Rules:
 - Backtracking allowed if roads and food exist
 - Tweened hop animation; input disabled during move
 
-Starting stats: 10 food, 4 health, 0 gold, 0 base power, a Knife (+1 power).
+Starting stats: 10 food, 4 health, 0 gold, 0 base power, a Walking Stick (+1 power).
 
 Food, gold, health, max health, base power, and backpack carry between levels. Restarting a level restores level-start values. Restarting the game resets everything.
 
@@ -93,9 +93,9 @@ Features:
 - Buy food, healing, next-map-only potions
 - Two item offers (drag to empty slot)
 - Three random special-card offers (duplicates allowed)
-- Deck overlay for viewing or removing one base card (increasingly expensive)
+- Deck overlay for viewing the full deck or removing one base or player special card (increasingly expensive)
 
-Protected road types (Straight, Corner, T-Junction) cannot have their last copy removed. Potion bonuses apply only to the next map.
+The removal menu is unavailable when the player cannot afford the current price. Protected road types (Straight, Corner, T-Junction) cannot have their last copy removed. Potion bonuses apply only to the next map.
 
 Special card: "It Was All a Dream" is a level card injected on levels 2+; it restarts the current level from its saved state.
 
@@ -170,7 +170,9 @@ Encounters add risk/reward to route planning without changing the road-building 
 
 **Loot:** Berry bushes → food. Caches → exactly one item. Enemies → gold only. Food/gold collected directly; items go to inventory if space exists (drag or Take All).
 
-**Inventory:** 3-slot backpack, starts with Knife. Weapons: Knife +1 … Katana +5. Only strongest weapon counts.
+**Inventory:** 3-slot backpack, starts with Walking Stick. Weapons: Walking Stick +1, Dagger +2, Hatchet +3, Machete +4, Sword +5, Mace +6, Spear +7, Sword & Shield +8, Great Axe +9. Only strongest weapon counts.
+
+Cache weapon tiers: level 1 drops +2–4, level 2 drops +5–7, and level 3 drops +8–9.
 
 **Binoculars:** Utility item, +1 target range (Manhattan distance 2). 15% cache drop chance instead of weapon.
 

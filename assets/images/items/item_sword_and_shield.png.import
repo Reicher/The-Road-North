@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cxgpnyxhj1sd6"
-path="res://.godot/imported/item_katana.png-594874728b7a497a2186ff9039010d0a.ctex"
+uid="uid://crcynr1vwoafy"
+path="res://.godot/imported/item_sword_and_shield.png-db66d392a7c14707c4aae078c01b33ac.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/images/items/item_katana.png"
-dest_files=["res://.godot/imported/item_katana.png-594874728b7a497a2186ff9039010d0a.ctex"]
+source_file="res://assets/images/items/item_sword_and_shield.png"
+dest_files=["res://.godot/imported/item_sword_and_shield.png-db66d392a7c14707c4aae078c01b33ac.ctex"]
 
 [params]
 

@@ -29,7 +29,7 @@ const SLOT_DISABLED_FILL := Color(0.86, 0.80, 0.66)
 
 var items: Array[Dictionary] = [
 	{
-		"name": "Knife",
+		"name": "Walking Stick",
 		"effect": "+1 Power",
 		"power_bonus": 1,
 	},

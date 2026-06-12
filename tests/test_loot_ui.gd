@@ -39,7 +39,7 @@ func _initialize() -> void:
 		{
 			"kind": "item",
 			"item": {
-				"name": "Machete",
+				"name": "Hatchet",
 				"effect": "+3 Power",
 				"power_bonus": 3,
 			},
@@ -76,8 +76,15 @@ func _initialize() -> void:
 	var loot_tooltip_name := loot_tooltip.get_node("ContentMargin/Text/ItemName") as Label
 	var loot_tooltip_effect := loot_tooltip.get_node("ContentMargin/Text/ItemEffect") as Label
 	_assert(loot_tooltip.visible, "Expected tapping a loot item slot to show its tooltip")
-	_assert(loot_tooltip_name.text == "Machete", "Expected loot tooltip to show the item name")
+	_assert(loot_tooltip_name.text == "Hatchet", "Expected loot tooltip to show the item name")
 	_assert(loot_tooltip_effect.text == "+3 Power", "Expected loot tooltip to show the item effect")
+	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
+	loot_ui._finish_drag(loot_item.get_global_rect().get_center())
+	_assert(not loot_tooltip.visible, "Expected tapping the same loot item again to hide its tooltip")
+	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
+	loot_ui._finish_drag(loot_item.get_global_rect().get_center())
+	await create_timer(LootUI.TOOLTIP_VISIBLE_DURATION + 0.1).timeout
+	_assert(not loot_tooltip.visible, "Expected the loot tooltip to hide automatically after a short time")
 
 	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
 	loot_ui._finish_drag(overlay.get_global_rect().get_center())
@@ -97,7 +104,7 @@ func _initialize() -> void:
 		{
 			"kind": "item",
 			"item": {
-				"name": "Sword",
+				"name": "Machete",
 				"effect": "+4 Power",
 				"power_bonus": 4,
 			},
@@ -121,11 +128,11 @@ func _initialize() -> void:
 	_assert(player.food == 5, "Expected Take All not to add already collected food again")
 	_assert(player.gold == 6, "Expected Take All not to add already collected gold again")
 	_assert(inventory.get_active_items().size() == 3, "Expected item loot to move into a new backpack slot")
-	_assert(inventory.get_active_items()[0]["name"] == "Knife", "Expected the old knife to stay in its slot")
-	_assert(inventory.get_active_items()[2]["name"] == "Sword", "Expected the new sword to use another slot")
+	_assert(inventory.get_active_items()[0]["name"] == "Walking Stick", "Expected the old walking stick to stay in its slot")
+	_assert(inventory.get_active_items()[2]["name"] == "Machete", "Expected the new machete to use another slot")
 	_assert(inventory.get_power_bonus() == 4, "Expected only the strongest weapon to contribute power")
 	var slots := inventory.get_node("InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
-	_assert((slots.get_child(0) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected weaker sword slot not to be tinted")
+	_assert((slots.get_child(0) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected weaker walking stick slot not to be tinted")
 	_assert((slots.get_child(1) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected weaker loot weapon slot not to be tinted")
 	_assert((slots.get_child(2) as Button).self_modulate == InventoryUI.EQUIPPED_SLOT_TINT, "Expected strongest sword slot to be tinted")
 
@@ -183,7 +190,7 @@ func _initialize() -> void:
 		{
 			"kind": "item",
 			"item": {
-				"name": "Katana",
+				"name": "Sword",
 				"effect": "+5 Power",
 				"power_bonus": 5,
 			},
@@ -198,7 +205,7 @@ func _initialize() -> void:
 	_assert(loot_ui.get_loot_item_index_at_canvas_position(second_loot_center) == 1, "Expected second loot slot center to resolve to loot item one")
 	loot_ui._start_drag(0, first_loot_item, first_loot_item.get_global_rect().get_center())
 	loot_ui._finish_drag(second_loot_center)
-	_assert(loot_ui.loot[0]["item"]["name"] == "Katana", "Expected dropping loot on loot to swap the target item back to the source slot")
+	_assert(loot_ui.loot[0]["item"]["name"] == "Sword", "Expected dropping loot on loot to swap the target item back to the source slot")
 	_assert(loot_ui.loot[1]["item"]["name"] == "Dagger", "Expected dropping loot on loot to move the dragged item into the target slot")
 
 	loot_ui.close_loot()

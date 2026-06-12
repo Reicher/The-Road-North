@@ -2,11 +2,15 @@ class_name WeaponCatalog
 extends RefCounted
 
 const WEAPONS: Array[Dictionary] = [
-	{"name": "Knife", "power_bonus": 1},
+	{"name": "Walking Stick", "power_bonus": 1},
 	{"name": "Dagger", "power_bonus": 2},
-	{"name": "Machete", "power_bonus": 3},
-	{"name": "Sword", "power_bonus": 4},
-	{"name": "Katana", "power_bonus": 5},
+	{"name": "Hatchet", "power_bonus": 3},
+	{"name": "Machete", "power_bonus": 4},
+	{"name": "Sword", "power_bonus": 5},
+	{"name": "Mace", "power_bonus": 6},
+	{"name": "Spear", "power_bonus": 7},
+	{"name": "Sword & Shield", "power_bonus": 8},
+	{"name": "Great Axe", "power_bonus": 9},
 ]
 
 

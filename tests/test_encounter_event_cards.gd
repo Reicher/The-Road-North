@@ -100,7 +100,7 @@ func _make_fixture() -> Dictionary:
 		_clear_path_card(),
 		_encounter_card("Wild Berries", GameConstants.EVENT_WILD_BERRIES, {"type": GameMap.ENCOUNTER_BERRY_BUSH, "loot": [{"kind": "food", "amount": 3}]}),
 		_clear_path_card(),
-		_encounter_card("Lost Belongings", GameConstants.EVENT_LOST_BELONGINGS, {"type": GameMap.ENCOUNTER_CACHE, "loot": [{"kind": "item", "item": {"name": "Knife", "effect": "+1 Power", "power_bonus": 1}}]}),
+		_encounter_card("Lost Belongings", GameConstants.EVENT_LOST_BELONGINGS, {"type": GameMap.ENCOUNTER_CACHE, "loot": [{"kind": "item", "item": {"name": "Walking Stick", "effect": "+1 Power", "power_bonus": 1}}]}),
 		_clear_path_card(),
 		_clear_path_card(),
 	])

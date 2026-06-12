@@ -82,7 +82,7 @@ func _initialize() -> void:
 			{
 				"kind": "item",
 				"item": {
-					"name": "Knife",
+					"name": "Walking Stick",
 					"effect": "+1 Power",
 					"power_bonus": 1,
 				},

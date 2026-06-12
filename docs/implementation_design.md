@@ -144,7 +144,7 @@ No generic effect engine, no economy system, no equipment framework beyond stron
 
 ## WeaponCatalog and ItemCatalog
 
-**WeaponCatalog:** Knife (+1), Dagger (+2), Machete (+3), Sword (+4), Katana (+5). Provides `roll_weapon(rng, target_power, power_weights)` with weighted randomization.
+**WeaponCatalog:** Walking Stick (+1), Dagger (+2), Hatchet (+3), Machete (+4), Sword (+5), Mace (+6), Spear (+7), Sword & Shield (+8), Great Axe (+9). Provides `roll_weapon(rng, target_power, power_weights)` with weighted randomization. Cache weapon tiers are +2–4 on level 1, +5–7 on level 2, and +8–9 on level 3.
 
 **ItemCatalog:** Binoculars (`target_range_bonus: 1`, 15% drop chance). Both are static `RefCounted` classes.
 
@@ -152,7 +152,7 @@ No generic effect engine, no economy system, no equipment framework beyond stron
 
 ## ShopUI
 
-Standalone `Control` instantiated by Main. Features: food (5/4g), heal (2HP/5g), power potion (8g), max-health potion (10g), sell zone, two item offers (Dagger 7g, Machete 12g), three special-card offers, deck overlay with one removal per shop (base 12g, +6g each). Protected types: Straight, Corner, T-Junction.
+Standalone `Control` instantiated by Main. Features: food (5/4g), heal (2HP/5g), power potion (8g), max-health potion (10g), sell zone, two item offers (Dagger 7g, Hatchet 12g), three special-card offers, and a visual deck overlay with one base- or player-special-card removal per shop (base 12g, +6g each). The removal button requires enough gold. Protected types: Straight, Corner, T-Junction.
 
 Emits `play_next_requested(progression)`. Potions stored as `pending_*` keys, applied by Main on next level load.
 

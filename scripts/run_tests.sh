@@ -35,6 +35,7 @@ tests=(
 	tests/test_player_stats_ui.gd
 	tests/test_inventory_ui.gd
 	tests/test_shop.gd
+	tests/test_remove_card_shop.gd
 	tests/test_special_cards.gd
 	tests/test_game_over.gd
 	tests/test_event_cards.gd

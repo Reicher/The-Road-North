@@ -87,7 +87,7 @@ func run() -> void:
 	first_player.set_health(4)
 	first_player.set_base_power(2)
 	var first_inventory := first_level.get_node("UI/Inventory") as InventoryUI
-	_assert(first_inventory.add_item({"name": "Sword", "effect": "+4 Power", "power_bonus": 4}), "Expected progression test item to fit in backpack")
+	_assert(first_inventory.add_item({"name": "Machete", "effect": "+4 Power", "power_bonus": 4}), "Expected progression test item to fit in backpack")
 
 	first_player.grid_position = first_map.get_goal_position()
 	_assert(first_player.check_run_won(), "Expected reaching the first goal to complete the level")
@@ -97,7 +97,7 @@ func run() -> void:
 	_assert(not (first_level.get_node("UI") as CanvasLayer).visible, "Expected resource stats and backpack UI to hide while the shop is open")
 	_assert(not first_screen.is_visible_in_tree(), "Expected the shop to replace the completion prompt between levels")
 	_assert(not first_hand.visible, "Expected the card hand to hide on the completion screen")
-	_assert(shop.next_map_name == "3 bridges" and shop.next_map_size == 7, "Expected shop to describe the next map")
+	_assert(shop.next_map_name == "2 bridges" and shop.next_map_size == 7, "Expected shop to describe the next map")
 
 	(shop.find_child("PlayNextButton", true, false) as Button).pressed.emit()
 	await process_frame

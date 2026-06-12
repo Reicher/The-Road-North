@@ -34,11 +34,15 @@
 | ✅ | stat_deck.png | 128×128 | HUD icon for deck size (displayed 54×54) |
 | ✅ | inventory_backpack.png | 144×144 | Backpack toggle button icon |
 | ✅ | item_binoculars.svg | 128×128 | Item icon: Binoculars (displayed 82–93) |
-| ✅ | item_knife.png | 94×94 | Item icon: Knife (displayed up to 93×93) |
+| ✅ | item_walking_stick.png | 94×94 | Item icon: Walking Stick (displayed up to 93×93) |
 | ✅ | item_dagger.png | 94×94 | Item icon: Dagger (displayed up to 93×93) |
+| ✅ | item_hatchet.png | 94×94 | Item icon: Hatchet (displayed up to 93×93) |
 | ✅ | item_machete.png | 94×94 | Item icon: Machete (displayed up to 93×93) |
 | ✅ | item_sword.png | 94×94 | Item icon: Sword (displayed up to 93×93) |
-| ✅ | item_katana.png | 94×94 | Item icon: Katana (displayed up to 93×93) |
+| ✅ | item_mace.png | 94×94 | Item icon: Mace (displayed up to 93×93) |
+| ✅ | item_spear.png | 94×94 | Item icon: Spear (displayed up to 93×93) |
+| ✅ | item_sword_and_shield.png | 94×94 | Item icon: Sword & Shield (displayed up to 93×93) |
+| ✅ | item_great_axe.png | 94×94 | Item icon: Great Axe (displayed up to 93×93) |
 | ✅ | item_fallback.png | 94×94 | Fallback item icon for unknown items |
 
 Pictures are grouped by role:

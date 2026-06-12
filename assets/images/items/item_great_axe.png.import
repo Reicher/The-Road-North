@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://drvst5gq71yrq"
-path="res://.godot/imported/walking_stick.png-48a8c26cfcec3529d049fb0ba799f7bf.ctex"
+uid="uid://bs5dnlh7dumf0"
+path="res://.godot/imported/item_great_axe.png-e1ecf1e8df193106908ff59ffb080d5f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/images/items/walking_stick.png"
-dest_files=["res://.godot/imported/walking_stick.png-48a8c26cfcec3529d049fb0ba799f7bf.ctex"]
+source_file="res://assets/images/items/item_great_axe.png"
+dest_files=["res://.godot/imported/item_great_axe.png-e1ecf1e8df193106908ff59ffb080d5f.ctex"]
 
 [params]
 

@@ -307,7 +307,8 @@ func _make_reward_encounter(kind: Variant, rng: RandomNumberGenerator, level: in
 			"type": kind,
 			"loot": [{"kind": "food", "amount": GameBalance.berry_food(map_size)}],
 		}
-	var item := ItemCatalog.make_binoculars() if rng.randf() < ItemCatalog.BINOCULARS_DROP_CHANCE else WeaponCatalog.roll_weapon(rng, maxi(1, level) + 1, {
+	var weapon_tier_start := maxi(1, level) * 3 - 1
+	var item := ItemCatalog.make_binoculars() if rng.randf() < ItemCatalog.BINOCULARS_DROP_CHANCE else WeaponCatalog.roll_weapon(rng, weapon_tier_start, {
 		0: 0.55,
 		1: 0.30,
 		2: 0.15,
