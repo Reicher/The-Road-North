@@ -71,9 +71,9 @@ Data-driven via `TileDefinition` resources (single source of truth for connectio
 
 `Node3D` with `Rewards` and `Visuals` children.
 
-Owns: grid position, movement tweening (multi-hop), food/health/gold, inline combat (damage = `max(0, enemy_power - total_power)` with bump animation and defeat effects).
+Owns: grid position, movement tweening (multi-hop), food/health/gold, and multi-round contested-roll combat (`total_power + 1d6` versus `enemy_power + 1d6`) coordinated with a blocking Fight/Retreat/OK popup. Entering an enemy tile spends normal movement food before combat. Defeat and tie allow another Fight or a free Retreat to the origin tile; a loss deals exactly 1 health.
 
-Exposes `move_to(grid_position)`. Asks Map to validate before moving. Emits `move_started`, `moved`, `game_over`, `run_won` upward to Level.
+Exposes `move_to(grid_position)`. Asks Map to validate before moving. Emits `move_started`, `moved`, `move_failed`, `game_over`, `run_won` upward to Level.
 
 PlayerRewards: collects resource loot and inventory items. Stays small and direct.
 

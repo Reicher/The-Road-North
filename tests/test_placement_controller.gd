@@ -140,6 +140,17 @@ func _initialize() -> void:
 	placement.rotate_preview()
 	_assert(not placement.has_valid_preview(), "Expected rotated mismatch to become invalid")
 	_assert(_get_hint(placement) == "Connect to your tile", "Expected player connection mismatch to explain the invalid rotation")
+	var hint_bottom := prompt_label.position.y + prompt_label.size.y
+	_assert(
+		hint_bottom + 6.0 <= rotate_button.position.y + 0.01,
+		"Expected placement error text above the rotate button"
+	)
+	placement._process(0.0)
+	hint_bottom = prompt_label.position.y + prompt_label.size.y
+	_assert(
+		hint_bottom + 6.0 <= rotate_button.position.y + 0.01,
+		"Expected placement error text to remain above the rotate button after repositioning"
+	)
 	_assert(not placement.confirm_placement(), "Expected confirm to stay disabled for invalid rotation")
 
 	placement.rotate_preview()

@@ -1,6 +1,9 @@
 class_name PlacementControlsUI
 extends CanvasLayer
 
+const PREVIEW_BUTTON_SIZE := Vector2(56.0, 56.0)
+const PREVIEW_CONTROL_GAP := 6.0
+
 var prompt_label: Label
 var buttons: Control
 var rotate_button: Button
@@ -51,25 +54,26 @@ func show_preview_controls(
 	hint: String = ""
 ) -> void:
 	_resolve_nodes()
-	show_hint(hint, hand, preview_position, map)
 	rotate_button.visible = rotate_visible
 	rotate_button.disabled = not rotate_visible
 	confirm_button.disabled = not valid
 	buttons.visible = true
 	position_buttons(preview_position, map, hand)
+	show_hint(hint, hand, preview_position, map, rotate_visible)
 
 
 func show_hint(
 	text: String,
 	hand: HandUI,
 	preview_position := Vector2i(-1, -1),
-	map: GameMap = null
+	map: GameMap = null,
+	above_rotate_button := false
 ) -> void:
 	_resolve_nodes()
 	prompt_label.text = text
 	prompt_label.visible = not text.is_empty()
 	if preview_position.x >= 0 and map != null:
-		position_prompt_above_preview(preview_position, map, hand)
+		position_prompt_above_preview(preview_position, map, hand, above_rotate_button)
 	else:
 		position_prompt(hand)
 
@@ -85,21 +89,25 @@ func hide_all() -> void:
 
 func position_buttons(preview_position: Vector2i, map: GameMap, hand: HandUI) -> void:
 	_resolve_nodes()
-	if preview_position.x >= 0 and map != null:
-		position_prompt_above_preview(preview_position, map, hand)
-	else:
-		position_prompt(hand)
-	if not buttons.visible:
-		return
-
 	var viewport_size := Vector2(_get_viewport_size().x, _get_map_screen_height(hand))
-	if preview_position.x >= 0 and map != null:
+	var has_preview := preview_position.x >= 0 and map != null
+	if buttons.visible and has_preview:
 		var canvas_position: Vector2 = map.grid_to_screen_position(preview_position)
 		var top_edge_position := map.grid_edge_to_screen_position(preview_position, false)
 		var bottom_edge_position := map.grid_edge_to_screen_position(preview_position, true)
 		_position_around_preview(canvas_position, viewport_size, top_edge_position.y, bottom_edge_position.y)
-	else:
+	elif buttons.visible:
 		_position_at_bottom(viewport_size)
+
+	if has_preview:
+		position_prompt_above_preview(
+			preview_position,
+			map,
+			hand,
+			buttons.visible and rotate_button.visible
+		)
+	else:
+		position_prompt(hand)
 
 
 func position_prompt(hand: HandUI) -> void:
@@ -115,7 +123,12 @@ func position_prompt(hand: HandUI) -> void:
 	prompt_label.position = Vector2((viewport_width - prompt_size.x) * 0.5, prompt_y)
 
 
-func position_prompt_above_preview(preview_position: Vector2i, map: GameMap, hand: HandUI) -> void:
+func position_prompt_above_preview(
+	preview_position: Vector2i,
+	map: GameMap,
+	hand: HandUI,
+	above_rotate_button := false
+) -> void:
 	_resolve_nodes()
 	if not prompt_label.visible or map == null:
 		return
@@ -124,6 +137,16 @@ func position_prompt_above_preview(preview_position: Vector2i, map: GameMap, han
 	var viewport_size := Vector2(_get_viewport_size().x, _get_map_screen_height(hand))
 	var canvas_position := map.grid_to_screen_position(preview_position)
 	var top_edge_position := map.grid_edge_to_screen_position(preview_position, false)
+	var prompt_y := top_edge_position.y - prompt_size.y - PREVIEW_CONTROL_GAP
+	if above_rotate_button:
+		var minimum_rotate_y := prompt_size.y + PREVIEW_CONTROL_GAP + 8.0
+		var viewport_height := _get_viewport_size().y
+		rotate_button.position.y = clampf(
+			maxf(rotate_button.position.y, minimum_rotate_y),
+			8.0,
+			maxf(8.0, viewport_height - rotate_button.size.y - 8.0)
+		)
+		prompt_y = rotate_button.position.y - prompt_size.y - PREVIEW_CONTROL_GAP
 	prompt_label.size = prompt_size
 	prompt_label.position = Vector2(
 		clampf(
@@ -132,7 +155,7 @@ func position_prompt_above_preview(preview_position: Vector2i, map: GameMap, han
 			maxf(8.0, viewport_size.x - prompt_size.x - 8.0)
 		),
 		clampf(
-			top_edge_position.y - prompt_size.y - 6.0,
+			prompt_y,
 			8.0,
 			maxf(8.0, viewport_size.y - prompt_size.y - 8.0)
 		)
@@ -169,7 +192,7 @@ func _position_around_preview(
 	top_edge_y := NAN,
 	bottom_edge_y := NAN
 ) -> void:
-	var button_size := Vector2(56.0, 56.0)
+	var button_size := PREVIEW_BUTTON_SIZE
 	var side_offset := 52.0
 	if is_nan(top_edge_y):
 		top_edge_y = canvas_position.y - 48.0

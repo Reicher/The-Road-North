@@ -1,0 +1,288 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat_overlay.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/dice_face.gd" id="2_dice"]
+[ext_resource type="Texture2D" path="res://assets/images/stats/stat_power.png" id="3_power"]
+
+[node name="CombatPopup" type="Control"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0)
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -225.0
+offset_right = 250.0
+offset_bottom = 225.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 26
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 22
+
+[node name="Stack" type="VBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Calculation" type="VBoxContainer" parent="Panel/Margin/Stack"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Fighters" type="HBoxContainer" parent="Panel/Margin/Stack/Calculation"]
+layout_mode = 2
+theme_override_constants/separation = 30
+alignment = 1
+
+[node name="Player" type="VBoxContainer" parent="Panel/Margin/Stack/Calculation/Fighters"]
+custom_minimum_size = Vector2(150, 180)
+layout_mode = 2
+alignment = 2
+
+[node name="Name" type="Label" parent="Panel/Margin/Stack/Calculation/Fighters/Player"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "YOU"
+horizontal_alignment = 1
+
+[node name="Power" type="HBoxContainer" parent="Panel/Margin/Stack/Calculation/Fighters/Player"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="Icon" type="TextureRect" parent="Panel/Margin/Stack/Calculation/Fighters/Player/Power"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+texture = ExtResource("3_power")
+expand_mode = 3
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Value" type="Label" parent="Panel/Margin/Stack/Calculation/Fighters/Player/Power"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "1"
+vertical_alignment = 1
+
+[node name="DiceRow" type="Control" parent="Panel/Margin/Stack/Calculation/Fighters/Player"]
+custom_minimum_size = Vector2(150, 68)
+layout_mode = 2
+
+[node name="Plus" type="Label" parent="Panel/Margin/Stack/Calculation/Fighters/Player/DiceRow"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = -68.0
+offset_right = 24.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 26
+text = "+"
+horizontal_alignment = 1
+vertical_alignment = 2
+
+[node name="Dice" type="Control" parent="Panel/Margin/Stack/Calculation/Fighters/Player/DiceRow"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -34.0
+offset_top = -34.0
+offset_right = 34.0
+offset_bottom = 34.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_dice")
+
+[node name="VS" type="Label" parent="Panel/Margin/Stack/Calculation/Fighters"]
+custom_minimum_size = Vector2(32, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 27
+text = "VS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Enemy" type="VBoxContainer" parent="Panel/Margin/Stack/Calculation/Fighters"]
+custom_minimum_size = Vector2(150, 180)
+layout_mode = 2
+alignment = 2
+
+[node name="Name" type="Label" parent="Panel/Margin/Stack/Calculation/Fighters/Enemy"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "ENEMY"
+horizontal_alignment = 1
+
+[node name="Power" type="HBoxContainer" parent="Panel/Margin/Stack/Calculation/Fighters/Enemy"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="Icon" type="TextureRect" parent="Panel/Margin/Stack/Calculation/Fighters/Enemy/Power"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+texture = ExtResource("3_power")
+expand_mode = 3
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Value" type="Label" parent="Panel/Margin/Stack/Calculation/Fighters/Enemy/Power"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "2"
+vertical_alignment = 1
+
+[node name="Dice" type="Control" parent="Panel/Margin/Stack/Calculation/Fighters/Enemy"]
+custom_minimum_size = Vector2(68, 68)
+layout_mode = 2
+script = ExtResource("2_dice")
+
+[node name="SumLine" type="ColorRect" parent="Panel/Margin/Stack/Calculation"]
+custom_minimum_size = Vector2(0, 5)
+layout_mode = 2
+color = Color(0.03, 0.025, 0.02, 1)
+mouse_filter = 2
+
+[node name="Totals" type="Control" parent="Panel/Margin/Stack"]
+custom_minimum_size = Vector2(0, 66)
+layout_mode = 2
+
+[node name="PlayerSum" type="Label" parent="Panel/Margin/Stack/Totals"]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 22.0
+offset_top = -66.0
+offset_right = 172.0
+grow_horizontal = 1
+grow_vertical = 0
+theme_override_font_sizes/font_size = 28
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Result" type="Label" parent="Panel/Margin/Stack/Totals"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -60.0
+offset_top = -33.0
+offset_right = 60.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ResultDetail" type="Label" parent="Panel/Margin/Stack/Totals"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -60.0
+offset_top = 10.0
+offset_right = 60.0
+offset_bottom = 33.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 21
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="EnemySum" type="Label" parent="Panel/Margin/Stack/Totals"]
+layout_mode = 1
+anchors_preset = 13
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -172.0
+offset_top = -66.0
+offset_right = -22.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 28
+text = "?"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Buttons" type="HBoxContainer" parent="Panel/Margin/Stack"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="FightButton" type="Button" parent="Panel/Margin/Stack/Buttons"]
+custom_minimum_size = Vector2(205, 58)
+layout_mode = 2
+focus_mode = 0
+text = "Fight"
+
+[node name="RetreatButton" type="Button" parent="Panel/Margin/Stack/Buttons"]
+custom_minimum_size = Vector2(205, 58)
+layout_mode = 2
+focus_mode = 0
+text = "Retreat"
+
+[node name="OKButton" type="Button" parent="Panel/Margin/Stack"]
+visible = false
+custom_minimum_size = Vector2(310, 58)
+layout_mode = 2
+focus_mode = 0
+text = "OK"
+
+[node name="TitleBanner" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -254.0
+offset_right = 140.0
+offset_bottom = -196.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="TitleBanner"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "COMBAT"
+horizontal_alignment = 1
+vertical_alignment = 1

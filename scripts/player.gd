@@ -10,6 +10,7 @@ signal health_changed(health: int)
 signal base_power_changed(base_power: int)
 signal move_started(target_position: Vector2i)
 signal moved(grid_position: Vector2i)
+signal move_failed(grid_position: Vector2i)
 signal permanent_encounter_reached(grid_position: Vector2i, encounter: Dictionary)
 signal game_over(reason: String)
 signal run_won
@@ -28,8 +29,7 @@ signal run_won
 @export_range(1, 8, 1) var move_hop_count := 5
 @export_range(0.0, 1.0, 0.01) var move_hop_height_tiles := 0.16
 @export_range(0.0, 30.0, 0.5) var move_hop_tilt_degrees := 9.0
-@export_range(0.0, 3.0, 0.01) var combat_bump_duration := 0.72
-@export_range(0.0, 2.0, 0.01) var post_combat_loot_delay := 0.45
+@export_range(0.0, 2.0, 0.01) var combat_roll_duration := 0.65
 
 var grid_position := Vector2i.ZERO
 var food := 0
@@ -48,7 +48,10 @@ var _combat_running := false
 var _game_over := false
 var _run_won := false
 var _visual_root: Node3D
+var _combat_overlay: Control
 var _inventory_max_health_bonus := 0
+var _combat_roll_queue: Array[Vector2i] = []
+var _combat_rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
@@ -56,6 +59,8 @@ func _ready() -> void:
 	_inventory = get_node_or_null(inventory_path) as InventoryUI
 	_loot_ui = get_node_or_null(loot_ui_path) as LootUI
 	_rewards = get_node_or_null(rewards_path) as PlayerRewards
+	_combat_overlay = get_node_or_null("CombatPopupLayer/CombatPopup") as Control
+	_combat_rng.randomize()
 	if _rewards == null:
 		push_warning("Player needs a Rewards child at rewards_path.")
 		return
@@ -85,6 +90,7 @@ func _ready() -> void:
 		_map.tile_pressed.connect(_on_tile_pressed)
 
 	_rebuild_visuals()
+	refresh_enemy_risk_colors()
 
 
 func can_move_to(target_position: Vector2i) -> bool:
@@ -101,28 +107,38 @@ func move_to(target_position: Vector2i) -> bool:
 
 	var input_enabled_before_move := input_enabled
 	_moving = true
+	_move_target = target_position
 	move_started.emit(target_position)
-	food -= 1
-	food_changed.emit(food)
 
 	var enemy_data: Dictionary = _get_enemy_data(target_position)
 	if not enemy_data.is_empty() and int(enemy_data.get("health", 0)) > 0:
 		_move_into_enemy(target_position, enemy_data, input_enabled_before_move)
 		return true
 
-	var target_world_position := _map.grid_to_world(target_position)
-	if move_duration <= 0.0:
-		position = target_world_position
-		_finish_move(target_position)
-		return true
-
-	_move_target = target_position
-	_start_hop_move(target_world_position, move_duration, _on_move_tween_finished)
+	_spend_movement_food()
+	_move_normally(target_position)
 	return true
 
 
 func is_in_combat() -> bool:
 	return _combat_running
+
+
+func queue_combat_rolls(player_roll: int, enemy_roll: int) -> void:
+	_combat_roll_queue.append(Vector2i(clampi(player_roll, 1, 6), clampi(enemy_roll, 1, 6)))
+
+
+func get_combat_risk_level(enemy_power: int) -> String:
+	var difference := get_total_power() - enemy_power
+	if difference <= -2:
+		return "Dangerous"
+	if difference == -1:
+		return "Risky"
+	if difference == 0:
+		return "Fair"
+	if difference == 1:
+		return "Favorable"
+	return "Safe"
 
 
 func set_health(value: int, check_game_over := true) -> void:
@@ -150,6 +166,7 @@ func set_base_power(value: int) -> void:
 		return
 	base_power = value
 	base_power_changed.emit(base_power)
+	refresh_enemy_risk_colors()
 
 
 func get_progression_state() -> Dictionary:
@@ -197,6 +214,7 @@ func _get_inventory_max_health_bonus() -> int:
 
 
 func _on_inventory_stats_changed() -> void:
+	refresh_enemy_risk_colors()
 	var next_bonus := _get_inventory_max_health_bonus()
 	var difference := next_bonus - _inventory_max_health_bonus
 	if difference == 0:
@@ -241,6 +259,7 @@ func _on_tile_pressed(target_position: Vector2i) -> void:
 func _finish_move(target_position: Vector2i) -> void:
 	grid_position = target_position
 	_moving = false
+	refresh_enemy_risk_colors()
 	moved.emit(grid_position)
 	if check_run_won():
 		return
@@ -251,11 +270,18 @@ func _finish_move(target_position: Vector2i) -> void:
 	_check_game_over()
 
 
-func _on_move_tween_finished() -> void:
-	_finish_move(_move_target)
+func _move_normally(target_position: Vector2i) -> void:
+	var target_world_position := _map.grid_to_world(target_position)
+	if move_duration > 0.0:
+		await _animate_hop_to(target_world_position, move_duration)
+		if not is_inside_tree():
+			return
+	else:
+		position = target_world_position
+	_finish_move(target_position)
 
 
-func _start_hop_move(target_world_position: Vector3, duration: float, finished_callback: Callable) -> void:
+func _animate_hop_to(target_world_position: Vector3, duration: float) -> void:
 	var start_world_position := position
 	var travel_direction := (target_world_position - start_world_position).normalized()
 	var tween := create_tween()
@@ -264,11 +290,9 @@ func _start_hop_move(target_world_position: Vector3, duration: float, finished_c
 	tween.tween_method(func(progress: float) -> void:
 		_apply_hop_progress(start_world_position, target_world_position, travel_direction, progress)
 	, 0.0, 1.0, duration)
-	tween.finished.connect(func() -> void:
-		position = target_world_position
-		_reset_hop_visuals()
-		finished_callback.call()
-	)
+	await tween.finished
+	position = target_world_position
+	_reset_hop_visuals()
 
 
 func _apply_hop_progress(start_world_position: Vector3, target_world_position: Vector3, travel_direction: Vector3, progress: float) -> void:
@@ -299,55 +323,160 @@ func get_total_power() -> int:
 	return base_power + _rewards.get_power_bonus()
 
 
+func refresh_enemy_risk_colors() -> void:
+	if _map == null:
+		return
+	for position_variant in _map.tiles.keys():
+		var tile_position: Vector2i = position_variant
+		var encounter := _map.get_encounter(tile_position)
+		if str(encounter.get("type", "")) != GameMap.ENCOUNTER_ENEMY:
+			continue
+		var visual_encounter := encounter.duplicate(true)
+		visual_encounter["risk_level"] = get_combat_risk_level(int(encounter.get("power", 0)))
+		_set_visual_encounter_data(tile_position, visual_encounter)
+
+
+func _set_enemy_combat_status_visible(status_visible: bool) -> void:
+	if _map == null:
+		return
+	for position_variant in _map.tiles.keys():
+		var visual_tile := _find_visual_tile(position_variant)
+		if visual_tile == null:
+			continue
+		var enemy_view := visual_tile.get_node_or_null("Enemy") as EnemyView
+		if enemy_view != null:
+			enemy_view.set_combat_status_visible(status_visible)
+
+
 func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previous_input_enabled: bool) -> void:
 	_combat_running = true
 	input_enabled = false
+	var origin_position := grid_position
 
 	_reveal_enemy_at(target_position, enemy_data)
-	_set_visual_encounter_data(target_position, enemy_data)
+	var visual_enemy_data := enemy_data.duplicate(true)
+	visual_enemy_data["risk_level"] = get_combat_risk_level(int(enemy_data.get("power", 0)))
+	_set_visual_encounter_data(target_position, visual_enemy_data)
+	_set_enemy_combat_status_visible(false)
 
 	var target_world_position := _map.grid_to_world(target_position)
 	var combat_direction := target_world_position - position
-	if combat_bump_duration <= 0.0:
+	var player_power := get_total_power()
+	var enemy_power := int(enemy_data.get("power", 0))
+	_spend_movement_food()
+	if move_duration > 0.0:
+		await _animate_hop_to(target_world_position, move_duration)
+		if not is_inside_tree():
+			return
+	else:
 		position = target_world_position
-		_finish_enemy_move(target_position, enemy_data, previous_input_enabled, combat_direction)
-		return
-
-	_start_hop_move(target_world_position, combat_bump_duration, func() -> void:
-		_finish_enemy_move(target_position, enemy_data, previous_input_enabled, combat_direction)
-	)
-
-
-func _finish_enemy_move(target_position: Vector2i, enemy_data: Dictionary, previous_input_enabled: bool, combat_direction: Vector3) -> void:
-	var enemy_damage := maxi(0, int(enemy_data.get("power", 0)) - get_total_power())
-	set_health(maxi(0, health - enemy_damage), false)
-
-	position = _map.grid_to_world(target_position)
 	grid_position = target_position
-	_moving = false
-	moved.emit(grid_position)
-	if check_run_won():
-		_combat_running = false
-		return
-	if health <= 0:
-		trigger_game_over("health")
-		_combat_running = false
-		return
 
+	if _combat_overlay == null:
+		return
+	_combat_overlay.open_preview(player_power, enemy_power, get_combat_risk_level(enemy_power))
+	while is_inside_tree() and health > 0:
+		var action: String = await _wait_for_combat_action()
+		if action == "retreat":
+			_combat_overlay.close()
+			await _retreat_from_enemy(origin_position, previous_input_enabled)
+			return
+		if action != "fight":
+			continue
+
+		var rolls := _roll_combat_dice()
+		_combat_overlay.start_rolling()
+		if combat_roll_duration > 0.0:
+			await get_tree().create_timer(combat_roll_duration).timeout
+			if not is_inside_tree():
+				return
+		var player_score := player_power + rolls.x
+		var enemy_score := enemy_power + rolls.y
+		if player_score > enemy_score:
+			_combat_overlay.show_round_result(rolls.x, rolls.y, "Victory", true)
+			await _finish_enemy_victory(target_position, enemy_data, combat_direction)
+			_combat_overlay.enable_ok()
+			await _combat_overlay.ok_pressed
+			if not is_inside_tree():
+				return
+			_combat_overlay.close()
+			_finish_combat(previous_input_enabled)
+			moved.emit(grid_position)
+			if check_run_won():
+				return
+			_check_game_over()
+			return
+		if enemy_score > player_score:
+			set_health(maxi(0, health - 1), false)
+			_combat_overlay.show_round_result(rolls.x, rolls.y, "Defeat", false)
+			if health <= 0:
+				_combat_overlay.close()
+				_moving = false
+				trigger_game_over("health")
+				_combat_running = false
+				return
+		else:
+			_combat_overlay.show_round_result(rolls.x, rolls.y, "Tie", false)
+
+
+func _finish_enemy_victory(target_position: Vector2i, enemy_data: Dictionary, combat_direction: Vector3) -> void:
 	_map.clear_encounter(target_position)
 	await _play_enemy_defeat(target_position, combat_direction)
 	if not is_inside_tree():
 		return
 	_clear_visual_encounter_data(target_position)
 
-	if post_combat_loot_delay > 0.0:
-		await get_tree().create_timer(post_combat_loot_delay).timeout
-	if not is_inside_tree():
-		return
+	_moving = false
+
 	_rewards.open_enemy_loot(enemy_data)
+
+
+func _retreat_from_enemy(origin_position: Vector2i, previous_input_enabled: bool) -> void:
+	var origin_world_position := _map.grid_to_world(origin_position)
+	if move_duration > 0.0:
+		await _animate_hop_to(origin_world_position, move_duration)
+		if not is_inside_tree():
+			return
+	else:
+		position = origin_world_position
+	grid_position = origin_position
+	_moving = false
+	_finish_combat(previous_input_enabled)
+	move_failed.emit(grid_position)
+	_check_game_over()
+
+
+func _wait_for_combat_action() -> String:
+	var action := {"value": ""}
+	var fight_callback := func() -> void: action["value"] = "fight"
+	var retreat_callback := func() -> void: action["value"] = "retreat"
+	_combat_overlay.fight_pressed.connect(fight_callback, CONNECT_ONE_SHOT)
+	_combat_overlay.retreat_pressed.connect(retreat_callback, CONNECT_ONE_SHOT)
+	while str(action["value"]).is_empty():
+		await get_tree().process_frame
+	if _combat_overlay.fight_pressed.is_connected(fight_callback):
+		_combat_overlay.fight_pressed.disconnect(fight_callback)
+	if _combat_overlay.retreat_pressed.is_connected(retreat_callback):
+		_combat_overlay.retreat_pressed.disconnect(retreat_callback)
+	return str(action["value"])
+
+func _roll_combat_dice() -> Vector2i:
+	if not _combat_roll_queue.is_empty():
+		return _combat_roll_queue.pop_front()
+	return Vector2i(_combat_rng.randi_range(1, 6), _combat_rng.randi_range(1, 6))
+
+
+func _finish_combat(previous_input_enabled: bool) -> void:
+	if _combat_overlay != null:
+		_combat_overlay.close()
+	refresh_enemy_risk_colors()
 	input_enabled = previous_input_enabled
 	_combat_running = false
-	_check_game_over()
+
+
+func _spend_movement_food() -> void:
+	food -= 1
+	food_changed.emit(food)
 
 
 func _play_enemy_defeat(target_position: Vector2i, combat_direction: Vector3) -> void:

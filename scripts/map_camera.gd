@@ -39,6 +39,8 @@ func _ready() -> void:
 		_player.move_started.connect(_on_player_move_started)
 	if _player != null and not _player.moved.is_connected(_on_player_moved):
 		_player.moved.connect(_on_player_moved)
+	if _player != null and not _player.move_failed.is_connected(_on_player_moved):
+		_player.move_failed.connect(_on_player_moved)
 	if _map != null:
 		size = _get_zoom_out_limit()
 		_target_xz = _world_to_xz(_get_full_map_position())

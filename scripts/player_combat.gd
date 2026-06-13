@@ -22,8 +22,8 @@ func get_enemy_data(target_position: Vector2i) -> Dictionary:
 	return encounter
 
 
-func get_damage_from(enemy_data: Dictionary) -> int:
-	return maxi(0, int(enemy_data.get("power", 0)) - _player.get_total_power())
+func get_risk_level(enemy_data: Dictionary) -> String:
+	return _player.get_combat_risk_level(int(enemy_data.get("power", 0)))
 
 
 func reveal_enemy_at(target_position: Vector2i, enemy_data: Dictionary) -> void:

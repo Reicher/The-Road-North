@@ -73,6 +73,8 @@ func _connect_player() -> void:
 		_player.move_started.connect(_on_player_move_started)
 	if not _player.moved.is_connected(_on_player_moved):
 		_player.moved.connect(_on_player_moved)
+	if not _player.move_failed.is_connected(_on_player_moved):
+		_player.move_failed.connect(_on_player_moved)
 	if not _player.game_over.is_connected(_on_game_over):
 		_player.game_over.connect(_on_game_over)
 	if not _player.run_won.is_connected(_on_run_won):
@@ -115,6 +117,8 @@ func _on_placement_resolved(_grid_position: Vector2i, _card: CardView) -> void:
 		return
 	state = RunState.IDLE
 	_set_player_input_enabled(true)
+	if _player != null:
+		_player.refresh_enemy_risk_colors()
 
 
 func _on_player_move_started(_target_position: Vector2i) -> void:

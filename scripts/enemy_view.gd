@@ -66,13 +66,20 @@ func play_defeat(knock_direction: Vector3) -> void:
 	visible = false
 
 
+func set_combat_status_visible(status_visible: bool) -> void:
+	for node_name in ["PowerLabel", "PowerIcon"]:
+		var status_node := get_node_or_null(node_name) as Node3D
+		if status_node != null:
+			status_node.visible = status_visible
+
+
 func _rebuild() -> void:
 	if not is_inside_tree():
 		return
 	rotation = Vector3.ZERO
 	scale = Vector3.ONE
 	for child in get_children():
-		child.queue_free()
+		child.free()
 	if enemy_data.is_empty():
 		return
 
@@ -85,7 +92,7 @@ func _rebuild() -> void:
 	if enemy_data.get("revealed", false) != true:
 		_add_box("QuestionMark", Vector3(tile_size * 0.035, tile_size * 0.20, tile_size * 0.035), Vector3(0.0, tile_size * 0.54, 0.0), eye_color)
 	else:
-		_add_power_display(int(enemy_data.get("power", 0)))
+		_add_power_display(int(enemy_data.get("power", 0)), str(enemy_data.get("risk_level", "")))
 
 
 func _apply_material_override(node: Node, material: Material) -> void:
@@ -104,12 +111,12 @@ func _tween_visual_alpha(tween: Tween, node: Node, duration: float) -> void:
 		_tween_visual_alpha(tween, child, duration)
 
 
-func _add_power_display(power: int) -> void:
+func _add_power_display(power: int, risk_level: String) -> void:
 	var label := Label3D.new()
 	label.name = "PowerLabel"
 	label.text = str(power)
 	label.font_size = PlayerStatsUI.STAT_VALUE_FONT_SIZE
-	label.modulate = Color(1.0, 0.94, 0.76)
+	label.modulate = _risk_color(risk_level)
 	label.outline_modulate = Color(0.16, 0.05, 0.04)
 	label.outline_size = 3
 	label.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
@@ -130,6 +137,22 @@ func _add_power_display(power: int) -> void:
 	icon.scale = Vector3.ONE * (PlayerStatsUI.STAT_ICON_SIZE / float(POWER_ICON.get_width()))
 	icon.position = Vector3(tile_size * -0.09, tile_size * 0.52, 0.0)
 	add_child(icon)
+
+
+func _risk_color(risk_level: String) -> Color:
+	match risk_level:
+		"Dangerous":
+			return Color(1.0, 0.22, 0.16)
+		"Risky":
+			return Color(1.0, 0.56, 0.18)
+		"Fair":
+			return Color(1.0, 0.88, 0.30)
+		"Favorable":
+			return Color(0.55, 0.92, 0.36)
+		"Safe":
+			return Color(0.24, 0.90, 0.52)
+		_:
+			return Color(1.0, 0.94, 0.76)
 
 
 func _add_box(node_name: String, size: Vector3, local_position: Vector3, color: Color) -> void:

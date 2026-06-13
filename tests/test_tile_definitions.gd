@@ -87,6 +87,17 @@ func _initialize() -> void:
 	_assert(power_label.font_size == PlayerStatsUI.STAT_VALUE_FONT_SIZE, "Expected enemy power value to follow the player's power stat font size")
 	_assert(is_equal_approx(power_label.pixel_size, power_icon.pixel_size), "Expected the enemy power icon and value to use the same 3D pixel scale")
 	_assert(is_equal_approx(power_icon.scale.x * float(power_icon.texture.get_width()), PlayerStatsUI.STAT_ICON_SIZE), "Expected enemy power icon to follow the player's power stat icon size")
+	var risk_encounter: Dictionary = enemy_tile.encounter_data.duplicate(true)
+	risk_encounter["risk_level"] = "Dangerous"
+	enemy_tile.set_encounter_data(risk_encounter)
+	await process_frame
+	power_label = enemy_tile.get_node_or_null("Enemy/PowerLabel") as Label3D
+	_assert(enemy_tile.get_node_or_null("Enemy/RiskLabel") == null, "Expected enemy risk not to use separate text")
+	_assert(power_label.modulate.is_equal_approx(Color(1.0, 0.22, 0.16)), "Expected dangerous enemy power to use a red value")
+	(enemy_tile.get_node("Enemy") as EnemyView).set_combat_status_visible(false)
+	power_label = enemy_tile.get_node_or_null("Enemy/PowerLabel") as Label3D
+	power_icon = enemy_tile.get_node_or_null("Enemy/PowerIcon") as Sprite3D
+	_assert(not power_label.visible and not power_icon.visible, "Expected enemy power value and symbol to hide during combat")
 	enemy_tile.queue_free()
 
 	var start_camp := load("res://data/start_camp.tres")
