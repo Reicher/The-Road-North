@@ -190,7 +190,10 @@ func _utility_item_from_loot(loot: Array) -> Dictionary:
 	for entry in loot:
 		if entry is Dictionary and entry.get("kind", "") == "item":
 			var item: Dictionary = entry.get("item", {})
-			if int(item.get("target_range_bonus", 0)) > 0 or int(item.get("gold_multiplier", 1)) > 1 or int(item.get("max_health_bonus", 0)) > 0:
+			if int(item.get("target_range_bonus", 0)) > 0 \
+					or int(item.get("gold_multiplier", 1)) > 1 \
+					or int(item.get("max_health_bonus", 0)) > 0 \
+					or int(item.get("minimum_hand_size_bonus", 0)) > 0:
 				return item
 	return {}
 

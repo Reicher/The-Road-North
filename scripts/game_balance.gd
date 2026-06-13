@@ -1,10 +1,10 @@
 class_name GameBalance
 extends RefCounted
 
+const DECK_RECIPES: DeckRecipes = preload("res://data/deck_recipes.tres")
 const STARTING_HEALTH := 4
 const BASE_POWER := 0
 const STARTING_FOOD := 10
-const INTRO_BASE_DECK_SIZE := 18
 const INTRO_BASE_MAP_SIZE := 5
 
 
@@ -15,6 +15,11 @@ static func deck_counts(level: int, map_size: int) -> Dictionary:
 	var base_total_cards := roundi(float(safe_map_size) * 3.5 + 0.5)
 	var difficulty_card_penalty := floori(float(safe_level - 1) / 3.0)
 	var total_cards := maxi(shortest_path_steps * 3, base_total_cards - difficulty_card_penalty)
+	var level_recipe := DECK_RECIPES.get_level_deck(safe_level)
+	if safe_level == 1:
+		total_cards = DECK_RECIPES.base_card_count()
+	elif not level_recipe.is_empty():
+		total_cards = DECK_RECIPES.base_card_count() + DECK_RECIPES.level_card_count(safe_level)
 	var road_cards := roundi(float(total_cards) * 0.75)
 	var event_cards := total_cards - road_cards
 
@@ -33,10 +38,12 @@ static func deck_counts(level: int, map_size: int) -> Dictionary:
 
 static func deck_component_counts(level: int, map_size: int) -> Dictionary:
 	var total_cards := int(deck_counts(level, map_size)["total_cards"])
-	var base_cards := total_cards if level <= 1 else mini(INTRO_BASE_DECK_SIZE, total_cards)
+	var base_cards := total_cards if level <= 1 else mini(DECK_RECIPES.base_card_count(), total_cards)
+	var level_recipe := DECK_RECIPES.get_level_deck(level)
+	var level_cards := DECK_RECIPES.level_card_count(level) if not level_recipe.is_empty() else total_cards - base_cards
 	return {
 		"base": base_cards,
-		"level": total_cards - base_cards,
+		"level": level_cards,
 		"player_special": 0,
 	}
 

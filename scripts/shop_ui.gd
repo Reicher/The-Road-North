@@ -36,9 +36,11 @@ const BASE_CARD_SORT_ORDER := {
 	"Dead End": 4,
 }
 
-const ITEM_OFFERS: Array[Dictionary] = [
+const ITEM_OFFER_COUNT := 2
+const ITEM_OFFER_CATALOG: Array[Dictionary] = [
 	{"name": "Dagger", "effect": "+2 Power", "power_bonus": 2, "price": 7, "sell_price": 4},
 	{"name": "Hatchet", "effect": "+3 Power", "power_bonus": 3, "price": 12, "sell_price": 6},
+	{"name": "Guiding Charm", "effect": "Minimum hand size +1.", "minimum_hand_size_bonus": 1, "price": 10, "sell_price": 5},
 ]
 const SPECIAL_CARD_CATALOG: Array[Dictionary] = [
 	{"title": "Clear Path", "detail": "Remove an encounter from a road.", "category": GameConstants.EVENT_CATEGORY, "event_type": GameConstants.EVENT_CLEAR_PATH, "price": 8},
@@ -74,6 +76,7 @@ var progression: Dictionary = {}
 var next_map_name := ""
 var next_map_size := 0
 var base_cards: Array[Dictionary] = []
+var item_offers: Array[Dictionary] = []
 var card_offers: Array[Dictionary] = []
 
 var _gold_chip: StatChip
@@ -121,6 +124,7 @@ func setup(next_progression: Dictionary, map_name: String, map_size: int, availa
 	for card in available_base_cards:
 		if card is Dictionary:
 			base_cards.append((card as Dictionary).duplicate(true))
+	_roll_item_offers()
 	_roll_card_offers()
 	if is_node_ready():
 		_refresh()
@@ -167,13 +171,13 @@ func buy_max_health_potion() -> bool:
 
 func buy_item_to_slot(offer_index: int, slot_index: int) -> bool:
 	var inventory: Array = progression.get("inventory", [])
-	if offer_index < 0 or offer_index >= ITEM_OFFERS.size() or slot_index < 0 or slot_index >= InventoryUI.SLOT_COUNT:
+	if offer_index < 0 or offer_index >= item_offers.size() or slot_index < 0 or slot_index >= InventoryUI.SLOT_COUNT:
 		return false
 	if offer_index in _purchased_item_offers:
 		return false
 	if slot_index >= inventory.size() or not (inventory[slot_index] as Dictionary).is_empty():
 		return false
-	var offer := ITEM_OFFERS[offer_index]
+	var offer := item_offers[offer_index]
 	if not _spend_gold(int(offer["price"])):
 		return false
 	var item := offer.duplicate(true)
@@ -354,8 +358,8 @@ func _refresh_inventory_slots() -> void:
 
 func _refresh_offers() -> void:
 	_clear_children(_item_row)
-	for index in ITEM_OFFERS.size():
-		var offer := ITEM_OFFERS[index]
+	for index in item_offers.size():
+		var offer := item_offers[index]
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(150, 72)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -558,9 +562,9 @@ func _on_item_offer_input(event: InputEvent, index: int, button: Button) -> void
 	if index in _purchased_item_offers:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		_start_drag("offer", index, ITEM_OFFERS[index], button.get_global_rect().get_center())
+		_start_drag("offer", index, item_offers[index], button.get_global_rect().get_center())
 	elif event is InputEventScreenTouch and event.pressed:
-		_start_drag("offer", index, ITEM_OFFERS[index], event.position)
+		_start_drag("offer", index, item_offers[index], event.position)
 
 
 func _start_drag(kind: String, index: int, item: Dictionary, position: Vector2) -> void:
@@ -638,6 +642,14 @@ func _inventory_gold_multiplier() -> int:
 	for item in progression.get("inventory", []):
 		multiplier = maxi(multiplier, int((item as Dictionary).get("gold_multiplier", 1)))
 	return multiplier
+
+
+func _roll_item_offers() -> void:
+	var candidates := ITEM_OFFER_CATALOG.duplicate(true)
+	candidates.shuffle()
+	item_offers.clear()
+	for index in mini(ITEM_OFFER_COUNT, candidates.size()):
+		item_offers.append(candidates[index])
 
 
 func _button(text: String, callback: Callable) -> Button:

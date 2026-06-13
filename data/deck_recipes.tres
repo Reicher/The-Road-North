@@ -1,0 +1,85 @@
+[gd_resource type="Resource" script_class="DeckRecipes" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/deck_recipes.gd" id="1_deck_recipes"]
+
+[resource]
+script = ExtResource("1_deck_recipes")
+
+; Valid road keys: straight, corner, t_junction, four_way, dead_end, bridge.
+; Valid encounter keys: enemy, berry, loot.
+; Valid event keys: destroy_tile, draw_two, rotate_tile, lucky_find, ambush.
+; Every recipe lists every card added by that deck.
+
+; The base deck is rebuilt at the start of every level.
+; Encounters are assigned randomly across roads. Any roads left after assigning
+; encounters are plain.
+base_deck = {
+	"roads": {
+		"straight": 4,
+		"corner": 4,
+		"t_junction": 3,
+		"four_way": 2,
+		"dead_end": 2
+	},
+	"encounters": {
+		"enemy": 1,
+		"berry": 1,
+		"loot": 1
+	},
+	"events": {
+		"draw_two": 1,
+		"lucky_find": 1,
+		"destroy_tile": 1
+	}
+}
+
+; Each entry describes only the cards added by that level.
+level_decks = {
+	1: {
+		"roads": {},
+		"encounters": {},
+		"events": {}
+	},
+	2: {
+		"roads": {
+			"straight": 2,
+			"corner": 1,
+			"t_junction": 1,
+			"four_way": 1,
+			"dead_end": 2,
+			"bridge": 1
+		},
+		"encounters": {
+			"enemy": 3,
+			"berry": 2,
+			"loot": 2
+		},
+		"events": {
+			"ambush": 1,
+			"draw_two": 1,
+			"lucky_find": 1,
+			"destroy_tile": 1
+		}
+	},
+	3: {
+		"roads": {
+			"straight": 2,
+			"corner": 2,
+			"t_junction": 1,
+			"four_way": 1,
+			"dead_end": 3
+		},
+		"encounters": {
+			"enemy": 5,
+			"berry": 2,
+			"loot": 2
+		},
+		"events": {
+			"ambush": 1,
+			"draw_two": 1,
+			"lucky_find": 1,
+			"destroy_tile": 1,
+			"rotate_tile": 1
+		}
+	}
+}

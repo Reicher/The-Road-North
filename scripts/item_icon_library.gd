@@ -7,6 +7,7 @@ const ICON_PATHS := {
 	"field medic's bag": "res://assets/images/items/item_field_medics_bag.png",
 	"goldsmith's scale": "res://assets/images/items/item_goldsmiths_scale.png",
 	"great axe": "res://assets/images/items/item_great_axe.png",
+	"guiding charm": "res://assets/images/items/item_guiding_charm.png",
 	"hatchet": "res://assets/images/items/item_hatchet.png",
 	"item": "res://assets/images/items/item_fallback.png",
 	"mace": "res://assets/images/items/item_mace.png",

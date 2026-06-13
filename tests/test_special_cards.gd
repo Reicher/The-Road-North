@@ -1,6 +1,12 @@
 extends SceneTree
 
 const DECK_BUILDER_SCRIPT := preload("res://scripts/deck_builder.gd")
+const STRAIGHT_DEFINITION := preload("res://data/road_straight.tres")
+const CORNER_DEFINITION := preload("res://data/road_corner.tres")
+const T_JUNCTION_DEFINITION := preload("res://data/road_t_junction.tres")
+const FOUR_WAY_DEFINITION := preload("res://data/road_four_way.tres")
+const DEAD_END_DEFINITION := preload("res://data/road_dead_end.tres")
+const BRIDGE_DEFINITION := preload("res://data/road_bridge.tres")
 
 const SHOP_ONLY_EVENT_TYPES := [
 	GameConstants.EVENT_CLEAR_PATH,
@@ -48,6 +54,9 @@ func _initialize() -> void:
 	shop.free()
 
 	var builder := DECK_BUILDER_SCRIPT.new()
+	_test_fixed_base_deck(builder)
+	_test_fixed_level_two_deck(builder)
+	_test_fixed_level_three_deck(builder)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 17
 	var generated_cards := builder.make_deck(40, rng, {
@@ -58,10 +67,155 @@ func _initialize() -> void:
 		"road_definitions": {},
 	})
 	_assert(not _contains_any_event(generated_cards, SHOP_ONLY_EVENT_TYPES), "Expected shop-only events to stay out of generated base and level decks")
-	var level_cards := builder.make_level_specific_cards(2, {})
-	_assert(not _contains_any_event(level_cards, SHOP_ONLY_EVENT_TYPES), "Expected shop-only events to stay out of level-specific injection")
 	builder.free()
 	quit()
+
+
+func _test_fixed_base_deck(builder: DeckBuilder) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 31
+	var components := builder.make_deck_components(18, rng, {
+		"deck_components": {"base": 18, "level": 0, "player_special": 0},
+		"level": 1,
+		"map_size": 5,
+		"road_definitions": {
+			"straight": STRAIGHT_DEFINITION,
+			"corner": CORNER_DEFINITION,
+			"t_junction": T_JUNCTION_DEFINITION,
+			"four_way": FOUR_WAY_DEFINITION,
+			"dead_end": DEAD_END_DEFINITION,
+		},
+	})
+	var base_cards: Array = components["base"]
+	_assert(base_cards.size() == 18, "Expected the fixed base deck to contain eighteen cards")
+	_assert(_road_shape_counts(base_cards) == {
+		"Straight Road": 4,
+		"Corner": 4,
+		"T-Junction": 3,
+		"Four-Way Intersection": 2,
+		"Dead End": 2,
+	}, "Expected the fixed base deck road recipe")
+	_assert(_encounter_counts(base_cards) == {
+		GameMap.ENCOUNTER_ENEMY: 1,
+		GameMap.ENCOUNTER_BERRY_BUSH: 1,
+		GameMap.ENCOUNTER_CACHE: 1,
+	}, "Expected exactly three encountered base roads")
+	_assert(_event_counts(base_cards) == {
+		GameConstants.EVENT_DRAW_TWO: 1,
+		GameConstants.EVENT_LUCKY_FIND: 1,
+		GameConstants.EVENT_DESTROY_TILE: 1,
+	}, "Expected the fixed base deck event recipe")
+
+
+func _test_fixed_level_two_deck(builder: DeckBuilder) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 47
+	var components := builder.make_deck_components(25, rng, {
+		"deck_components": {"base": 18, "level": 12, "player_special": 0},
+		"level": 2,
+		"map_size": 7,
+		"road_definitions": {
+			"straight": STRAIGHT_DEFINITION,
+			"corner": CORNER_DEFINITION,
+			"t_junction": T_JUNCTION_DEFINITION,
+			"four_way": FOUR_WAY_DEFINITION,
+			"dead_end": DEAD_END_DEFINITION,
+			"bridge": BRIDGE_DEFINITION,
+		},
+	})
+	var level_cards: Array = components["level"]
+	_assert(level_cards.size() == 12, "Expected the authored Level 2 pack to contain twelve cards")
+	_assert(_road_shape_counts(level_cards) == {
+		"Straight Road": 2,
+		"Corner": 1,
+		"T-Junction": 1,
+		"Four-Way Intersection": 1,
+		"Dead End": 2,
+		"Bridge": 1,
+	}, "Expected the authored Level 2 road recipe")
+	_assert(_encounter_counts(level_cards) == {
+		GameMap.ENCOUNTER_ENEMY: 3,
+		GameMap.ENCOUNTER_BERRY_BUSH: 2,
+		GameMap.ENCOUNTER_CACHE: 2,
+	}, "Expected seven of the eight Level 2 roads to have encounters")
+	_assert(_event_counts(level_cards) == {
+		GameConstants.EVENT_AMBUSH: 1,
+		GameConstants.EVENT_DRAW_TWO: 1,
+		GameConstants.EVENT_LUCKY_FIND: 1,
+		GameConstants.EVENT_DESTROY_TILE: 1,
+	}, "Expected the authored Level 2 event recipe")
+
+
+func _test_fixed_level_three_deck(builder: DeckBuilder) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 59
+	var components := builder.make_deck_components(32, rng, {
+		"deck_components": {"base": 18, "level": 14, "player_special": 0},
+		"level": 3,
+		"map_size": 9,
+		"road_definitions": {
+			"straight": STRAIGHT_DEFINITION,
+			"corner": CORNER_DEFINITION,
+			"t_junction": T_JUNCTION_DEFINITION,
+			"four_way": FOUR_WAY_DEFINITION,
+			"dead_end": DEAD_END_DEFINITION,
+		},
+	})
+	var level_cards: Array = components["level"]
+	_assert(level_cards.size() == 14, "Expected the authored Level 3 pack to contain fourteen cards")
+	_assert(_road_shape_counts(level_cards) == {
+		"Straight Road": 2,
+		"Corner": 2,
+		"T-Junction": 1,
+		"Four-Way Intersection": 1,
+		"Dead End": 3,
+	}, "Expected the authored Level 3 road recipe")
+	_assert(_encounter_counts(level_cards) == {
+		GameMap.ENCOUNTER_ENEMY: 5,
+		GameMap.ENCOUNTER_BERRY_BUSH: 2,
+		GameMap.ENCOUNTER_CACHE: 2,
+	}, "Expected all nine Level 3 roads to have encounters")
+	_assert(_event_counts(level_cards) == {
+		GameConstants.EVENT_AMBUSH: 1,
+		GameConstants.EVENT_DRAW_TWO: 1,
+		GameConstants.EVENT_LUCKY_FIND: 1,
+		GameConstants.EVENT_DESTROY_TILE: 1,
+		GameConstants.EVENT_ROTATE_TILE: 1,
+	}, "Expected the authored Level 3 event recipe")
+	_assert(not _contains_any_event(level_cards, [GameConstants.EVENT_RESTART_LEVEL]), "Expected Level 3 not to inject a Dream card")
+
+
+func _road_shape_counts(cards: Array) -> Dictionary:
+	var counts := {}
+	for card in cards:
+		var definition: Resource = card.get("tile_definition")
+		if definition == null:
+			continue
+		var display_name := str(definition.get("display_name"))
+		counts[display_name] = int(counts.get(display_name, 0)) + 1
+	return counts
+
+
+func _encounter_counts(cards: Array) -> Dictionary:
+	var counts := {}
+	for card in cards:
+		if card.get("tile_definition") == null:
+			continue
+		var encounter_type := str((card.get("encounter", {}) as Dictionary).get("type", ""))
+		if encounter_type.is_empty():
+			continue
+		counts[encounter_type] = int(counts.get(encounter_type, 0)) + 1
+	return counts
+
+
+func _event_counts(cards: Array) -> Dictionary:
+	var counts := {}
+	for card in cards:
+		var event_type := str(card.get("event_type", ""))
+		if event_type.is_empty():
+			continue
+		counts[event_type] = int(counts.get(event_type, 0)) + 1
+	return counts
 
 
 func _catalog_card(event_type: String) -> Dictionary:

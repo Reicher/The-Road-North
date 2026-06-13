@@ -17,11 +17,17 @@ const FIELD_MEDICS_BAG := {
 	"effect": "+2 Max Health",
 	"max_health_bonus": 2,
 }
+const GUIDING_CHARM := {
+	"name": "Guiding Charm",
+	"effect": "Minimum hand size +1.",
+	"minimum_hand_size_bonus": 1,
+}
 
 const UTILITY_ITEMS: Array[Dictionary] = [
 	BINOCULARS,
 	GOLDSMITHS_SCALE,
 	FIELD_MEDICS_BAG,
+	GUIDING_CHARM,
 ]
 
 

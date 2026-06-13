@@ -3,6 +3,7 @@ extends SceneTree
 const INVENTORY_SCENE := preload("res://ui/inventory.tscn")
 const UIStyle := preload("res://scripts/ui_style.gd")
 const ItemIconLibrary := preload("res://scripts/item_icon_library.gd")
+const ItemCatalog := preload("res://scripts/item_catalog.gd")
 
 
 func _initialize() -> void:
@@ -152,8 +153,13 @@ func _initialize() -> void:
 	_assert(inventory.get_target_range_bonus() == 1, "Expected Binoculars to increase target range by one")
 	_assert(inventory.get_gold_multiplier() == 2, "Expected Goldsmith's Scale to double gold gains")
 	_assert(inventory.get_max_health_bonus() == 2, "Expected Field Medic's Bag to increase max health by two")
+	_assert(inventory.get_minimum_hand_size_bonus() == 0, "Expected utility items without a hand bonus not to change minimum hand size")
 	for item in inventory.get_items():
 		_assert(ItemIconLibrary.get_icon(item) != null, "Expected every utility item to have an item icon")
+	inventory.replace_item_at_slot(2, ItemCatalog.GUIDING_CHARM)
+	_assert(inventory.get_minimum_hand_size_bonus() == 1, "Expected Guiding Charm to increase minimum hand size by one")
+	_assert(ItemIconLibrary.get_icon(ItemCatalog.GUIDING_CHARM) != null, "Expected Guiding Charm to have an item icon")
+	inventory.replace_item_at_slot(2, ItemCatalog.FIELD_MEDICS_BAG)
 	var player := GamePlayer.new()
 	player.gold = 1
 	player.health = 4

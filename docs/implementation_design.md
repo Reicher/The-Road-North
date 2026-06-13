@@ -146,7 +146,7 @@ No generic effect engine, no economy system, no equipment framework beyond stron
 
 **WeaponCatalog:** Walking Stick (+1), Dagger (+2), Hatchet (+3), Machete (+4), Sword (+5), Mace (+6), Spear (+7), Sword & Shield (+8), Great Axe (+9). Provides `roll_weapon(rng, target_power, power_weights)` with weighted randomization. Cache weapons normally use `level` through `level + 2`, with a 15% chance for `level + 3`.
 
-**ItemCatalog:** Binoculars (`target_range_bonus: 1`, 15% drop chance). Both are static `RefCounted` classes.
+**ItemCatalog:** Utility items share a 15% cache drop chance. Carried item effects include target range, gold multiplier, max health, and minimum hand size bonuses. Both catalogs are static `RefCounted` classes.
 
 ---
 

@@ -5,6 +5,7 @@ const CARD_DEFINITION_SCRIPT := preload("res://scripts/card_definition.gd")
 const WeaponCatalog = preload("res://scripts/weapon_catalog.gd")
 const ItemCatalog = preload("res://scripts/item_catalog.gd")
 const GameBalance = preload("res://scripts/game_balance.gd")
+const DEFAULT_DECK_RECIPES: DeckRecipes = preload("res://data/deck_recipes.tres")
 
 const ENCOUNTER_ENEMY := GameConstants.ENCOUNTER_ENEMY
 const ROAD_SUBTYPES: Array[String] = ["straight", "corner", "t_junction", "four_way", "dead_end"]
@@ -12,6 +13,8 @@ const DECK_SOURCE_BASE := GameConstants.DECK_SOURCE_BASE
 const DECK_SOURCE_LEVEL := GameConstants.DECK_SOURCE_LEVEL
 const DECK_SOURCE_PLAYER_SPECIAL := GameConstants.DECK_SOURCE_PLAYER_SPECIAL
 const CACHE_RARE_WEAPON_CHANCE := 0.15
+
+@export var deck_recipes: DeckRecipes = DEFAULT_DECK_RECIPES
 
 
 func make_deck(deck_size: int, rng: RandomNumberGenerator, config: Dictionary) -> Array[Dictionary]:
@@ -35,15 +38,37 @@ func make_deck_components(deck_size: int, rng: RandomNumberGenerator, config: Di
 	}
 	var base_count := clampi(int(component_counts.get(DECK_SOURCE_BASE, deck_size)), 0, deck_size)
 	var base_config: Dictionary = config.get("base_deck_config", config)
-	components[DECK_SOURCE_BASE] = _mark_deck_source(make_deck(base_count, rng, base_config), DECK_SOURCE_BASE)
+	var base_recipe := deck_recipes.get_base_deck()
+	var base_cards := _make_authored_deck(base_recipe, rng, base_config) if base_count == deck_recipes.base_card_count() else make_deck(base_count, rng, base_config)
+	components[DECK_SOURCE_BASE] = _mark_deck_source(base_cards, DECK_SOURCE_BASE)
 
-	var level_count := clampi(int(component_counts.get(DECK_SOURCE_LEVEL, 0)), 0, deck_size - base_count)
-	if level_count > 0:
-		var level_candidates := make_deck(deck_size, rng, config)
-		level_candidates.sort_custom(_is_harder_card)
-		level_candidates.resize(level_count)
-		components[DECK_SOURCE_LEVEL] = _mark_deck_source(level_candidates, DECK_SOURCE_LEVEL)
+	var deck_level := int(config.get("level", 1))
+	var level_recipe := deck_recipes.get_level_deck(deck_level)
+	if not level_recipe.is_empty():
+		components[DECK_SOURCE_LEVEL] = _mark_deck_source(_make_authored_deck(level_recipe, rng, config), DECK_SOURCE_LEVEL)
 	return components
+
+
+func _make_authored_deck(recipe: Dictionary, rng: RandomNumberGenerator, config: Dictionary) -> Array[Dictionary]:
+	var authored_config := config.duplicate(true)
+	var road_distribution: Dictionary = recipe.get("roads", {})
+	authored_config["road_distribution"] = road_distribution
+	authored_config["special_roads"] = recipe.get("encounters", {})
+
+	var cards := _make_road_cards(_count_entries(road_distribution), rng, authored_config)
+	for event_type in (recipe.get("events", {}) as Dictionary):
+		for _index in int((recipe.get("events", {}) as Dictionary)[event_type]):
+			var card := _make_event_card_for_type(str(event_type), rng, int(config.get("level", 1)))
+			if not card.is_empty():
+				cards.append(card)
+	return cards
+
+
+func _count_entries(entries: Dictionary) -> int:
+	var total := 0
+	for count in entries.values():
+		total += int(count)
+	return total
 
 
 func _mark_deck_source(cards: Array[Dictionary], source: String) -> Array[Dictionary]:
@@ -58,29 +83,6 @@ func combine_deck_components(components: Dictionary) -> Array[Dictionary]:
 		for card in components.get(source, []):
 			cards.append(card)
 	return cards
-
-
-func _is_harder_card(left: Dictionary, right: Dictionary) -> bool:
-	return _card_difficulty(left) > _card_difficulty(right)
-
-
-func _card_difficulty(card: Dictionary) -> int:
-	var encounter: Dictionary = card.get("encounter", {})
-	if encounter.get("type", "") == ENCOUNTER_ENEMY:
-		return 4
-	var event_type := str(card.get("event_type", ""))
-	if event_type in [
-		GameConstants.EVENT_DESTROY_TILE,
-		GameConstants.EVENT_ROTATE_TILE,
-		GameConstants.EVENT_AMBUSH,
-	]:
-		return 3
-	var tile_definition: Resource = card.get("tile_definition")
-	if tile_definition != null and str(tile_definition.get("display_name")) == "Dead End":
-		return 2
-	if card.get("category", "") == GameConstants.EVENT_CATEGORY:
-		return 1
-	return 0
 
 
 func make_debug_hand(kind: String, config: Dictionary) -> Array[Dictionary]:
@@ -251,6 +253,34 @@ func _make_event_card(title: String, detail: String, event_type: String) -> Dict
 	return definition.to_card_data()
 
 
+func _make_event_card_for_type(event_type: String, rng: RandomNumberGenerator, level: int) -> Dictionary:
+	var template := _event_template(event_type)
+	if template.is_empty():
+		push_warning("Unknown event type in deck recipe: %s" % event_type)
+		return {}
+	var card := _make_event_card(template["title"], template["detail"], event_type)
+	if event_type == GameConstants.EVENT_AMBUSH:
+		_set_card_encounter(card, _make_enemy_encounter(rng, level))
+	return card
+
+
+func _event_template(event_type: String) -> Dictionary:
+	match event_type:
+		GameConstants.EVENT_DESTROY_TILE:
+			return {"title": "Mirage", "detail": "Destroy a placed tile."}
+		GameConstants.EVENT_DRAW_TWO:
+			return {"title": "Idea", "detail": "Draw two extra cards."}
+		GameConstants.EVENT_ROTATE_TILE:
+			return {"title": "Doubt", "detail": "Rotate a placed tile."}
+		GameConstants.EVENT_LUCKY_FIND:
+			return {"title": "Lucky Find", "detail": "Gain food or gold."}
+		GameConstants.EVENT_AMBUSH:
+			return {"title": "Ambush", "detail": "Add an enemy to a road."}
+		GameConstants.EVENT_RESTART_LEVEL:
+			return {"title": "It Was All a Dream", "detail": "Restart the level."}
+	return {}
+
+
 func _add_enemy_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, enemy_count: int, level: int) -> void:
 	_shuffle_cards(cards, rng)
 
@@ -358,13 +388,3 @@ func _shuffle_ints(values: Array[int], rng: RandomNumberGenerator) -> void:
 		var value := values[index]
 		values[index] = values[swap_index]
 		values[swap_index] = value
-
-
-func make_level_specific_cards(level: int, config: Dictionary) -> Array[Dictionary]:
-	var cards: Array[Dictionary] = []
-	if level >= 2:
-		cards.append(_make_event_card("It Was All a Dream", "Restart the level.", GameConstants.EVENT_RESTART_LEVEL))
-	var bridge_definition: Resource = config.get("bridge_definition")
-	if level == 2 and bridge_definition != null:
-		cards.append(_make_road_card(bridge_definition))
-	return cards

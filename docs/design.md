@@ -68,12 +68,30 @@ Food, gold, health, max health, base power, and backpack carry between levels. R
 Each level's deck = base deck − player removals + level deck + player special cards.
 
 - Level 1: 18 cards (base only)
-- Level 2: 25 cards (18 base + 7 harder level cards)
+- Level 2: 30 cards (18 base + 12 authored level cards)
 - Level 3: 32 cards (18 base + 14 level cards)
 
-Deck size formula: `round(map_size * 3.5 + 0.5)`, minus 1 card per 3 levels, floor at `shortest_path * 3`.
+The 18-card base deck is generated fresh at the start of each level:
+- Roads: 4 Straight, 4 Corner, 3 T-Junction, 2 Four-Way, 2 Dead End
+- Encounters: exactly 1 enemy, 1 berry bush, and 1 cache, assigned to random base roads
+- Events: exactly 1 Idea, 1 Lucky Find, and 1 Mirage
 
-Composition: 75% road, 25% event. Shuffled once at level start; no reshuffle.
+The Level 2 addition is generated fresh from a fixed 12-card recipe:
+- Roads: 2 Straight, 1 Corner, 1 T-Junction, 1 Four-Way, 2 Dead End, 1 Bridge
+- Encounters: exactly 3 enemies, 2 berry bushes, and 2 caches, assigned randomly across the eight Level 2 roads; one road stays plain
+- Events: exactly 1 Ambush, 1 Idea, 1 Lucky Find, and 1 Mirage
+
+The Level 3 addition is generated fresh from a fixed 14-card recipe:
+- Roads: 2 Straight, 2 Corner, 1 T-Junction, 1 Four-Way, 3 Dead End
+- Encounters: exactly 5 enemies, 2 berry bushes, and 2 caches, assigning one to every Level 3 road
+- Events: exactly 1 Ambush, 1 Idea, 1 Lucky Find, 1 Mirage, and 1 Doubt
+
+The combined deck is shuffled once at level start; no reshuffle.
+
+The editable source of truth for these recipes is `data/deck_recipes.tres`.
+Changing road, encounter, or event counts there changes the decks created by the
+game. Roads without assigned encounters are plain. Every playable level must
+have an authored entry.
 
 Hand size: 4. Using a card draws a replacement. No discard. Player may freely mix movement and placement in any order.
 
@@ -97,10 +115,6 @@ Features:
 
 The removal menu is unavailable when the player cannot afford the current price. Protected road types (Straight, Corner, T-Junction) cannot have their last copy removed. Potion bonuses apply only to the next map.
 
-Special card: "It Was All a Dream" is a level card injected on levels 2+; it restarts the current level from its saved state.
-
----
-
 ## Hand Presentation
 
 Cards shown in a curved arc at screen bottom, dynamically compressed to fit width.
@@ -120,7 +134,9 @@ Immediate events (Idea, Lucky Find, Sleep, It Was All a Dream) trigger on releas
 
 Types: Straight, Corner, T-Junction (20%), Four-Way (15%), Dead End (20%). Straight and Corner split the remainder equally.
 
-Special road: **Bridge** — a straight road that may be placed on river tiles (normal connection rules still apply). Injected as a level card on level 2.
+Special road: **Bridge** — a straight road that may be placed on river tiles
+(normal connection rules still apply). Included as a plain road in Level 2's
+authored deck recipe.
 
 Player special road cards may carry permanent encounters. Each offer receives
 one of the five normal road shapes at random. These encounters remain on the
@@ -132,10 +148,11 @@ map and open whenever the player reaches their road:
   immediately to the hand and permanently to the player's special deck
 - Shrine: trade 1 food to draw 2 extra cards, without reducing food to 0
 
-Can be rotated before placement. Some carry hidden encounters (enemy, berry bush, cache). Encounter counts scale with map size and level:
-- Level 1: 4 enemy, 2 berry, 2 cache
-- Level 2: 6 enemy, 3 berry, 3 cache
-- Level 3: 8 enemy, 4 berry, 4 cache
+Can be rotated before placement. Some carry hidden encounters (enemy, berry
+bush, cache). Total authored encounter counts before player special cards:
+- Level 1: 1 enemy, 1 berry, 1 cache
+- Level 2: 4 enemy, 3 berry, 3 cache
+- Level 3: 6 enemy, 3 berry, 3 cache
 
 Placement mode:
 - Preview follows drag, snaps to tiles; green = valid, red = invalid
@@ -149,7 +166,7 @@ Validity requires: empty tile, within range, connects correctly to player's tile
 
 ## Event Cards
 
-Five generated types, four shop-only special types, and level-specific events:
+Authored deck events and shop-only special events:
 
 | Event | Effect |
 |-------|--------|
@@ -162,7 +179,7 @@ Five generated types, four shop-only special types, and level-specific events:
 | Wild Berries | Add berry bush to a road (shop-only special) |
 | Lost Belongings | Add cache to a road (shop-only special) |
 | Sleep | Discard full hand, redraw to normal hand size (shop-only special) |
-| It Was All a Dream | Restart level with fresh shuffle and reset state (level card, levels 2+) |
+| It Was All a Dream | Restart level with fresh shuffle and reset state (shop special) |
 
 Targeting rules: same orthogonal range as road placement. Cannot target start, goal, or player's tile. Clear Path requires an encounter present; Ambush/Wild Berries/Lost Belongings require no encounter. Mirage/Doubt share targeting restrictions; Doubt previews clockwise rotation.
 
@@ -192,6 +209,7 @@ selected utility item instead of a weapon.
 - Binoculars: +1 target range (Manhattan distance 2)
 - Goldsmith's Scale: doubles all gold gained
 - Field Medic's Bag: +2 max health while carried
+- Guiding Charm: minimum hand size +1 while carried
 
 ---
 

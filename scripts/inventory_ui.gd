@@ -130,6 +130,14 @@ func get_max_health_bonus() -> int:
 	return bonus
 
 
+func get_minimum_hand_size_bonus() -> int:
+	var bonus := 0
+	for item in items:
+		if not item.is_empty():
+			bonus += int(item.get("minimum_hand_size_bonus", 0))
+	return bonus
+
+
 func get_active_items() -> Array[Dictionary]:
 	var active_items: Array[Dictionary] = []
 	for item in items:

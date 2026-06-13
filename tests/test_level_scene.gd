@@ -60,6 +60,23 @@ func run() -> void:
 	_assert(deck_controller.level == 1, "Expected level 001 enemies to use power one through three")
 	_assert(deck_controller.total_cards() == 18, "Expected level 001 deck size to use its authored 5x5 map size")
 	_assert(deck_controller.deck_components["base"].size() == 18 and deck_controller.deck_components["level"].is_empty(), "Expected level 001 to use only the base deck")
+	_assert(_road_shape_counts(deck_controller.deck_components["base"]) == {
+		"Straight Road": 4,
+		"Corner": 4,
+		"T-Junction": 3,
+		"Four-Way Intersection": 2,
+		"Dead End": 2,
+	}, "Expected the base deck to use the fixed fifteen-road recipe")
+	_assert(_encounter_counts(deck_controller.deck_components["base"]) == {
+		GameMap.ENCOUNTER_ENEMY: 1,
+		GameMap.ENCOUNTER_BERRY_BUSH: 1,
+		GameMap.ENCOUNTER_CACHE: 1,
+	}, "Expected exactly one enemy, berry bush, and cache on random base roads")
+	_assert(_event_counts(deck_controller.deck_components["base"]) == {
+		GameConstants.EVENT_DRAW_TWO: 1,
+		GameConstants.EVENT_LUCKY_FIND: 1,
+		GameConstants.EVENT_DESTROY_TILE: 1,
+	}, "Expected the base deck to contain Idea, Lucky Find, and Mirage")
 	_assert(deck_controller.deck_components["player_special"].is_empty(), "Expected player special cards to remain an empty concept")
 	_assert(placement.get_target_range() == 1, "Expected the player to start with target range one")
 	inventory.add_item({"name": "Kikare", "effect": "Placera kort längre bort.", "target_range_bonus": 1})
@@ -161,11 +178,29 @@ func run() -> void:
 	_assert(second_map.get_fixed_feature_connections(Vector2i(2, 3))["north"] == true, "Expected level 002 bridges to connect across the river")
 	_assert(second_deck_controller.hand_size == 4, "Expected level 002 to configure a four-card hand")
 	_assert(second_deck_controller.level == 2, "Expected level 002 enemies to use power two through four")
-	_assert(second_deck_controller.deck_components["base"].size() == 18 and second_deck_controller.deck_components["level"].size() == 7, "Expected level 002 to combine the base deck with seven level cards")
-	_assert(_count_enemy_cards(second_deck_controller.deck_components["base"]) == 4, "Expected level 002 to retain the level-one base deck recipe")
+	_assert(second_deck_controller.deck_components["base"].size() == 18 and second_deck_controller.deck_components["level"].size() == 12, "Expected level 002 to combine the base deck with its twelve-card authored pack")
+	_assert(_count_enemy_cards(second_deck_controller.deck_components["base"]) == 1, "Expected level 002 to retain the level-one base deck recipe")
 	_assert(_all_enemy_cards_use_level_range(second_deck_controller.deck_components["base"], 2), "Expected level 002 base-deck enemies to scale to the current level")
 	_assert(_all_enemy_cards_use_level_range(second_deck_controller.deck_components["level"], 2), "Expected level 002 level-deck enemies and Ambush cards to use the current level")
-	_assert(_all_level_cards_are_difficult(second_deck_controller.deck_components["level"]), "Expected level 002 level cards to prioritize difficult cards")
+	_assert(_road_shape_counts(second_deck_controller.deck_components["level"]) == {
+		"Straight Road": 2,
+		"Corner": 1,
+		"T-Junction": 1,
+		"Four-Way Intersection": 1,
+		"Dead End": 2,
+		"Bridge": 1,
+	}, "Expected the authored Level 2 road recipe")
+	_assert(_encounter_counts(second_deck_controller.deck_components["level"]) == {
+		GameMap.ENCOUNTER_ENEMY: 3,
+		GameMap.ENCOUNTER_BERRY_BUSH: 2,
+		GameMap.ENCOUNTER_CACHE: 2,
+	}, "Expected seven of the eight authored Level 2 roads to have encounters")
+	_assert(_event_counts(second_deck_controller.deck_components["level"]) == {
+		GameConstants.EVENT_AMBUSH: 1,
+		GameConstants.EVENT_DRAW_TWO: 1,
+		GameConstants.EVENT_LUCKY_FIND: 1,
+		GameConstants.EVENT_DESTROY_TILE: 1,
+	}, "Expected the authored Level 2 event recipe")
 	_assert(second_deck_controller.deck_components["player_special"].is_empty(), "Expected player special cards to remain an empty concept")
 	_assert(second_camera.reserved_bottom_path == NodePath("../UI/Hand"), "Expected camera to reserve the card hand area when sizing the map viewport")
 	_assert(is_equal_approx(second_camera.pan_margin_x_tiles, 3.0), "Expected camera to allow visual forest margin beyond the left and right edges")
@@ -211,6 +246,39 @@ func _count_enemy_cards(cards: Array[Dictionary]) -> int:
 		if (card.get("encounter", {}) as Dictionary).get("type", "") == GameMap.ENCOUNTER_ENEMY:
 			count += 1
 	return count
+
+
+func _road_shape_counts(cards: Array[Dictionary]) -> Dictionary:
+	var counts := {}
+	for card in cards:
+		var definition: Resource = card.get("tile_definition")
+		if definition == null:
+			continue
+		var display_name := str(definition.get("display_name"))
+		counts[display_name] = int(counts.get(display_name, 0)) + 1
+	return counts
+
+
+func _encounter_counts(cards: Array[Dictionary]) -> Dictionary:
+	var counts := {}
+	for card in cards:
+		if card.get("tile_definition") == null:
+			continue
+		var encounter_type := str((card.get("encounter", {}) as Dictionary).get("type", ""))
+		if encounter_type.is_empty():
+			continue
+		counts[encounter_type] = int(counts.get(encounter_type, 0)) + 1
+	return counts
+
+
+func _event_counts(cards: Array[Dictionary]) -> Dictionary:
+	var counts := {}
+	for card in cards:
+		var event_type := str(card.get("event_type", ""))
+		if event_type.is_empty():
+			continue
+		counts[event_type] = int(counts.get(event_type, 0)) + 1
+	return counts
 
 
 func _all_enemy_cards_use_level_range(cards: Array[Dictionary], level: int) -> bool:

@@ -11,6 +11,7 @@ const HAND_SIZE := 4
 @export var map_path: NodePath
 @export var hand_path: NodePath
 @export var player_path: NodePath
+@export var inventory_path: NodePath
 @export var deck_builder_path: NodePath = NodePath("DeckBuilder")
 @export var hand_size := HAND_SIZE
 @export var shuffle_seed := 0
@@ -33,6 +34,7 @@ var player_special_cards: Array[Dictionary] = []
 var _map: GameMap
 var _hand: HandUI
 var _player: GamePlayer
+var _inventory: InventoryUI
 var _deck_builder: Node
 var _rng := RandomNumberGenerator.new()
 
@@ -41,6 +43,7 @@ func _ready() -> void:
 	_map = get_node_or_null(map_path) as GameMap
 	_hand = get_node_or_null(hand_path) as HandUI
 	_player = get_node_or_null(player_path) as GamePlayer
+	_inventory = get_node_or_null(inventory_path) as InventoryUI
 	_deck_builder = get_node_or_null(deck_builder_path)
 	if _map == null:
 		push_warning("DeckController needs a GameMap at map_path.")
@@ -54,6 +57,8 @@ func _ready() -> void:
 
 	if not _hand.card_drag_finished.is_connected(_on_card_drag_finished):
 		_hand.card_drag_finished.connect(_on_card_drag_finished)
+	if _inventory != null and not _inventory.stats_changed.is_connected(_on_inventory_stats_changed):
+		_inventory.stats_changed.connect(_on_inventory_stats_changed)
 	# Note: start_run() is called externally by main._configure_player_deck()
 	# to allow deck modifiers to be applied first.
 
@@ -64,14 +69,13 @@ func start_run() -> void:
 	shuffle_deck()
 	drawn_count = 0
 	if _hand != null:
-		_hand.set_cards(draw_cards(hand_size))
+		_hand.set_cards(draw_cards(get_minimum_hand_size()))
 	_emit_deck_count_changed()
 
 
 func generate_deck() -> void:
 	var config := _deck_config()
 	deck_components = _deck_builder.make_deck_components(_get_deck_size(), _rng, config)
-	_inject_level_specific_cards(config)
 	_apply_player_deck_modifiers()
 	_scale_encounters_to_level()
 	deck = _deck_builder.combine_deck_components(deck_components)
@@ -145,11 +149,16 @@ func refill_hand() -> void:
 	if _hand == null:
 		return
 
-	while _hand.cards.size() < hand_size:
+	while _hand.cards.size() < get_minimum_hand_size():
 		var card: Dictionary = draw_card()
 		if card.is_empty():
 			return
 		_hand.add_card(card)
+
+
+func get_minimum_hand_size() -> int:
+	var inventory_bonus := _inventory.get_minimum_hand_size_bonus() if _inventory != null else 0
+	return hand_size + inventory_bonus
 
 
 func draw_extra_cards(count: int) -> int:
@@ -190,7 +199,7 @@ func show_debug_hand(kind: String) -> bool:
 		return false
 	var debug_cards: Array[Dictionary]
 	if kind == "likely":
-		debug_cards = _deck_builder.make_most_likely_hand(starting_deck, hand_size)
+		debug_cards = _deck_builder.make_most_likely_hand(starting_deck, get_minimum_hand_size())
 	else:
 		debug_cards = _deck_builder.make_debug_hand(kind, _deck_config())
 	if debug_cards.is_empty():
@@ -264,7 +273,7 @@ func _discard_and_refill_hand() -> void:
 	if _hand == null:
 		return
 	_hand.set_cards([])
-	for _index in hand_size:
+	for _index in get_minimum_hand_size():
 		var card: Dictionary = draw_card()
 		if card.is_empty():
 			break
@@ -272,15 +281,8 @@ func _discard_and_refill_hand() -> void:
 	_check_exhaustion()
 
 
-func _inject_level_specific_cards(config: Dictionary) -> void:
-	var level_cards: Array[Dictionary] = _deck_builder.make_level_specific_cards(level, config)
-	if level_cards.is_empty():
-		return
-	var level_component: Array = deck_components.get(DeckBuilder.DECK_SOURCE_LEVEL, [])
-	for card in level_cards:
-		card["deck_source"] = DeckBuilder.DECK_SOURCE_LEVEL
-		level_component.append(card)
-	deck_components[DeckBuilder.DECK_SOURCE_LEVEL] = level_component
+func _on_inventory_stats_changed() -> void:
+	refill_hand()
 
 
 func _get_deck_size() -> int:
@@ -323,8 +325,8 @@ func _make_deck_config(deck_level: int, map_size: int) -> Dictionary:
 			"t_junction": t_junction_definition,
 			"four_way": four_way_definition,
 			"dead_end": dead_end_definition,
+			"bridge": bridge_definition,
 		},
-		"bridge_definition": bridge_definition,
 	}
 
 

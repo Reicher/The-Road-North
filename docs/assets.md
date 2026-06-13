@@ -45,6 +45,7 @@
 | ✅ | item_spear.png | 94×94 | Item icon: Spear (displayed up to 93×93) |
 | ✅ | item_sword_and_shield.png | 94×94 | Item icon: Sword & Shield (displayed up to 93×93) |
 | ✅ | item_great_axe.png | 94×94 | Item icon: Great Axe (displayed up to 93×93) |
+| ✅ | item_guiding_charm.png | 94×94 | Item icon: Guiding Charm (displayed up to 93×93) |
 | ✅ | item_fallback.png | 94×94 | Fallback item icon for unknown items |
 
 Pictures are grouped by role:
