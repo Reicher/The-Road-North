@@ -7,11 +7,11 @@
 | | Filename | Dimensions | Description |
 |-|----------|-----------|-------------|
 | ✅ | card_base.png | 174×250 | Card background texture |
-| ✅ | card_art_road_straight.png | 132×72 | Card art for Straight Road |
-| ✅ | card_art_road_corner.png | 132×72 | Card art for Corner |
-| ✅ | card_art_road_t_junction.png | 132×72 | Card art for T-Junction |
-| ✅ | card_art_road_four_way.png | 132×72 | Card art for Four-Way Intersection |
-| ✅ | card_art_road_dead_end.png | 132×72 | Card art for Dead End |
+| ✅ | card_art_road_straight.svg | 132×72 | Card art for Straight Road |
+| ✅ | card_art_road_corner.svg | 132×72 | Card art for Corner |
+| ✅ | card_art_road_t_junction.svg | 132×72 | Card art for T-Junction |
+| ✅ | card_art_road_four_way.svg | 132×72 | Card art for Four-Way Intersection |
+| ✅ | card_art_road_dead_end.svg | 132×72 | Card art for Dead End |
 | 🟨 | card_art_road_bridge.svg | 132×72 | Placeholder card art for Bridge (tile exists; deck injection not implemented yet) |
 | ✅ | card_art_event_fallback.png | 132×72 | Fallback event card art (star) |
 | ✅ | card_art_event_destroy_tile.png | 132×72 | Card art for Destroy Tile event |

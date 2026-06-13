@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bui5t6ktssbcy"
-path="res://.godot/imported/card_art_road_four_way.png-7f12fa2dff37f5f552d257b924bf9da7.ctex"
+uid="uid://c1nncqylk2k2e"
+path="res://.godot/imported/card_art_road_corner.svg-df2e44e7956c9c8db1c86faae4aade4d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/images/cards/card_art_road_four_way.png"
-dest_files=["res://.godot/imported/card_art_road_four_way.png-7f12fa2dff37f5f552d257b924bf9da7.ctex"]
+source_file="res://assets/images/cards/card_art_road_corner.svg"
+dest_files=["res://.godot/imported/card_art_road_corner.svg-df2e44e7956c9c8db1c86faae4aade4d.ctex"]
 
 [params]
 
@@ -38,3 +38,6 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
+svg/scale=1.0
+editor/scale_with_editor_scale=false
+editor/convert_colors_with_editor_theme=false

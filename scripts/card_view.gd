@@ -18,11 +18,11 @@ const EVENT_ART_TEXTURES := {
 	GameConstants.EVENT_RESTART_LEVEL: "res://assets/images/cards/card_art_event_restart_level.svg",
 }
 const ROAD_ART_TEXTURES := {
-	"Straight Road": "res://assets/images/cards/card_art_road_straight.png",
-	"Corner": "res://assets/images/cards/card_art_road_corner.png",
-	"T-Junction": "res://assets/images/cards/card_art_road_t_junction.png",
-	"Four-Way Intersection": "res://assets/images/cards/card_art_road_four_way.png",
-	"Dead End": "res://assets/images/cards/card_art_road_dead_end.png",
+	"Straight Road": "res://assets/images/cards/card_art_road_straight.svg",
+	"Corner": "res://assets/images/cards/card_art_road_corner.svg",
+	"T-Junction": "res://assets/images/cards/card_art_road_t_junction.svg",
+	"Four-Way Intersection": "res://assets/images/cards/card_art_road_four_way.svg",
+	"Dead End": "res://assets/images/cards/card_art_road_dead_end.svg",
 	"Bridge": "res://assets/images/cards/card_art_road_bridge.svg",
 }
 const ENCOUNTER_MARKER_TEXTURES := {

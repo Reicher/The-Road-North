@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dhupaxyrymke0"
-path="res://.godot/imported/card_art_road_corner.png-ea5baa4ac0a190fe99c449118d646d55.ctex"
+uid="uid://f0al0sr30kvl"
+path="res://.godot/imported/card_art_road_straight.svg-e7067d667e8f1a4257286784f346b5b7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/images/cards/card_art_road_corner.png"
-dest_files=["res://.godot/imported/card_art_road_corner.png-ea5baa4ac0a190fe99c449118d646d55.ctex"]
+source_file="res://assets/images/cards/card_art_road_straight.svg"
+dest_files=["res://.godot/imported/card_art_road_straight.svg-e7067d667e8f1a4257286784f346b5b7.ctex"]
 
 [params]
 
@@ -38,3 +38,6 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
+svg/scale=1.0
+editor/scale_with_editor_scale=false
+editor/convert_colors_with_editor_theme=false

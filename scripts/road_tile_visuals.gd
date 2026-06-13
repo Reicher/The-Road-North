@@ -5,6 +5,7 @@ const GROUND_HEIGHT := 0.10
 const ROAD_TREE_CLEARANCE := 0.26
 const ROAD_EDGE_SAMPLES := 6
 const ROAD_EDGE_JITTER_RATIO := 0.009
+const RoadPath = preload("res://scripts/road_path.gd")
 const ModelAssets = preload("res://scripts/model_assets.gd")
 const ROAD_TREE_SLOTS := [
 	Vector2(-0.40, -0.40),
@@ -56,7 +57,8 @@ func render(
 	if highlight_enabled:
 		_add_highlight(tile_size, highlight_color)
 
-	_refresh_enemy_view(tile_size, encounter_data, enemy_offset)
+	var road_anchor := RoadPath.get_anchor_offset(openings, tile_size)
+	_refresh_enemy_view(tile_size, encounter_data, enemy_offset + Vector3(road_anchor.x, 0.0, road_anchor.y))
 
 
 func _get_openings(definition: Resource, rotation_steps: int) -> Dictionary:
@@ -76,6 +78,8 @@ func _draw_road(openings: Dictionary, tile_size: float, width: float, color: Col
 
 
 func _build_road_mesh(openings: Dictionary, tile_size: float, width: float, road_y: float) -> ArrayMesh:
+	if RoadPath.is_corner(openings):
+		return _build_curved_road_mesh(openings, tile_size, width, road_y)
 	var half_width := width * 0.5
 	var polygons: Array[PackedVector2Array] = [
 		PackedVector2Array([
@@ -109,6 +113,30 @@ func _build_road_mesh(openings: Dictionary, tile_size: float, width: float, road
 		var b := outline[indices[index + 1]]
 		var c := outline[indices[index + 2]]
 		_add_road_top_triangle(surface, a, b, c, top_y)
+	surface.generate_normals()
+	return surface.commit()
+
+
+func _build_curved_road_mesh(openings: Dictionary, tile_size: float, width: float, road_y: float) -> ArrayMesh:
+	var centerline := RoadPath.get_centerline(openings, tile_size)
+	var curve_center := RoadPath.get_curve_center(openings, tile_size)
+	var left_points := PackedVector2Array()
+	var right_points := PackedVector2Array()
+	for point in centerline:
+		var normal := (point - curve_center).normalized()
+		left_points.append(point + normal * width * 0.5)
+		right_points.append(point - normal * width * 0.5)
+	var outline := PackedVector2Array()
+	for point in left_points:
+		outline.append(point)
+	for index in range(right_points.size() - 1, -1, -1):
+		outline.append(right_points[index])
+
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var indices := Geometry2D.triangulate_polygon(outline)
+	for index in range(0, indices.size(), 3):
+		_add_road_top_triangle(surface, outline[indices[index]], outline[indices[index + 1]], outline[indices[index + 2]], road_y + 0.006)
 	surface.generate_normals()
 	return surface.commit()
 

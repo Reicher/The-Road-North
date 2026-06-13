@@ -3,6 +3,7 @@ extends Node3D
 
 const GameBalance = preload("res://scripts/game_balance.gd")
 const ModelAssets = preload("res://scripts/model_assets.gd")
+const RoadPath = preload("res://scripts/road_path.gd")
 
 signal food_changed(food: int)
 signal gold_changed(gold: int)
@@ -77,7 +78,7 @@ func _ready() -> void:
 		start_position = Vector2i(_map.playable_width / 2, _map.playable_height - 1)
 
 	grid_position = start_position
-	position = _map.grid_to_world(grid_position)
+	position = RoadPath.get_world_anchor(_map, grid_position)
 	food = starting_food if starting_food >= 0 else _get_default_starting_food()
 	gold = starting_gold
 	max_health = maxi(1, starting_max_health)
@@ -271,9 +272,9 @@ func _finish_move(target_position: Vector2i) -> void:
 
 
 func _move_normally(target_position: Vector2i) -> void:
-	var target_world_position := _map.grid_to_world(target_position)
+	var target_world_position := RoadPath.get_world_anchor(_map, target_position)
 	if move_duration > 0.0:
-		await _animate_hop_to(target_world_position, move_duration)
+		await _animate_hop_to_grid_position(target_position, move_duration)
 		if not is_inside_tree():
 			return
 	else:
@@ -281,14 +282,15 @@ func _move_normally(target_position: Vector2i) -> void:
 	_finish_move(target_position)
 
 
-func _animate_hop_to(target_world_position: Vector3, duration: float) -> void:
-	var start_world_position := position
-	var travel_direction := (target_world_position - start_world_position).normalized()
+func _animate_hop_to_grid_position(target_position: Vector2i, duration: float) -> void:
+	var path := RoadPath.build_move_path(_map, grid_position, target_position, position)
+	var target_world_position := path[-1]
 	var tween := create_tween()
 	tween.set_trans(Tween.TRANS_LINEAR)
 	tween.set_ease(Tween.EASE_IN_OUT)
 	tween.tween_method(func(progress: float) -> void:
-		_apply_hop_progress(start_world_position, target_world_position, travel_direction, progress)
+		var sample := RoadPath.sample_path(path, progress)
+		_apply_hop_at_position(sample["position"], sample["direction"], progress)
 	, 0.0, 1.0, duration)
 	await tween.finished
 	position = target_world_position
@@ -296,7 +298,11 @@ func _animate_hop_to(target_world_position: Vector3, duration: float) -> void:
 
 
 func _apply_hop_progress(start_world_position: Vector3, target_world_position: Vector3, travel_direction: Vector3, progress: float) -> void:
-	position = start_world_position.lerp(target_world_position, progress)
+	_apply_hop_at_position(start_world_position.lerp(target_world_position, progress), travel_direction, progress)
+
+
+func _apply_hop_at_position(world_position: Vector3, travel_direction: Vector3, progress: float) -> void:
+	position = world_position
 	if _visual_root == null or _map == null:
 		return
 
@@ -359,13 +365,13 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previou
 	_set_visual_encounter_data(target_position, visual_enemy_data)
 	_set_enemy_combat_status_visible(false)
 
-	var target_world_position := _map.grid_to_world(target_position)
+	var target_world_position := RoadPath.get_world_anchor(_map, target_position)
 	var combat_direction := target_world_position - position
 	var player_power := get_total_power()
 	var enemy_power := int(enemy_data.get("power", 0))
 	_spend_movement_food()
 	if move_duration > 0.0:
-		await _animate_hop_to(target_world_position, move_duration)
+		await _animate_hop_to_grid_position(target_position, move_duration)
 		if not is_inside_tree():
 			return
 	else:
@@ -432,9 +438,9 @@ func _finish_enemy_victory(target_position: Vector2i, enemy_data: Dictionary, co
 
 
 func _retreat_from_enemy(origin_position: Vector2i, previous_input_enabled: bool) -> void:
-	var origin_world_position := _map.grid_to_world(origin_position)
+	var origin_world_position := RoadPath.get_world_anchor(_map, origin_position)
 	if move_duration > 0.0:
-		await _animate_hop_to(origin_world_position, move_duration)
+		await _animate_hop_to_grid_position(origin_position, move_duration)
 		if not is_inside_tree():
 			return
 	else:

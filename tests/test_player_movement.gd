@@ -6,6 +6,7 @@ const PLAYER_SCENE := preload("res://scenes/player.tscn")
 const STRAIGHT := preload("res://data/road_straight.tres")
 const CORNER := preload("res://data/road_corner.tres")
 const T_JUNCTION := preload("res://data/road_t_junction.tres")
+const RoadPath = preload("res://scripts/road_path.gd")
 
 
 func _initialize() -> void:
@@ -70,6 +71,9 @@ func _initialize() -> void:
 	_assert(player.food == 2, "Expected invalid movement not to consume food")
 
 	_assert(player.move_to(Vector2i(4, 6)), "Expected bidirectional north/south connection to allow movement")
+	var corner_anchor := RoadPath.get_world_anchor(map, Vector2i(4, 6))
+	_assert(player.position.is_equal_approx(corner_anchor), "Expected player to rest on the corner's curved centerline")
+	_assert(not player.position.is_equal_approx(map.grid_to_world(Vector2i(4, 6))), "Expected a corner's curved centerline not to pass through the tile center")
 	_assert(player.food == 3, "Expected encounter food to be collected after movement cost")
 	_assert(map.get_encounter(Vector2i(4, 6)).is_empty(), "Expected collected encounter to be removed")
 	roads.force_place_tile(Vector2i(5, 6), STRAIGHT, 1)

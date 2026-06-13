@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dlv7taotyu2us"
-path="res://.godot/imported/card_art_road_straight.png-32964386d9a39379ac6a3ee7abd98be1.ctex"
+uid="uid://djbcwsigop61b"
+path="res://.godot/imported/card_art_road_t_junction.svg-58cca5e2163a996f5dbe2bb43be699c7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/images/cards/card_art_road_straight.png"
-dest_files=["res://.godot/imported/card_art_road_straight.png-32964386d9a39379ac6a3ee7abd98be1.ctex"]
+source_file="res://assets/images/cards/card_art_road_t_junction.svg"
+dest_files=["res://.godot/imported/card_art_road_t_junction.svg-58cca5e2163a996f5dbe2bb43be699c7.ctex"]
 
 [params]
 
@@ -38,3 +38,6 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
+svg/scale=1.0
+editor/scale_with_editor_scale=false
+editor/convert_colors_with_editor_theme=false

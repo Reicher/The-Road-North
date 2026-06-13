@@ -2,6 +2,7 @@ extends SceneTree
 
 const TILE_SCENE := preload("res://scenes/tile.tscn")
 const TILE_SIZE := 96.0
+const RoadPath = preload("res://scripts/road_path.gd")
 
 const ROAD_DEFINITION_PATHS: Array[String] = [
 	"res://data/road_straight.tres",
@@ -53,6 +54,16 @@ func _initialize() -> void:
 	_assert(corner_openings["south"] == true, "Expected rotated corner to open south")
 	_assert(corner_openings["north"] == false, "Expected rotated corner to close north")
 	_assert(corner_openings["west"] == false, "Expected rotated corner to close west")
+	var corner_centerline := RoadPath.get_centerline(corner_openings, TILE_SIZE)
+	_assert(corner_centerline[0].is_equal_approx(Vector2(TILE_SIZE * 0.5, 0.0)), "Expected curved corner to start at its east edge")
+	_assert(corner_centerline[-1].is_equal_approx(Vector2(0.0, TILE_SIZE * 0.5)), "Expected curved corner to end at its south edge")
+	_assert(corner_centerline[corner_centerline.size() / 2].distance_to(Vector2(TILE_SIZE * 0.5, TILE_SIZE * 0.5)) > TILE_SIZE * 0.45, "Expected corner centerline to follow a quarter-circle instead of a right angle")
+	get_root().add_child(corner_tile)
+	corner_tile.encounter_data = {"type": GameMap.ENCOUNTER_ENEMY, "revealed": true, "power": 1}
+	await process_frame
+	var curved_enemy := corner_tile.get_node("Enemy") as EnemyView
+	var corner_anchor := RoadPath.get_anchor_offset(corner_openings, TILE_SIZE)
+	_assert(curved_enemy.position.is_equal_approx(Vector3(corner_anchor.x, 0.0, corner_anchor.y)), "Expected enemies on corners to stand on the curved road")
 	corner_tile.queue_free()
 
 	var enemy_tile := TILE_SCENE.instantiate() as RoadTile

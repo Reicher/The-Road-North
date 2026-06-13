@@ -97,6 +97,10 @@ func _initialize() -> void:
 	_assert(enemy_title_label.text == "Four-Way Intersection", "Expected enemy road cards to show only the road type")
 	_assert(enemy_detail_label.text == "", "Expected enemy road cards to leave the detail text empty")
 	_assert(enemy_category_label.text == "ROAD + ENEMY", "Expected enemy road cards to identify their enemy encounter")
+	for card in hand.cards:
+		var road_art := card.call("_card_art_texture") as Texture2D
+		_assert(road_art != null, "Expected every normal road type to have dedicated card art")
+		_assert(road_art.get_size() == Vector2(132.0, 72.0), "Expected road art to use the shared centered card-art canvas")
 	_assert(title_label.offset_bottom < focused_card.get_card_art_rect().position.y, "Expected two-line card titles to stay above the card art")
 	_assert(focused_card.get_card_art_rect().size.y > CardView.NO_DETAIL_ART_RECT.size.y, "Expected larger cards to scale up their road art")
 	var card_scale_y: float = focused_card.size.y / CardView.BASE_CARD_SIZE.y
