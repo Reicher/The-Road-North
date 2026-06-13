@@ -4,6 +4,7 @@ extends Node3D
 const GROUND_HEIGHT := 0.08
 const FOREST_PADDING_TILES := 4
 const GROUND_LIGHT_COLOR := Color(0.69, 0.76, 0.57)
+const PLAYABLE_GRID_COLOR := Color(0.30, 0.38, 0.26, 0.28)
 const PLAYABLE_BORDER_COLOR := Color(0.30, 0.38, 0.26, 0.62)
 const ModelAssets = preload("res://scripts/model_assets.gd")
 const TREE_SLOTS := [
@@ -40,6 +41,7 @@ var _cell_nodes: Dictionary = {}
 var _hidden_tree_cells: Dictionary = {}
 var _forest_nodes: Array[Node] = []
 var _ground_node: Node3D
+var _grid_node: Node3D
 var _border_node: Node3D
 var _cells_root: Node3D
 var _forest_root: Node3D
@@ -60,6 +62,9 @@ func rebuild_all(map: GameMap) -> void:
 	if _ground_node != null:
 		_ground_node.queue_free()
 		_ground_node = null
+	if _grid_node != null:
+		_grid_node.queue_free()
+		_grid_node = null
 	if _border_node != null:
 		_border_node.queue_free()
 		_border_node = null
@@ -71,6 +76,7 @@ func rebuild_all(map: GameMap) -> void:
 				_add_border_forest_cell(map, grid_position)
 
 	_add_playable_ground(map)
+	_add_playable_grid(map)
 	for y in map.playable_height:
 		for x in map.playable_width:
 			rebuild_cell(map, Vector2i(x, y))
@@ -142,6 +148,36 @@ func _add_playable_ground(map: GameMap) -> void:
 	)
 
 
+func _add_playable_grid(map: GameMap) -> void:
+	_grid_node = Node3D.new()
+	_grid_node.name = "PlayableGrid"
+	add_child(_grid_node)
+
+	var line_width := maxf(0.5, map.tile_size * 0.006)
+	var line_height := 0.006
+	var y := line_height * 0.5 + 0.002
+	var width := float(map.playable_width) * map.tile_size
+	var height := float(map.playable_height) * map.tile_size
+	for x in range(map.playable_width + 1):
+		var vertical_line := _add_box(
+			_grid_node,
+			"GridVertical_%d" % x,
+			Vector3(line_width, line_height, height),
+			Vector3(float(x) * map.tile_size, y, height * 0.5),
+			PLAYABLE_GRID_COLOR
+		)
+		vertical_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	for z in range(map.playable_height + 1):
+		var horizontal_line := _add_box(
+			_grid_node,
+			"GridHorizontal_%d" % z,
+			Vector3(width, line_height, line_width),
+			Vector3(width * 0.5, y, float(z) * map.tile_size),
+			PLAYABLE_GRID_COLOR
+		)
+		horizontal_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
 func _add_playable_area_border(map: GameMap) -> void:
 	_border_node = Node3D.new()
 	_border_node.name = "PlayableAreaBorder"
@@ -179,7 +215,7 @@ func _add_river(map: GameMap, parent: Node3D, rotation_steps: int) -> void:
 
 func _add_bridge(map: GameMap, parent: Node3D, rotation_steps: int) -> void:
 	var horizontal_river := posmod(rotation_steps, 2) == 0
-	var size := Vector3(map.tile_size * 0.30, 0.08, map.tile_size) if horizontal_river else Vector3(map.tile_size, 0.08, map.tile_size * 0.30)
+	var size := Vector3(map.tile_size * 0.23, 0.08, map.tile_size) if horizontal_river else Vector3(map.tile_size, 0.08, map.tile_size * 0.23)
 	_add_box(parent, "Bridge", size, Vector3(0.0, 0.09, 0.0), Color(0.55, 0.36, 0.18))
 
 

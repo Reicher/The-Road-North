@@ -2,25 +2,13 @@ class_name RoadTileVisuals
 extends Node3D
 
 const GROUND_HEIGHT := 0.10
-const ROAD_TREE_CLEARANCE := 0.26
+const ROAD_WIDTH_RATIO := 0.21
+const ROAD_TREE_MARGIN_RATIO := 0.035
+const ROAD_TILE_TREE_COUNT := 9
 const ROAD_EDGE_SAMPLES := 6
 const ROAD_EDGE_JITTER_RATIO := 0.009
 const RoadPath = preload("res://scripts/road_path.gd")
 const ModelAssets = preload("res://scripts/model_assets.gd")
-const ROAD_TREE_SLOTS := [
-	Vector2(-0.40, -0.40),
-	Vector2(-0.12, -0.41),
-	Vector2(0.18, -0.40),
-	Vector2(0.41, -0.36),
-	Vector2(-0.42, -0.10),
-	Vector2(0.42, -0.06),
-	Vector2(-0.41, 0.20),
-	Vector2(0.41, 0.24),
-	Vector2(-0.36, 0.41),
-	Vector2(-0.06, 0.40),
-	Vector2(0.24, 0.41),
-	Vector2(0.42, 0.38),
-]
 
 var _enemy_view: EnemyView
 
@@ -45,7 +33,7 @@ func render(
 	var openings := _get_openings(definition, rotation_steps)
 	if definition != null and definition.get("road_visible") != false:
 		var road_color: Color = definition.get("road_color")
-		_draw_road(openings, tile_size, tile_size * 0.28, road_color)
+		_draw_road(openings, tile_size, tile_size * ROAD_WIDTH_RATIO, road_color)
 
 	if definition != null:
 		_draw_visual_identity(str(definition.get("visual_identity")), openings, tile_size)
@@ -272,17 +260,36 @@ func _add_shrine(tile_size: float) -> void:
 func _add_road_tile_trees(openings: Dictionary, tile_size: float) -> void:
 	var added := 0
 	var seed := _tree_layout_seed(openings, tile_size)
-	for index in ROAD_TREE_SLOTS.size():
-		var slot: Vector2 = ROAD_TREE_SLOTS[posmod(index * 5 + seed, ROAD_TREE_SLOTS.size())]
-		if _slot_touches_road(slot, openings):
+	var slots := _road_tree_slots(seed)
+	for slot in slots:
+		if _point_touches_road(slot, openings, ROAD_WIDTH_RATIO):
 			continue
 		var scale_factor := 0.70 + float(posmod(seed + added * 5, 7)) * 0.055
 		var width_factor := 0.86 + float(posmod(seed + added * 3, 5)) * 0.055
 		var rotation_y := float(posmod(seed * 13 + added * 71, 360))
 		_add_tree(tile_size, Vector3(slot.x * tile_size, 0.0, slot.y * tile_size), scale_factor, width_factor, rotation_y)
 		added += 1
-		if added >= 6:
+		if added >= ROAD_TILE_TREE_COUNT:
 			return
+
+
+func _road_tree_slots(seed: int) -> Array[Vector2]:
+	var slots: Array[Vector2] = []
+	var columns := 7
+	var spacing := 0.14
+	for row in columns:
+		for column in columns:
+			var slot_index := row * columns + column
+			var jitter_x := (float(posmod(seed + slot_index * 37, 9)) - 4.0) * 0.006
+			var jitter_y := (float(posmod(seed + slot_index * 53, 9)) - 4.0) * 0.006
+			slots.append(Vector2(
+				-0.42 + float(column) * spacing + jitter_x,
+				-0.42 + float(row) * spacing + jitter_y
+			))
+	var ordered: Array[Vector2] = []
+	for index in slots.size():
+		ordered.append(slots[posmod(index * 17 + seed, slots.size())])
+	return ordered
 
 
 func _tree_layout_seed(openings: Dictionary, tile_size: float) -> int:
@@ -296,24 +303,23 @@ func _tree_layout_seed(openings: Dictionary, tile_size: float) -> int:
 	return seed
 
 
-func _slot_touches_road(slot: Vector2, openings: Dictionary) -> bool:
-	if absf(slot.x) < ROAD_TREE_CLEARANCE and absf(slot.y) < ROAD_TREE_CLEARANCE:
+func _point_touches_road(point: Vector2, openings: Dictionary, width_ratio: float) -> bool:
+	var half_width := width_ratio * 0.5 + ROAD_TREE_MARGIN_RATIO
+	if RoadPath.is_corner(openings):
+		var centerline := RoadPath.get_centerline(openings, 1.0)
+		for index in range(centerline.size() - 1):
+			if Geometry2D.get_closest_point_to_segment(point, centerline[index], centerline[index + 1]).distance_to(point) <= half_width:
+				return true
+		return false
+	if absf(point.x) <= half_width and absf(point.y) <= half_width:
 		return true
-	if openings.get("north", false) == true and openings.get("east", false) == true and slot.x > 0.16 and slot.y < -0.16:
+	if openings.get("north", false) == true and point.y <= 0.0 and absf(point.x) <= half_width:
 		return true
-	if openings.get("east", false) == true and openings.get("south", false) == true and slot.x > 0.16 and slot.y > 0.16:
+	if openings.get("south", false) == true and point.y >= 0.0 and absf(point.x) <= half_width:
 		return true
-	if openings.get("south", false) == true and openings.get("west", false) == true and slot.x < -0.16 and slot.y > 0.16:
+	if openings.get("east", false) == true and point.x >= 0.0 and absf(point.y) <= half_width:
 		return true
-	if openings.get("north", false) == true and openings.get("west", false) == true and slot.x < -0.16 and slot.y < -0.16:
-		return true
-	if openings.get("north", false) == true and slot.y < ROAD_TREE_CLEARANCE and absf(slot.x) < ROAD_TREE_CLEARANCE:
-		return true
-	if openings.get("south", false) == true and slot.y > -ROAD_TREE_CLEARANCE and absf(slot.x) < ROAD_TREE_CLEARANCE:
-		return true
-	if openings.get("east", false) == true and slot.x > -ROAD_TREE_CLEARANCE and absf(slot.y) < ROAD_TREE_CLEARANCE:
-		return true
-	if openings.get("west", false) == true and slot.x < ROAD_TREE_CLEARANCE and absf(slot.y) < ROAD_TREE_CLEARANCE:
+	if openings.get("west", false) == true and point.x <= 0.0 and absf(point.y) <= half_width:
 		return true
 	return false
 

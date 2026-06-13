@@ -101,6 +101,11 @@ func _initialize() -> void:
 		var road_art := card.call("_card_art_texture") as Texture2D
 		_assert(road_art != null, "Expected every normal road type to have dedicated card art")
 		_assert(road_art.get_size() == Vector2(132.0, 72.0), "Expected road art to use the shared centered card-art canvas")
+		var opaque_bounds := _opaque_bounds(road_art.get_image())
+		_assert(opaque_bounds.get_center().distance_to(road_art.get_size() * 0.5) <= 2.0, "Expected %s art to be centered on its canvas; got %s" % [card.title, opaque_bounds])
+		_assert(maxf(opaque_bounds.size.x, opaque_bounds.size.y) >= 50.0, "Expected %s art to have clearly extended road arms; got %s" % [card.title, opaque_bounds])
+	var four_way_bounds := _opaque_bounds((hand.cards[3].call("_card_art_texture") as Texture2D).get_image())
+	_assert(absf(four_way_bounds.size.x - four_way_bounds.size.y) <= 2.0, "Expected four-way road arms to be symmetrical; got %s" % four_way_bounds)
 	_assert(title_label.offset_bottom < focused_card.get_card_art_rect().position.y, "Expected two-line card titles to stay above the card art")
 	_assert(focused_card.get_card_art_rect().size.y > CardView.NO_DETAIL_ART_RECT.size.y, "Expected larger cards to scale up their road art")
 	var card_scale_y: float = focused_card.size.y / CardView.BASE_CARD_SIZE.y
@@ -230,6 +235,20 @@ func _assert(condition: bool, message: String) -> void:
 		return
 	push_error(message)
 	quit(1)
+
+
+func _opaque_bounds(image: Image) -> Rect2:
+	var minimum := Vector2i(image.get_width(), image.get_height())
+	var maximum := Vector2i(-1, -1)
+	for y in image.get_height():
+		for x in image.get_width():
+			if image.get_pixel(x, y).a <= 0.5:
+				continue
+			minimum.x = mini(minimum.x, x)
+			minimum.y = mini(minimum.y, y)
+			maximum.x = maxi(maximum.x, x)
+			maximum.y = maxi(maximum.y, y)
+	return Rect2(minimum, maximum - minimum + Vector2i.ONE)
 
 
 func _touch_event(index: int, position: Vector2, pressed: bool) -> InputEventScreenTouch:

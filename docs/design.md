@@ -31,7 +31,7 @@ Three authored levels:
 
 Start at bottom center, goal at top center. Both are T-crossings facing inward. Coordinates: X left→right, Y top→bottom. Current positions: 5×5 start `(2,4)` goal `(2,0)`; 7×7 start `(3,6)` goal `(3,0)`; 9×9 start `(4,8)` goal `(4,0)`.
 
-No gameplay border. A thick visual-only forest surrounds all edges so the camera never reveals empty void. A thin outline marks the playable boundary; no internal grid lines.
+No gameplay border. A thick visual-only forest surrounds all edges so the camera never reveals empty void. A thin outline marks the playable boundary, and very thin internal grid lines show every tile beneath roads, trees, and fixed features.
 
 Start/goal tiles are permanent. Road openings may never point outside the map.
 

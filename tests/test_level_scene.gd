@@ -41,6 +41,11 @@ func run() -> void:
 	var playable_ground := map_visuals.get_node_or_null("PlayableGround/Ground") as MeshInstance3D
 	_assert(playable_ground != null, "Expected map visuals to use one continuous playable ground surface")
 	_assert((playable_ground.material_override as StandardMaterial3D).albedo_texture == null, "Expected playable ground to use a clean solid color")
+	var playable_grid := map_visuals.get_node_or_null("PlayableGrid")
+	_assert(playable_grid != null, "Expected map visuals to show a thin grid over the playable ground")
+	_assert(playable_grid.get_child_count() == map.playable_width + map.playable_height + 2, "Expected the playable grid to mark every tile boundary")
+	var grid_line := playable_grid.get_child(0) as MeshInstance3D
+	_assert((grid_line.mesh as BoxMesh).size.x < map.tile_size * 0.01, "Expected playable grid lines to stay very thin")
 	_assert(map_visuals.get_node_or_null("PlayableAreaBorder") != null, "Expected map visuals to keep a thin playable area outline")
 	_assert(map_visuals.get_node_or_null("Cells/Cell_0_0/Ground") == null, "Expected playable cells not to render internal grid ground tiles")
 	var playable_forest_cell := map_visuals.get_node("Cells/Cell_0_0")
