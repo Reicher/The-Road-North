@@ -87,7 +87,8 @@ func run() -> void:
 	first_player.set_health(4)
 	first_player.set_base_power(2)
 	var first_inventory := first_level.get_node("UI/Inventory") as InventoryUI
-	_assert(first_inventory.add_item({"name": "Machete", "effect": "+4 Power", "power_bonus": 4}), "Expected progression test item to fit in backpack")
+	first_inventory.replace_item_at_slot(0, {"name": "Machete", "effect": "+4 Power", "stats": {"power": 4}, "size": "large"})
+	_assert(first_inventory.add_item({"name": "Guiding Charm", "effect": "+1 Max Hand Size", "stats": {"max_hand_size": 1}, "size": "small"}), "Expected a small progression test item to fit beside the large item")
 
 	first_player.grid_position = first_map.get_goal_position()
 	_assert(first_player.check_run_won(), "Expected reaching the first goal to complete the level")
@@ -110,8 +111,8 @@ func run() -> void:
 	_assert(second_player.food == 4, "Expected food to carry into the next level without a new starting grant")
 	_assert(second_player.gold == 7, "Expected gold to carry into the next level")
 	_assert(second_player.health == 4 and second_player.max_health == 5, "Expected current and max health to carry into the next level")
-	_assert(second_player.base_power == 2 and second_player.get_total_power() == 6, "Expected base power and strongest weapon bonus to carry into the next level")
-	_assert((second_level.get_node("UI/Inventory") as InventoryUI).get_active_items().size() == 2, "Expected backpack items to carry into the next level")
+	_assert(second_player.base_power == 2 and second_player.get_total_power() == 6, "Expected base power and carried item stats to carry into the next level")
+	_assert((second_level.get_node("UI/Inventory") as InventoryUI).get_carried_items().size() == 2, "Expected backpack items to carry into the next level")
 	var second_stats := second_level.get_node("UI/PlayerStats") as PlayerStatsUI
 	_assert(second_stats._gain_amounts.is_empty(), "Expected progression restore not to show resource gain or loss amounts")
 	_assert(second_stats._pulse_strength.is_empty(), "Expected progression restore not to pulse stats at level start")
@@ -151,7 +152,7 @@ func run() -> void:
 	second_hand = second_level.get_node("UI/Hand") as HandUI
 	_assert(second_map.playable_width == 7 and second_map.playable_height == 7, "Expected Restart level to reload the current 7x7 level")
 	_assert(second_player.food == 4 and second_player.health == 4, "Expected Restart level to restore the resources held at level start")
-	_assert((second_level.get_node("UI/Inventory") as InventoryUI).get_active_items().size() == 2, "Expected Restart level to restore the backpack held at level start")
+	_assert((second_level.get_node("UI/Inventory") as InventoryUI).get_carried_items().size() == 2, "Expected Restart level to restore the backpack held at level start")
 
 	second_player.grid_position = second_map.get_goal_position()
 	_assert(second_player.check_run_won(), "Expected reaching the final goal to complete the game")

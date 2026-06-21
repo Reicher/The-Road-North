@@ -45,6 +45,7 @@ var _loot_ui: LootUI
 var _rewards: PlayerRewards
 var _moving := false
 var _move_target := Vector2i.ZERO
+var _route_destination := Vector2i.ZERO
 var _combat_running := false
 var _game_over := false
 var _run_won := false
@@ -95,30 +96,115 @@ func _ready() -> void:
 
 
 func can_move_to(target_position: Vector2i) -> bool:
-	if _map == null or _game_over or _run_won or _moving or _combat_running:
+	if _map == null or _game_over or _run_won or _combat_running:
 		return false
+	if target_position == grid_position:
+		return true
 	if food <= 0:
 		return false
-	return _map.can_move_between(grid_position, target_position)
+	return not _map.find_shortest_path(grid_position, target_position).is_empty()
 
 
 func move_to(target_position: Vector2i) -> bool:
 	if not can_move_to(target_position):
 		return false
+	_map.flash_tile(target_position)
+	_route_destination = target_position
+	if _moving:
+		return true
 
-	var input_enabled_before_move := input_enabled
 	_moving = true
 	_move_target = target_position
 	move_started.emit(target_position)
-
-	var enemy_data: Dictionary = _get_enemy_data(target_position)
-	if not enemy_data.is_empty() and int(enemy_data.get("health", 0)) > 0:
-		_move_into_enemy(target_position, enemy_data, input_enabled_before_move)
+	if target_position == grid_position:
+		if move_duration <= 0.0:
+			_reset_hop_visuals()
+			_moving = false
+			moved.emit(grid_position)
+		else:
+			_jump_in_place_and_finish()
 		return true
-
-	_spend_movement_food()
-	_move_normally(target_position)
+	if move_duration <= 0.0:
+		_follow_route_immediately(input_enabled)
+	else:
+		_follow_route(input_enabled)
 	return true
+
+
+func _follow_route_immediately(input_enabled_before_move: bool) -> void:
+	while not _game_over and not _run_won and grid_position != _route_destination:
+		var path := _map.find_shortest_path(grid_position, _route_destination)
+		if path.size() < 2 or food <= 0:
+			break
+		var next_position := path[1]
+		_move_target = next_position
+		var enemy_data: Dictionary = _get_enemy_data(next_position)
+		if not enemy_data.is_empty() and int(enemy_data.get("health", 0)) > 0:
+			_move_into_enemy(next_position, enemy_data, input_enabled_before_move)
+			return
+		_spend_movement_food()
+		position = RoadPath.get_world_anchor(_map, next_position)
+		grid_position = next_position
+		refresh_enemy_risk_colors()
+		if check_run_won():
+			_moving = false
+			moved.emit(grid_position)
+			return
+		var reached_encounter := not _map.get_encounter(grid_position).is_empty()
+		_resolve_reward_encounter_at(grid_position)
+		_check_game_over()
+		if reached_encounter:
+			break
+	_moving = false
+	moved.emit(grid_position)
+
+
+func _follow_route(input_enabled_before_move: bool) -> void:
+	while is_inside_tree() and not _game_over and not _run_won:
+		if grid_position == _route_destination:
+			break
+
+		var path := _map.find_shortest_path(grid_position, _route_destination)
+		if path.size() < 2 or food <= 0:
+			break
+		var next_position := path[1]
+		_move_target = next_position
+
+		var enemy_data: Dictionary = _get_enemy_data(next_position)
+		if not enemy_data.is_empty() and int(enemy_data.get("health", 0)) > 0:
+			_move_into_enemy(next_position, enemy_data, input_enabled_before_move)
+			return
+
+		_spend_movement_food()
+		if move_duration > 0.0:
+			await _animate_hop_to_grid_position(next_position, move_duration)
+			if not is_inside_tree():
+				return
+		else:
+			position = RoadPath.get_world_anchor(_map, next_position)
+
+		grid_position = next_position
+		refresh_enemy_risk_colors()
+		if check_run_won():
+			_moving = false
+			moved.emit(grid_position)
+			return
+		var reached_encounter := not _map.get_encounter(grid_position).is_empty()
+		_resolve_reward_encounter_at(grid_position)
+		_check_game_over()
+		if reached_encounter:
+			break
+
+	_moving = false
+	moved.emit(grid_position)
+
+
+func _jump_in_place_and_finish() -> void:
+	await _hop_in_place()
+	if not is_inside_tree():
+		return
+	_moving = false
+	moved.emit(grid_position)
 
 
 func is_in_combat() -> bool:
@@ -257,29 +343,19 @@ func _on_tile_pressed(target_position: Vector2i) -> void:
 	move_to(target_position)
 
 
-func _finish_move(target_position: Vector2i) -> void:
-	grid_position = target_position
-	_moving = false
-	refresh_enemy_risk_colors()
-	moved.emit(grid_position)
-	if check_run_won():
+func _hop_in_place() -> void:
+	if move_duration <= 0.0 or _visual_root == null or _map == null:
+		_reset_hop_visuals()
 		return
-	if health <= 0:
-		trigger_game_over("health")
-		return
-	_resolve_reward_encounter_at(grid_position)
-	_check_game_over()
-
-
-func _move_normally(target_position: Vector2i) -> void:
-	var target_world_position := RoadPath.get_world_anchor(_map, target_position)
-	if move_duration > 0.0:
-		await _animate_hop_to_grid_position(target_position, move_duration)
-		if not is_inside_tree():
-			return
-	else:
-		position = target_world_position
-	_finish_move(target_position)
+	var duration := minf(move_duration, 0.38)
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_SINE)
+	tween.set_ease(Tween.EASE_IN_OUT)
+	tween.tween_method(func(progress: float) -> void:
+		_visual_root.position.y = sin(progress * PI) * _map.tile_size * move_hop_height_tiles
+	, 0.0, 1.0, duration)
+	await tween.finished
+	_reset_hop_visuals()
 
 
 func _animate_hop_to_grid_position(target_position: Vector2i, duration: float) -> void:

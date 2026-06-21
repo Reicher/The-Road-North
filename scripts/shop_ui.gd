@@ -3,6 +3,7 @@ extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
 const ItemIconLibrary = preload("res://scripts/item_icon_library.gd")
+const ItemCatalog = preload("res://scripts/item_catalog.gd")
 const CARD_SCENE := preload("res://ui/card.tscn")
 const ITEM_SLOT_SCENE := preload("res://ui/item_slot.tscn")
 const SPECIAL_ROAD_DEFINITIONS: Array[Resource] = [
@@ -38,9 +39,9 @@ const BASE_CARD_SORT_ORDER := {
 
 const ITEM_OFFER_COUNT := 2
 const ITEM_OFFER_CATALOG: Array[Dictionary] = [
-	{"name": "Dagger", "effect": "+2 Power", "power_bonus": 2, "price": 7, "sell_price": 4},
-	{"name": "Hatchet", "effect": "+3 Power", "power_bonus": 3, "price": 12, "sell_price": 6},
-	{"name": "Guiding Charm", "effect": "Minimum hand size +1.", "minimum_hand_size_bonus": 1, "price": 10, "sell_price": 5},
+	{"name": "Dagger", "price": 7, "sell_price": 4},
+	{"name": "Hatchet", "price": 12, "sell_price": 6},
+	{"name": "Guiding Charm", "price": 10, "sell_price": 5},
 ]
 const SPECIAL_CARD_CATALOG: Array[Dictionary] = [
 	{"title": "Clear Path", "detail": "Remove an encounter from a road.", "category": GameConstants.EVENT_CATEGORY, "event_type": GameConstants.EVENT_CLEAR_PATH, "price": 8},
@@ -59,7 +60,7 @@ const SPECIAL_CARD_CATALOG: Array[Dictionary] = [
 		"event_type": GameConstants.EVENT_LOST_BELONGINGS,
 		"encounter": {
 			"type": GameConstants.ENCOUNTER_CACHE,
-			"loot": [{"kind": "item", "item": {"name": "Dagger", "effect": "+2 Power", "power_bonus": 2}}],
+			"loot": [{"kind": "item", "item": {"name": "Dagger", "effect": "+2 Power", "stats": {"power": 2}, "item_score": 2, "rarity": "Common", "size": "large"}}],
 		},
 		"price": 12,
 	},
@@ -118,6 +119,11 @@ func _ready() -> void:
 
 func setup(next_progression: Dictionary, map_name: String, map_size: int, available_base_cards: Array) -> void:
 	progression = next_progression.duplicate(true)
+	var inventory: Array = progression.get("inventory", [])
+	for index in inventory.size():
+		if inventory[index] is Dictionary:
+			inventory[index] = ItemCatalog.normalize_item(inventory[index])
+	progression["inventory"] = inventory
 	next_map_name = map_name
 	next_map_size = map_size
 	base_cards.clear()
@@ -178,9 +184,15 @@ func buy_item_to_slot(offer_index: int, slot_index: int) -> bool:
 	if slot_index >= inventory.size() or not (inventory[slot_index] as Dictionary).is_empty():
 		return false
 	var offer := item_offers[offer_index]
+	if not _can_carry_item(offer, slot_index):
+		return false
 	if not _spend_gold(int(offer["price"])):
 		return false
-	var item := offer.duplicate(true)
+	var item := ItemCatalog.get_item(str(offer.get("name", "")))
+	if item.is_empty():
+		item = ItemCatalog.normalize_item(offer)
+	else:
+		item.merge(offer, true)
 	item.erase("price")
 	inventory[slot_index] = item
 	progression["inventory"] = inventory
@@ -196,9 +208,9 @@ func sell_inventory_slot(slot_index: int) -> bool:
 	var item: Dictionary = inventory[slot_index]
 	if item.is_empty():
 		return false
-	var sale_price := int(item.get("sell_price", maxi(1, int(item.get("power_bonus", 1)) * 2)))
+	var sale_price := int(item.get("sell_price", maxi(1, int(item.get("item_score", 1)) * 2)))
 	progression["gold"] = int(progression.get("gold", 0)) + sale_price * _inventory_gold_multiplier()
-	var max_health_bonus := int(item.get("max_health_bonus", 0))
+	var max_health_bonus := ItemCatalog.get_stat(item, ItemCatalog.STAT_MAX_HEALTH)
 	if max_health_bonus > 0:
 		progression["max_health"] = maxi(1, int(progression.get("max_health", 1)) - max_health_bonus)
 		progression["health"] = mini(int(progression.get("health", 0)), int(progression["max_health"]))
@@ -368,6 +380,7 @@ func _refresh_offers() -> void:
 		button.icon = ItemIconLibrary.get_icon(offer)
 		button.expand_icon = true
 		button.add_theme_constant_override("icon_max_width", OFFER_ICON_SIZE)
+		ItemIconLibrary.update_size_badge(button, offer)
 		button.disabled = index in _purchased_item_offers
 		button.gui_input.connect(_on_item_offer_input.bind(index, button))
 		_item_row.add_child(button)
@@ -581,7 +594,7 @@ func _start_drag(kind: String, index: int, item: Dictionary, position: Vector2) 
 func _move_drag(position: Vector2) -> void:
 	_drag_ghost.position = position - _drag_ghost.size * 0.5
 	if _drag_kind == "inventory" and _sell_zone.get_global_rect().has_point(position):
-		_sell_zone.text = "SELL\n+%dg" % int(_drag_item.get("sell_price", maxi(1, int(_drag_item.get("power_bonus", 1)) * 2)))
+		_sell_zone.text = "SELL\n+%dg" % int(_drag_item.get("sell_price", maxi(1, int(_drag_item.get("item_score", 1)) * 2)))
 	else:
 		_sell_zone.text = "SELL"
 
@@ -631,16 +644,16 @@ func _removal_price() -> int:
 
 
 func _inventory_power() -> int:
-	var highest := 0
+	var total := 0
 	for item in progression.get("inventory", []):
-		highest = maxi(highest, int((item as Dictionary).get("power_bonus", 0)))
-	return highest
+		total += ItemCatalog.get_stat(item as Dictionary, ItemCatalog.STAT_POWER)
+	return total
 
 
 func _inventory_gold_multiplier() -> int:
 	var multiplier := 1
 	for item in progression.get("inventory", []):
-		multiplier = maxi(multiplier, int((item as Dictionary).get("gold_multiplier", 1)))
+		multiplier = maxi(multiplier, ItemCatalog.get_special_effect(item as Dictionary, "gold_multiplier", 1))
 	return multiplier
 
 
@@ -649,7 +662,22 @@ func _roll_item_offers() -> void:
 	candidates.shuffle()
 	item_offers.clear()
 	for index in mini(ITEM_OFFER_COUNT, candidates.size()):
-		item_offers.append(candidates[index])
+		var offer := ItemCatalog.get_item(str(candidates[index]["name"]))
+		offer.merge(candidates[index], true)
+		item_offers.append(offer)
+
+
+func _can_carry_item(item: Dictionary, replacing_slot: int) -> bool:
+	var item_size := str(item.get("size", ItemCatalog.get_item(str(item.get("name", ""))).get("size", ItemCatalog.SIZE_SMALL)))
+	if item_size != ItemCatalog.SIZE_LARGE:
+		return true
+	var inventory: Array = progression.get("inventory", [])
+	for index in inventory.size():
+		if index == replacing_slot or not (inventory[index] is Dictionary):
+			continue
+		if str((inventory[index] as Dictionary).get("size", ItemCatalog.SIZE_SMALL)) == ItemCatalog.SIZE_LARGE:
+			return false
+	return true
 
 
 func _button(text: String, callback: Callable) -> Button:

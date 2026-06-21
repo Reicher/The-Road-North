@@ -51,11 +51,15 @@ Touch only. In placement mode: single finger = placement, two fingers = camera.
 
 ## Movement
 
-Tap an adjacent connected tile to move. Rules:
-- Orthogonal only, one tile at a time, costs 1 food
-- Both tiles must connect toward each other (bidirectional)
-- Backtracking allowed if roads and food exist
-- Tweened hop animation; input disabled during move
+Tap any reachable connected tile to move there along the shortest path. Rules:
+- Movement is orthogonal, one tile at a time, and costs 1 food per tile
+- Both tiles in every step must connect toward each other (bidirectional)
+- Enemies, loot, and other encounters do not affect path selection
+- Backtracking is allowed if roads and food exist
+- Tapping a new reachable tile during movement replaces the current destination after the active tile hop
+- The tapped destination flashes briefly
+- Tapping the tile occupied by the player makes the pawn jump once without spending food
+- Movement uses a tweened hop animation; destination input remains enabled during normal movement
 
 Starting stats: 10 food, 4 health, 0 gold, 0 base power, a Walking Stick (+1 power).
 
@@ -200,21 +204,31 @@ Encounters add risk/reward to route planning without changing the road-building 
 
 Enemy power-number color communicates risk before combat by comparing player power to enemy power: red at -2 or lower, orange at -1, yellow at equal power, light green at +1, and green at +2 or higher. After moving onto the enemy tile, a blocking popup shows power symbols and values for both fighters with `VS` between them, square pip dice showing `?`, and unknown totals below a visible full-width sum line. A `+` sits beside the player die on the dice row. The popup blocks other input without tinting the map or resource UI. Fight and Retreat remain visible but disabled while dice animate. Fight reveals both pip dice, plain totals, and Victory/Defeat/Tie. Defeat and Tie re-enable Fight and Retreat. Victory removes the enemy, resolves loot, and replaces both buttons with **OK**; pressing OK closes the popup and continues gameplay. A defeat at 0 health closes combat and immediately starts the normal death flow.
 
-**Player power** = base power + strongest carried weapon bonus.
+**Player power** = base power + Power from all carried items.
 
 **Loot:** Berry bushes → food. Caches → exactly one item. Enemies → gold only. Food/gold collected directly; items go to inventory if space exists (drag or Take All).
 
-**Inventory:** 3-slot backpack, starts with Walking Stick. Weapons: Walking Stick +1, Dagger +2, Hatchet +3, Machete +4, Sword +5, Mace +6, Spear +7, Sword & Shield +8, Great Axe +9. Only strongest weapon counts.
+**Items:** Every item has a `stats` dictionary, calculated `item_score`, dynamic
+`rarity`, and `size`. Supported stats are Max Health, Power, Sight, and Max Hand
+Size; more stat keys may be added later. `item_score` is the sum of stats plus a
+score for special effects. Items with special effects are always at least Rare.
 
-Cache weapons normally have power from `level` to `level + 2`, evenly distributed, with a 15% chance for a rare `level + 3` weapon instead (L1: +1–3, rarely +4; L2: +2–4, rarely +5). If that power does not exist in the weapon catalog, available powers are used.
+At game startup, all items are sorted by `item_score` and divided into Common
+(50%), Uncommon (30%), Rare (15%), and Epic (5%) rank percentiles. Small catalog
+rounding keeps the highest-ranked item Epic. A cache first rolls rarity with the
+same 50/30/15/5 distribution, then uniformly chooses an item from that group.
+Every item is available from level 1; cache loot is not level-specific.
 
-**Utility items:** Caches have a total 15% chance to contain a uniformly
-selected utility item instead of a weapon.
+**Inventory:** 3-slot backpack, starts with Walking Stick. Every carried item is
+active and contributes its stats. The backpack may contain at most one `large`
+item, while `small` items have no size-specific limit. Weapons are large;
+Binoculars, Goldsmith's Scale, and Guiding Charm are small; Field Medic's Bag is
+large equipment. Item icons show `▲` for large and `•` for small.
 
-- Binoculars: +1 Sight
-- Goldsmith's Scale: doubles all gold gained
-- Field Medic's Bag: +2 max health while carried
-- Guiding Charm: minimum hand size +1 while carried
+Weapons: Walking Stick +1, Dagger +2, Hatchet +3, Machete +4, Sword +5, Mace +6,
+Spear +7, Sword & Shield +8, Great Axe +9. Utility effects: Binoculars +1 Sight,
+Goldsmith's Scale doubles gold gained, Field Medic's Bag +2 Max Health, and
+Guiding Charm +1 Max Hand Size.
 
 ---
 

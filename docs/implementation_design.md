@@ -136,17 +136,15 @@ Layered on road-card loop:
 - Roads stores encounters on tiles
 - Player resolves encounters inline on enter
 - PlayerRewards collects loot
-- LootUI presents collection; InventoryUI stores 3-slot backpack and computes weapon power bonus
+- LootUI presents collection; InventoryUI stores the 3-slot backpack and sums all carried item stats
 
-No generic effect engine, no economy system, no equipment framework beyond strongest-weapon bonus.
+No generic effect engine or separate active/equipped state. Every carried item applies its stats; the backpack enforces at most one large item.
 
 ---
 
-## WeaponCatalog and ItemCatalog
+## ItemCatalog
 
-**WeaponCatalog:** Walking Stick (+1), Dagger (+2), Hatchet (+3), Machete (+4), Sword (+5), Mace (+6), Spear (+7), Sword & Shield (+8), Great Axe (+9). Provides `roll_weapon(rng, target_power, power_weights)` with weighted randomization. Cache weapons normally use `level` through `level + 2`, with a 15% chance for `level + 3`.
-
-**ItemCatalog:** Utility items share a 15% cache drop chance. Carried item effects include Sight, gold multiplier, max health, and minimum hand size bonuses. Both catalogs are static `RefCounted` classes.
+Static `RefCounted` and single source of truth for weapons and utility items. Each item has `stats`, calculated `item_score`, startup-assigned `rarity`, and `size`. Cache loot first rolls Common/Uncommon/Rare/Epic at 50/30/15/5, then chooses uniformly from that group. Loot is not level-specific. Inventory supports Power, Sight, Max Health, and Max Hand Size stats plus explicit special effects such as the gold multiplier.
 
 ---
 

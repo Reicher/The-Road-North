@@ -45,6 +45,7 @@ var _grid_node: Node3D
 var _border_node: Node3D
 var _cells_root: Node3D
 var _forest_root: Node3D
+var _tap_highlights: Dictionary = {}
 
 
 func rebuild_all(map: GameMap) -> void:
@@ -119,6 +120,32 @@ func set_cell_trees_visible(grid_position: Vector2i, trees_visible: bool) -> voi
 
 func are_cell_trees_visible(grid_position: Vector2i) -> bool:
 	return not _hidden_tree_cells.has(grid_position)
+
+
+func flash_cell(map: GameMap, grid_position: Vector2i, duration := 0.22) -> void:
+	if map == null or not map.is_inside_playable_area(grid_position):
+		return
+	var previous: Node = _tap_highlights.get(grid_position)
+	if previous != null and is_instance_valid(previous):
+		previous.queue_free()
+
+	var highlight := _add_box(
+		self,
+		"TapHighlight_%d_%d" % [grid_position.x, grid_position.y],
+		Vector3(map.tile_size * 0.86, map.tile_size * 0.018, map.tile_size * 0.86),
+		map.grid_to_world(grid_position) + Vector3(0.0, map.tile_size * 0.055, 0.0),
+		Color(1.0, 0.86, 0.28, 0.68)
+	)
+	highlight.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_tap_highlights[grid_position] = highlight
+	var tween := highlight.create_tween()
+	tween.tween_property(highlight, "scale", Vector3(1.08, 1.0, 1.08), maxf(0.01, duration))
+	tween.tween_callback(func() -> void:
+		if _tap_highlights.get(grid_position) == highlight:
+			_tap_highlights.erase(grid_position)
+		if is_instance_valid(highlight):
+			highlight.queue_free()
+	)
 
 
 func _add_border_forest_cell(map: GameMap, grid_position: Vector2i) -> void:

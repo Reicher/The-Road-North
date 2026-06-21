@@ -125,7 +125,7 @@ func _on_player_move_started(_target_position: Vector2i) -> void:
 	if _is_terminal_state():
 		return
 	state = RunState.PLAYER_MOVING
-	_set_player_input_enabled(false)
+	_set_player_input_enabled(true)
 
 
 func _on_player_moved(_grid_position: Vector2i) -> void:

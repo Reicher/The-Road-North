@@ -2,7 +2,6 @@ class_name DeckBuilder
 extends Node
 
 const CARD_DEFINITION_SCRIPT := preload("res://scripts/card_definition.gd")
-const WeaponCatalog = preload("res://scripts/weapon_catalog.gd")
 const ItemCatalog = preload("res://scripts/item_catalog.gd")
 const GameBalance = preload("res://scripts/game_balance.gd")
 const DEFAULT_DECK_RECIPES: DeckRecipes = preload("res://data/deck_recipes.tres")
@@ -12,7 +11,6 @@ const ROAD_SUBTYPES: Array[String] = ["straight", "corner", "t_junction", "four_
 const DECK_SOURCE_BASE := GameConstants.DECK_SOURCE_BASE
 const DECK_SOURCE_LEVEL := GameConstants.DECK_SOURCE_LEVEL
 const DECK_SOURCE_PLAYER_SPECIAL := GameConstants.DECK_SOURCE_PLAYER_SPECIAL
-const CACHE_RARE_WEAPON_CHANCE := 0.15
 
 @export var deck_recipes: DeckRecipes = DEFAULT_DECK_RECIPES
 
@@ -351,14 +349,7 @@ func _make_reward_encounter(kind: Variant, rng: RandomNumberGenerator, level: in
 			"type": kind,
 			"loot": [{"kind": "food", "amount": GameBalance.berry_food(map_size)}],
 		}
-	var weapon_tier_start := maxi(1, level)
-	var normal_weapon_weight := (1.0 - CACHE_RARE_WEAPON_CHANCE) / 3.0
-	var item := ItemCatalog.roll_utility_item(rng) if rng.randf() < ItemCatalog.UTILITY_ITEM_DROP_CHANCE else WeaponCatalog.roll_weapon(rng, weapon_tier_start, {
-		0: normal_weapon_weight,
-		1: normal_weapon_weight,
-		2: normal_weapon_weight,
-		3: CACHE_RARE_WEAPON_CHANCE,
-	})
+	var item := ItemCatalog.roll_loot_item(rng)
 	return {
 		"type": kind,
 		"loot": [{"kind": "item", "item": item}],

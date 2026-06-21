@@ -43,10 +43,11 @@ func run() -> void:
 	await process_frame
 	deck.start_run()
 
-	_assert(ItemCatalog.UTILITY_ITEMS.has(ItemCatalog.GUIDING_CHARM), "Expected Guiding Charm to be available as utility loot")
-	_assert(ItemIconLibrary.get_icon(ItemCatalog.GUIDING_CHARM) != null, "Expected Guiding Charm to have an item icon")
+	var guiding_charm := ItemCatalog.get_item("Guiding Charm")
+	_assert(not guiding_charm.is_empty(), "Expected Guiding Charm to be available as item loot")
+	_assert(ItemIconLibrary.get_icon(guiding_charm) != null, "Expected Guiding Charm to have an item icon")
 	_assert(hand.cards.size() == 4, "Expected the normal opening hand to contain four cards")
-	_assert(inventory.add_item(ItemCatalog.GUIDING_CHARM), "Expected adding Guiding Charm to an empty slot to succeed")
+	_assert(inventory.add_item(guiding_charm), "Expected adding Guiding Charm to an empty slot to succeed")
 	_assert(deck.get_minimum_hand_size() == 5, "Expected Guiding Charm to increase minimum hand size by one")
 	_assert(hand.cards.size() == 5, "Expected acquiring Guiding Charm to immediately refill the hand")
 	inventory.replace_item_at_slot(1, {})

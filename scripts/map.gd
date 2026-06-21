@@ -137,6 +137,12 @@ func clear_tile(grid_position: Vector2i) -> void:
 	_rebuild_cell_visual(grid_position)
 
 
+func flash_tile(grid_position: Vector2i) -> void:
+	if not _resolve_visuals():
+		return
+	_visuals.flash_cell(self, grid_position)
+
+
 func set_cell_trees_visible(grid_position: Vector2i, trees_visible: bool) -> void:
 	if not _resolve_visuals():
 		return
@@ -249,6 +255,29 @@ func can_move_between(from_position: Vector2i, to_position: Vector2i) -> bool:
 	return _position_has_opening(to_position, OPPOSITE_DIRECTIONS[direction_name])
 
 
+func find_shortest_path(from_position: Vector2i, to_position: Vector2i) -> Array[Vector2i]:
+	if not is_inside_playable_area(from_position) or not is_inside_playable_area(to_position):
+		return []
+	if from_position == to_position:
+		return [from_position]
+
+	var frontier: Array[Vector2i] = [from_position]
+	var previous: Dictionary = {from_position: from_position}
+	var frontier_index := 0
+	while frontier_index < frontier.size():
+		var current := frontier[frontier_index]
+		frontier_index += 1
+		for direction_name in DIRECTIONS:
+			var neighbor: Vector2i = current + DIRECTIONS[direction_name]
+			if previous.has(neighbor) or not can_move_between(current, neighbor):
+				continue
+			previous[neighbor] = current
+			if neighbor == to_position:
+				return _reconstruct_path(previous, from_position, to_position)
+			frontier.append(neighbor)
+	return []
+
+
 func update_encounter_data(grid_position: Vector2i, encounter_data: Dictionary) -> void:
 	var tile_data: Variant = get_tile(grid_position)
 	if tile_data is Dictionary:
@@ -338,6 +367,15 @@ func _position_has_opening(grid_position: Vector2i, direction_name: String) -> b
 
 	var feature_connections := get_fixed_feature_connections(grid_position)
 	return feature_connections.get(direction_name, false) == true
+
+
+func _reconstruct_path(previous: Dictionary, from_position: Vector2i, to_position: Vector2i) -> Array[Vector2i]:
+	var path: Array[Vector2i] = [to_position]
+	var current := to_position
+	while current != from_position:
+		current = previous[current]
+		path.push_front(current)
+	return path
 
 
 func _rebuild_fixed_feature_lookup() -> void:

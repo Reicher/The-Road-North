@@ -102,7 +102,7 @@ func run() -> void:
 	_assert(typed_level.state == Level.RunState.IDLE, "Expected level to start idle")
 	player.move_started.emit(Vector2i(4, 7))
 	_assert(typed_level.state == Level.RunState.PLAYER_MOVING, "Expected level to own player moving state")
-	_assert(not player.input_enabled, "Expected level to disable player input while moving")
+	_assert(player.input_enabled, "Expected level to keep destination input enabled while moving")
 	_assert(camera.get("_following_player"), "Expected camera to follow the player while movement is active")
 	var movement_midpoint := map.grid_to_world(Vector2i(2, 3))
 	player.position = movement_midpoint

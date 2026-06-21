@@ -109,6 +109,44 @@ func _initialize() -> void:
 	player.set_base_power(2)
 	_assert(player.get_total_power() == 2, "Expected mutable base power to contribute to total power")
 
+	var path_map = MAP_SCENE.instantiate() as GameMap
+	path_map.name = "PathMap"
+	path_map.playable_width = 4
+	path_map.playable_height = 3
+	root.add_child(path_map)
+	path_map.set_tile(Vector2i(0, 2), {"connections": {"north": true, "east": true}})
+	path_map.set_tile(Vector2i(0, 1), {"connections": {"north": true, "south": true}})
+	path_map.set_tile(Vector2i(0, 0), {"connections": {"east": true, "south": true}})
+	path_map.set_tile(Vector2i(1, 0), {"connections": {"east": true, "south": true, "west": true}})
+	path_map.set_tile(Vector2i(1, 2), {"connections": {"east": true, "west": true}})
+	path_map.set_tile(Vector2i(2, 2), {"connections": {"north": true, "west": true}})
+	path_map.set_tile(Vector2i(2, 1), {"connections": {"north": true, "south": true}})
+	path_map.set_tile(Vector2i(2, 0), {"connections": {"south": true, "west": true}})
+
+	var shortest_path := path_map.find_shortest_path(Vector2i(0, 2), Vector2i(1, 0))
+	_assert(shortest_path == [Vector2i(0, 2), Vector2i(0, 1), Vector2i(0, 0), Vector2i(1, 0)], "Expected pathfinding to select the shortest connected route")
+
+	var path_player = PLAYER_SCENE.instantiate() as GamePlayer
+	path_player.name = "PathPlayer"
+	path_player.map_path = NodePath("../PathMap")
+	path_player.start_position = Vector2i(0, 2)
+	path_player.starting_food = 10
+	path_player.move_duration = 0.0
+	root.add_child(path_player)
+	path_player._ready()
+	_assert(path_player.move_to(Vector2i(1, 0)), "Expected a non-adjacent connected destination to start movement")
+	_assert(path_player.grid_position == Vector2i(1, 0), "Expected automatic movement to reach the selected destination")
+	_assert(path_player.food == 7, "Expected automatic movement to spend one food per path step")
+	_assert(path_map.get_node("MapVisuals").get("_tap_highlights").has(Vector2i(1, 0)), "Expected the selected destination tile to flash")
+	var food_before_jump: int = path_player.food
+	_assert(path_player.move_to(path_player.grid_position), "Expected tapping the occupied tile to trigger a jump")
+	_assert(path_player.food == food_before_jump, "Expected jumping in place not to spend food")
+
+	path_player.set("_moving", true)
+	_assert(path_player.move_to(Vector2i(2, 0)), "Expected a new destination to replace the active route")
+	_assert(path_player.get("_route_destination") == Vector2i(2, 0), "Expected the active route destination to update immediately")
+	path_player.set("_moving", false)
+
 	var default_food_player = PLAYER_SCENE.instantiate() as GamePlayer
 	default_food_player.name = "DefaultFoodPlayer"
 	default_food_player.map_path = NodePath("../Map")

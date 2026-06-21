@@ -31,7 +31,7 @@ func _initialize() -> void:
 	_assert(is_equal_approx(backpack_button.position.x, inventory.left_margin), "Expected backpack button to sit at the left HUD edge")
 	_assert(is_equal_approx(backpack_button.position.y, inventory.top_margin), "Expected backpack button to sit below the resource row")
 	_assert(not overlay.visible, "Expected inventory overlay to start closed")
-	_assert(inventory.get_active_items().size() == 1, "Expected player inventory to start with one visible weapon")
+	_assert(inventory.get_carried_items().size() == 1, "Expected player inventory to start with one visible weapon")
 	_assert(inventory.get_power_bonus() == 1, "Expected Walking Stick to add one power")
 	_assert(inventory.get_sight_bonus() == 0, "Expected the starting inventory not to increase Sight")
 	var stats_signal_result := {"count": 0}
@@ -69,14 +69,15 @@ func _initialize() -> void:
 	_assert(empty_slot.disabled, "Expected empty inventory slots to be disabled")
 	var empty_slot_style := empty_slot.get_theme_stylebox("disabled") as StyleBoxFlat
 	_assert(empty_slot_style.bg_color == InventoryUI.SLOT_DISABLED_FILL, "Expected empty inventory slots to use a light parchment background")
-	_assert(first_slot.self_modulate == InventoryUI.EQUIPPED_SLOT_TINT, "Expected strongest weapon slot to be tinted")
+	_assert(first_slot.self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected inventory items not to use active/inactive tinting")
+	_assert((first_slot.get_node("ItemSizeBadge") as Label).text == "▲", "Expected the large Walking Stick icon to show a size marker")
 
 	inventory._on_item_pressed(0, first_slot)
 	_assert(tooltip.visible, "Expected pressing an item to show a tooltip")
 	var tooltip_name := tooltip.get_node("ContentMargin/Text/ItemName") as Label
 	var tooltip_effect := tooltip.get_node("ContentMargin/Text/ItemEffect") as Label
 	_assert(tooltip_name.text == "Walking Stick", "Expected tooltip to show the item name")
-	_assert(tooltip_effect.text == "+1 Power", "Expected tooltip to show the item effect")
+	_assert(tooltip_effect.text.begins_with("+1 Power") and tooltip_effect.text.contains("Large"), "Expected tooltip to show the item effect and size")
 	_assert(tooltip_name.get_theme_color("font_color") == UIStyle.text(inventory), "Expected tooltip name text to use the shared UI text color")
 	_assert(tooltip_effect.get_theme_color("font_color") == UIStyle.muted_text(inventory), "Expected tooltip effect text to use the shared UI muted text color")
 
@@ -109,12 +110,9 @@ func _initialize() -> void:
 	_assert(overlay.visible, "Expected direct inventory closing to use the soft closing animation")
 	_assert(not tooltip.visible, "Expected closing inventory to hide the tooltip")
 
-	_assert(inventory.add_item({
-		"name": "Dagger",
-		"effect": "+2 Power",
-		"power_bonus": 2,
-	}), "Expected adding a test item to succeed")
-	_assert(inventory.get_sight_bonus() == 0, "Expected weapons not to increase Sight")
+	_assert(not inventory.add_item(ItemCatalog.get_item("Dagger")), "Expected a second large item to be rejected")
+	_assert(inventory.add_item(ItemCatalog.get_item("Binoculars")), "Expected adding a small test item to succeed")
+	_assert(inventory.get_sight_bonus() == 1, "Expected every carried small item to be active")
 	_assert(stats_signal_result["count"] == 1, "Expected adding items to notify stat listeners")
 	inventory.set_inventory_open(true)
 	inventory._layout_inventory()
@@ -132,8 +130,8 @@ func _initialize() -> void:
 	_assert(inventory.is_in_group("ui_item_drag_active"), "Expected item drag to block camera input")
 	inventory._finish_item_drag(second_slot_center)
 	_assert(not inventory.is_in_group("ui_item_drag_active"), "Expected finishing item drag to unblock camera input")
-	_assert(inventory.get_active_items()[0]["name"] == "Dagger", "Expected dropping an inventory item onto another slot to swap them")
-	_assert(inventory.get_active_items()[1]["name"] == "Walking Stick", "Expected replaced inventory item to move into the source slot")
+	_assert(inventory.get_carried_items()[0]["name"] == "Binoculars", "Expected dropping an inventory item onto another slot to swap them")
+	_assert(inventory.get_carried_items()[1]["name"] == "Walking Stick", "Expected replaced inventory item to move into the source slot")
 	first_slot_after_add = slots.get_child(0) as Button
 	second_slot_after_add = slots.get_child(1) as Button
 	var third_slot_after_swap := slots.get_child(2) as Button
@@ -157,10 +155,10 @@ func _initialize() -> void:
 	_assert(inventory.get_minimum_hand_size_bonus() == 0, "Expected utility items without a hand bonus not to change minimum hand size")
 	for item in inventory.get_items():
 		_assert(ItemIconLibrary.get_icon(item) != null, "Expected every utility item to have an item icon")
-	inventory.replace_item_at_slot(2, ItemCatalog.GUIDING_CHARM)
+	inventory.replace_item_at_slot(2, ItemCatalog.get_item("Guiding Charm"))
 	_assert(inventory.get_minimum_hand_size_bonus() == 1, "Expected Guiding Charm to increase minimum hand size by one")
-	_assert(ItemIconLibrary.get_icon(ItemCatalog.GUIDING_CHARM) != null, "Expected Guiding Charm to have an item icon")
-	inventory.replace_item_at_slot(2, ItemCatalog.FIELD_MEDICS_BAG)
+	_assert(ItemIconLibrary.get_icon(ItemCatalog.get_item("Guiding Charm")) != null, "Expected Guiding Charm to have an item icon")
+	inventory.replace_item_at_slot(2, ItemCatalog.get_item("Field Medic's Bag"))
 	var player := GamePlayer.new()
 	player.gold = 1
 	player.health = 4

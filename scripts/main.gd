@@ -1,5 +1,7 @@
 extends Node
 
+const ItemCatalog = preload("res://scripts/item_catalog.gd")
+
 const LEVEL_SCENES: Array[PackedScene] = [
 	preload("res://levels/level_001.tscn"),
 	preload("res://levels/level_002.tscn"),
@@ -31,6 +33,7 @@ var _shop_layer: CanvasLayer
 
 
 func _ready() -> void:
+	ItemCatalog.initialize()
 	assert(LEVEL_NAMES.size() == LEVEL_SCENES.size(), "LEVEL_NAMES and LEVEL_SCENES must have the same size")
 	assert(LEVEL_MAP_SIZES.size() == LEVEL_SCENES.size(), "LEVEL_MAP_SIZES and LEVEL_SCENES must have the same size")
 	_ensure_debug_overlay()

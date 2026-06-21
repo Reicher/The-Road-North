@@ -32,10 +32,12 @@ func configure(item: Dictionary, index := -1) -> void:
 		icon = null
 		disabled = true
 		tooltip_text = ""
+		ItemIconLibrary.update_size_badge(self, {})
 	else:
 		icon = ItemIconLibrary.get_icon(item)
 		disabled = false
-		tooltip_text = "%s\n%s" % [item.get("name", "Item"), item.get("effect", "")]
+		tooltip_text = "%s\n%s\n%s · %s" % [item.get("name", "Item"), item.get("effect", ""), item.get("rarity", "Common"), str(item.get("size", "small")).capitalize()]
+		ItemIconLibrary.update_size_badge(self, item)
 
 
 func clear_slot() -> void:

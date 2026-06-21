@@ -4,6 +4,7 @@ const INVENTORY_SCENE := preload("res://ui/inventory.tscn")
 const LOOT_SCENE := preload("res://ui/loot.tscn")
 const MAP_SCENE := preload("res://scenes/map.tscn")
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
+const ItemCatalog := preload("res://scripts/item_catalog.gd")
 
 
 func _initialize() -> void:
@@ -38,13 +39,11 @@ func _initialize() -> void:
 	loot_ui.open_loot([
 		{
 			"kind": "item",
-			"item": {
-				"name": "Hatchet",
-				"effect": "+3 Power",
-				"power_bonus": 3,
-			},
+			"item": ItemCatalog.get_item("Binoculars"),
 		},
 	])
+	await process_frame
+	(player.get_node("Rewards") as PlayerRewards).setup(player, inventory, loot_ui, map)
 	_assert(inventory.is_open(), "Expected opening loot to automatically open the backpack")
 	var overlay := inventory.get_node("InventoryOverlay") as PanelContainer
 	var loot_panel := loot_ui.get_node("LootPanel") as PanelContainer
@@ -64,7 +63,7 @@ func _initialize() -> void:
 	_assert(loot_panel.size.y < 230.0, "Expected single-item loot panel to stay vertically compact")
 	var inventory_frame_rect := inventory_frame.get_global_rect()
 	var loot_panel_rect := loot_panel.get_global_rect()
-	_assert(is_equal_approx(loot_panel_rect.position.x, inventory_frame_rect.position.x), "Expected loot panel to align with the open inventory frame")
+	_assert(absf(loot_panel_rect.position.x - inventory_frame_rect.position.x) <= 3.0, "Expected loot panel to align with the open inventory frame within the screen margin")
 	_assert(is_equal_approx(loot_panel_rect.position.y, inventory_frame_rect.position.y + inventory_frame_rect.size.y + 6.0), "Expected loot panel to sit directly below the open inventory frame")
 	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
 	var drag_ghost := loot_ui.get_node("DragGhost") as TextureRect
@@ -76,8 +75,8 @@ func _initialize() -> void:
 	var loot_tooltip_name := loot_tooltip.get_node("ContentMargin/Text/ItemName") as Label
 	var loot_tooltip_effect := loot_tooltip.get_node("ContentMargin/Text/ItemEffect") as Label
 	_assert(loot_tooltip.visible, "Expected tapping a loot item slot to show its tooltip")
-	_assert(loot_tooltip_name.text == "Hatchet", "Expected loot tooltip to show the item name")
-	_assert(loot_tooltip_effect.text == "+3 Power", "Expected loot tooltip to show the item effect")
+	_assert(loot_tooltip_name.text == "Binoculars", "Expected loot tooltip to show the item name")
+	_assert(loot_tooltip_effect.text == "+1 Sight", "Expected loot tooltip to show the item effect")
 	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
 	loot_ui._finish_drag(loot_item.get_global_rect().get_center())
 	_assert(not loot_tooltip.visible, "Expected tapping the same loot item again to hide its tooltip")
@@ -89,8 +88,8 @@ func _initialize() -> void:
 	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
 	loot_ui._finish_drag(overlay.get_global_rect().get_center())
 	_assert(not loot_ui.is_open(), "Expected dragging the only loot item into the backpack to close loot")
-	_assert(inventory.get_active_items().size() == 2, "Expected dragged loot item to move into the backpack")
-	_assert(inventory.get_power_bonus() == 3, "Expected only the strongest weapon to count")
+	_assert(inventory.get_carried_items().size() == 2, "Expected dragged loot item to move into the backpack")
+	_assert(inventory.get_power_bonus() == 1 and inventory.get_sight_bonus() == 1, "Expected every carried item to apply its stats")
 
 	var loot := [
 		{
@@ -103,11 +102,7 @@ func _initialize() -> void:
 		},
 		{
 			"kind": "item",
-			"item": {
-				"name": "Machete",
-				"effect": "+4 Power",
-				"power_bonus": 4,
-			},
+			"item": ItemCatalog.get_item("Guiding Charm"),
 		},
 	]
 
@@ -127,14 +122,14 @@ func _initialize() -> void:
 	_assert(not inventory.is_open(), "Expected Take All to close the inventory")
 	_assert(player.food == 5, "Expected Take All not to add already collected food again")
 	_assert(player.gold == 6, "Expected Take All not to add already collected gold again")
-	_assert(inventory.get_active_items().size() == 3, "Expected item loot to move into a new backpack slot")
-	_assert(inventory.get_active_items()[0]["name"] == "Walking Stick", "Expected the old walking stick to stay in its slot")
-	_assert(inventory.get_active_items()[2]["name"] == "Machete", "Expected the new machete to use another slot")
-	_assert(inventory.get_power_bonus() == 4, "Expected only the strongest weapon to contribute power")
+	_assert(inventory.get_carried_items().size() == 3, "Expected item loot to move into a new backpack slot")
+	_assert(inventory.get_carried_items()[0]["name"] == "Walking Stick", "Expected the old walking stick to stay in its slot")
+	_assert(inventory.get_carried_items()[2]["name"] == "Guiding Charm", "Expected the new small item to use another slot")
+	_assert(inventory.get_power_bonus() == 1 and inventory.get_minimum_hand_size_bonus() == 1, "Expected all carried item stats to contribute")
 	var slots := inventory.get_node("InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
 	_assert((slots.get_child(0) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected weaker walking stick slot not to be tinted")
 	_assert((slots.get_child(1) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected weaker loot weapon slot not to be tinted")
-	_assert((slots.get_child(2) as Button).self_modulate == InventoryUI.EQUIPPED_SLOT_TINT, "Expected strongest sword slot to be tinted")
+	_assert((slots.get_child(2) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected items not to use an active/inactive tint")
 
 	for index in inventory.get_free_slot_count():
 		_assert(inventory.add_item({
@@ -168,15 +163,15 @@ func _initialize() -> void:
 	_assert(inventory.get_slot_index_at_canvas_position(first_backpack_slot.get_global_rect().get_center()) == 0, "Expected first backpack slot center to resolve to slot zero")
 	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
 	loot_ui._finish_drag(first_backpack_slot.get_global_rect().get_center())
-	_assert(inventory.get_active_items()[0]["effect"] == "+4 Power", "Expected dropping loot on an occupied backpack slot to replace it")
+	_assert(inventory.get_carried_items()[0]["effect"] == "+1 Max Hand Size", "Expected dropping loot on an occupied backpack slot to replace it")
 	_assert(loot_ui.loot[0]["item"]["effect"] == "+1 Power", "Expected replaced backpack item to move into the loot slot")
 
 	loot_item = loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootItem0") as Button
 	first_backpack_slot = slots.get_child(0) as Button
 	inventory._start_item_drag(0, first_backpack_slot, first_backpack_slot.get_global_rect().get_center())
 	inventory._finish_item_drag(loot_item.get_global_rect().get_center())
-	_assert(inventory.get_active_items()[0]["effect"] == "+1 Power", "Expected dropping backpack item on occupied loot slot to replace it")
-	_assert(loot_ui.loot[0]["item"]["effect"] == "+4 Power", "Expected replaced loot item to move into the backpack slot")
+	_assert(inventory.get_carried_items()[0]["effect"] == "+1 Power", "Expected dropping backpack item on occupied loot slot to replace it")
+	_assert(loot_ui.loot[0]["item"]["effect"] == "+1 Max Hand Size", "Expected replaced loot item to move into the backpack slot")
 
 	loot_ui.open_loot([
 		{

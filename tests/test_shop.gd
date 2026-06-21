@@ -8,6 +8,7 @@ const STRAIGHT := preload("res://data/road_straight.tres")
 const CORNER := preload("res://data/road_corner.tres")
 const FOUR_WAY := preload("res://data/road_four_way.tres")
 const DEAD_END := preload("res://data/road_dead_end.tres")
+const ItemCatalog := preload("res://scripts/item_catalog.gd")
 
 
 func _initialize() -> void:
@@ -89,7 +90,10 @@ func run() -> void:
 	_assert(shop.buy_heal() and shop.progression["health"] == 4, "Expected heal click purchase to clamp at max health")
 	_assert(shop.buy_power_potion() and shop.progression["pending_power_bonus"] == 1, "Expected power potion to apply to the next map only")
 	_assert(shop.buy_max_health_potion() and shop.progression["pending_max_health_bonus"] == 1, "Expected max HP potion to apply to the next map only")
-	_assert(shop.buy_item_to_slot(0, 1), "Expected dragging an offered item to an empty slot to buy it")
+	shop.item_offers.clear()
+	shop.item_offers.append(ItemCatalog.get_item("Guiding Charm").merged({"price": 10, "sell_price": 5}, true))
+	shop.item_offers.append(ItemCatalog.get_item("Hatchet").merged({"price": 12, "sell_price": 6}, true))
+	_assert(shop.buy_item_to_slot(0, 1), "Expected dragging a small offered item to an empty slot to buy it")
 	_assert(not shop.buy_item_to_slot(0, 2), "Expected each item offer to be purchasable only once")
 	_assert(not shop.buy_item_to_slot(1, 1), "Expected an item purchase to reject an occupied slot")
 	var gold_before_sell := int(shop.progression["gold"])

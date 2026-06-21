@@ -3,6 +3,7 @@ extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
 const ItemIconLibrary = preload("res://scripts/item_icon_library.gd")
+const ItemCatalog = preload("res://scripts/item_catalog.gd")
 const BACKPACK_ICON_PATH := "res://assets/images/ui/inventory_backpack.png"
 
 signal item_drag_started(slot_index: int, item: Dictionary, source_button: Button, canvas_position: Vector2)
@@ -11,7 +12,6 @@ signal item_drag_finished(slot_index: int, item: Dictionary, source_button: Butt
 signal stats_changed
 
 const SLOT_COUNT := 3
-const EQUIPPED_SLOT_TINT := Color(1.0, 0.86, 0.45)
 const NORMAL_SLOT_TINT := Color.WHITE
 const SLOT_FILL := Color(1.0, 0.94, 0.78)
 const SLOT_HOVER_FILL := Color(1.0, 0.86, 0.56)
@@ -33,7 +33,10 @@ var items: Array[Dictionary] = [
 	{
 		"name": "Walking Stick",
 		"effect": "+1 Power",
-		"power_bonus": 1,
+		"stats": {"power": 1},
+		"item_score": 1,
+		"rarity": "Common",
+		"size": "large",
 	},
 	{},
 	{},
@@ -100,19 +103,19 @@ func is_open() -> bool:
 
 
 func get_power_bonus() -> int:
-	var highest := 0
+	var bonus := 0
 	for item in items:
 		if item.is_empty():
 			continue
-		highest = maxi(highest, int(item.get("power_bonus", 0)))
-	return highest
+		bonus += ItemCatalog.get_stat(item, ItemCatalog.STAT_POWER)
+	return bonus
 
 
 func get_sight_bonus() -> int:
 	var bonus := 0
 	for item in items:
 		if not item.is_empty():
-			bonus += int(item.get("sight_bonus", 0))
+			bonus += ItemCatalog.get_stat(item, ItemCatalog.STAT_SIGHT)
 	return bonus
 
 
@@ -120,7 +123,7 @@ func get_gold_multiplier() -> int:
 	var multiplier := 1
 	for item in items:
 		if not item.is_empty():
-			multiplier = maxi(multiplier, int(item.get("gold_multiplier", 1)))
+			multiplier = maxi(multiplier, ItemCatalog.get_special_effect(item, "gold_multiplier", 1))
 	return multiplier
 
 
@@ -128,7 +131,7 @@ func get_max_health_bonus() -> int:
 	var bonus := 0
 	for item in items:
 		if not item.is_empty():
-			bonus += int(item.get("max_health_bonus", 0))
+			bonus += ItemCatalog.get_stat(item, ItemCatalog.STAT_MAX_HEALTH)
 	return bonus
 
 
@@ -136,16 +139,16 @@ func get_minimum_hand_size_bonus() -> int:
 	var bonus := 0
 	for item in items:
 		if not item.is_empty():
-			bonus += int(item.get("minimum_hand_size_bonus", 0))
+			bonus += ItemCatalog.get_stat(item, ItemCatalog.STAT_MAX_HAND_SIZE)
 	return bonus
 
 
-func get_active_items() -> Array[Dictionary]:
-	var active_items: Array[Dictionary] = []
+func get_carried_items() -> Array[Dictionary]:
+	var carried_items: Array[Dictionary] = []
 	for item in items:
 		if not item.is_empty():
-			active_items.append(item.duplicate(true))
-	return active_items
+			carried_items.append(item.duplicate(true))
+	return carried_items
 
 
 func get_items() -> Array[Dictionary]:
@@ -160,7 +163,7 @@ func set_items(next_items: Array, emit_stats_change := true) -> void:
 	for index in SLOT_COUNT:
 		var item: Dictionary = {}
 		if index < next_items.size() and next_items[index] is Dictionary:
-			item = (next_items[index] as Dictionary).duplicate(true)
+			item = ItemCatalog.normalize_item(next_items[index] as Dictionary)
 		restored_items.append(item)
 	items = restored_items
 	_refresh_slots()
@@ -195,10 +198,13 @@ func get_inventory_frame_global_rect() -> Rect2:
 
 
 func add_item(item: Dictionary) -> bool:
+	var normalized_item := ItemCatalog.normalize_item(item)
+	if not can_carry_item(normalized_item):
+		return false
 	var slot_index := _get_first_empty_slot_index()
 	if slot_index < 0:
 		return false
-	items[slot_index] = item.duplicate(true)
+	items[slot_index] = normalized_item
 	_refresh_slots()
 	stats_changed.emit()
 	return true
@@ -210,10 +216,24 @@ func replace_item_at_slot(slot_index: int, item: Dictionary) -> Dictionary:
 	var previous: Dictionary = {}
 	if not items[slot_index].is_empty():
 		previous = items[slot_index].duplicate(true)
-	items[slot_index] = item.duplicate(true)
+	var normalized_item := ItemCatalog.normalize_item(item)
+	if not normalized_item.is_empty() and not can_carry_item(normalized_item, slot_index):
+		return normalized_item
+	items[slot_index] = normalized_item
 	_refresh_slots()
 	stats_changed.emit()
 	return previous
+
+
+func can_carry_item(item: Dictionary, replacing_slot := -1) -> bool:
+	if str(item.get("size", ItemCatalog.SIZE_SMALL)) != ItemCatalog.SIZE_LARGE:
+		return true
+	for index in items.size():
+		if index == replacing_slot or items[index].is_empty():
+			continue
+		if str(items[index].get("size", ItemCatalog.SIZE_SMALL)) == ItemCatalog.SIZE_LARGE:
+			return false
+	return true
 
 
 func swap_items(source_slot_index: int, target_slot_index: int) -> bool:
@@ -374,7 +394,8 @@ func _refresh_slots() -> void:
 			slot_button.icon = ItemIconLibrary.get_icon(item)
 			slot_button.expand_icon = true
 			slot_button.disabled = false
-			slot_button.self_modulate = EQUIPPED_SLOT_TINT if _is_equipped_slot(slot_index) else NORMAL_SLOT_TINT
+			slot_button.self_modulate = NORMAL_SLOT_TINT
+			ItemIconLibrary.update_size_badge(slot_button, item)
 			var input_callback := _on_item_gui_input.bind(slot_index, slot_button)
 			if not slot_button.gui_input.is_connected(input_callback):
 				slot_button.gui_input.connect(input_callback)
@@ -382,6 +403,7 @@ func _refresh_slots() -> void:
 			slot_button.icon = null
 			slot_button.disabled = true
 			slot_button.self_modulate = NORMAL_SLOT_TINT
+			ItemIconLibrary.update_size_badge(slot_button, {})
 
 
 func _apply_slot_style(slot_button: Button) -> void:
@@ -512,7 +534,7 @@ func _on_item_pressed(slot_index: int, slot_button: Button) -> void:
 	var item := items[slot_index]
 	_tooltip_slot_index = slot_index
 	_tooltip_name.text = str(item.get("name", "Item"))
-	_tooltip_effect.text = str(item.get("effect", ""))
+	_tooltip_effect.text = "%s\n%s · %s" % [str(item.get("effect", "")), str(item.get("rarity", "Common")), str(item.get("size", "small")).capitalize()]
 	_tooltip.visible = true
 	_tooltip.size = _tooltip.get_combined_minimum_size()
 
@@ -529,27 +551,6 @@ func _hide_tooltip() -> void:
 	if _tooltip != null:
 		_tooltip.visible = false
 	_tooltip_slot_index = -1
-
-
-func _is_equipped_slot(slot_index: int) -> bool:
-	if slot_index < 0 or slot_index >= SLOT_COUNT:
-		return false
-	if items[slot_index].is_empty():
-		return false
-	return slot_index == _get_equipped_power_slot_index()
-
-
-func _get_equipped_power_slot_index() -> int:
-	var equipped_index := -1
-	var highest := 0
-	for index in items.size():
-		if items[index].is_empty():
-			continue
-		var value := int(items[index].get("power_bonus", 0))
-		if value > highest:
-			highest = value
-			equipped_index = index
-	return equipped_index
 
 
 func _get_first_empty_slot_index() -> int:

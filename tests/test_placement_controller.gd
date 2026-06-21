@@ -191,7 +191,7 @@ func _initialize() -> void:
 	_assert(hand.get_focused_card() == null, "Expected cancelled placement to leave the hand unfocused")
 
 	var binocular_inventory := InventoryUI.new()
-	binocular_inventory.items[1] = ItemCatalog.BINOCULARS.duplicate(true)
+	binocular_inventory.items[1] = ItemCatalog.get_item("Binoculars")
 	placement.set("_inventory", binocular_inventory)
 	_assert(placement.get_sight() == 3, "Expected Binoculars to grant +1 Sight")
 	_assert(placement.begin_placement(corner_card), "Expected placement with Binoculars to start")
