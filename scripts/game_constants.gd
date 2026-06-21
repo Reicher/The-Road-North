@@ -34,7 +34,7 @@ const EVENT_DRAW_TWO := "draw_two"
 const EVENT_ROTATE_TILE := "rotate_tile"
 const EVENT_LUCKY_FIND := "lucky_find"
 const EVENT_CLEAR_PATH := "clear_path"
-const EVENT_AMBUSH := "ambush"
+const EVENT_TROUBLE := "trouble"
 const EVENT_WILD_BERRIES := "wild_berries"
 const EVENT_LOST_BELONGINGS := "lost_belongings"
 const EVENT_RESTART_LEVEL := "restart_level"
@@ -44,14 +44,14 @@ const TARGETED_EVENT_TYPES: Array[String] = [
 	EVENT_DESTROY_TILE,
 	EVENT_ROTATE_TILE,
 	EVENT_CLEAR_PATH,
-	EVENT_AMBUSH,
+	EVENT_TROUBLE,
 	EVENT_WILD_BERRIES,
 	EVENT_LOST_BELONGINGS,
 ]
 
 const ENCOUNTER_EVENT_TYPES: Array[String] = [
 	EVENT_CLEAR_PATH,
-	EVENT_AMBUSH,
+	EVENT_TROUBLE,
 	EVENT_WILD_BERRIES,
 	EVENT_LOST_BELONGINGS,
 ]

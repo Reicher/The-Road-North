@@ -91,7 +91,7 @@ func _initialize() -> void:
 	_assert(event_types.has(GameConstants.EVENT_DRAW_TWO), "Expected event deck to include Idea")
 	_assert(event_types.has(GameConstants.EVENT_ROTATE_TILE), "Expected event deck to include Doubt")
 	_assert(event_types.has(GameConstants.EVENT_LUCKY_FIND), "Expected event deck to include Lucky Find")
-	_assert(event_types.has(GameConstants.EVENT_AMBUSH), "Expected event deck to include Ambush")
+	_assert(event_types.has(GameConstants.EVENT_TROUBLE), "Expected event deck to include Trouble")
 	for shop_only_type in [
 		GameConstants.EVENT_CLEAR_PATH,
 		GameConstants.EVENT_WILD_BERRIES,

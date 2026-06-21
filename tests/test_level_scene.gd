@@ -19,6 +19,8 @@ func run() -> void:
 	var hand := level.get_node("UI/Hand") as HandUI
 	var loot := level.get_node("UI/Loot")
 	var inventory := level.get_node("UI/Inventory")
+	var hud_background := level.get_node("UI/HudBackground")
+	var settings_menu := level.get_node("UI/SettingsMenu")
 	var player := level.get_node("Player") as GamePlayer
 	var camera := level.get_node("Camera3D") as Camera3D
 	var placement := level.get_node("PlacementController") as PlacementController
@@ -31,6 +33,8 @@ func run() -> void:
 	_assert(typed_level != null, "Expected level scene to use the Level script")
 	_assert(loot != null, "Expected level scene to include LootUI")
 	_assert(inventory != null, "Expected level scene to include InventoryUI")
+	_assert(hud_background != null, "Expected level scene to include the shared HUD background panel")
+	_assert(settings_menu != null, "Expected level scene to include a settings menu")
 	_assert(inventory.get_index() > loot.get_index(), "Expected inventory to sit above loot for backpack interaction")
 	_assert(player.loot_ui_path == NodePath("../UI/Loot"), "Expected player to connect to LootUI")
 	_assert(map.playable_width == 5 and map.playable_height == 5, "Expected level 001 to configure a 5x5 map")
@@ -186,7 +190,7 @@ func run() -> void:
 	_assert(second_deck_controller.deck_components["base"].size() == 18 and second_deck_controller.deck_components["level"].size() == 12, "Expected level 002 to combine the base deck with its twelve-card authored pack")
 	_assert(_count_enemy_cards(second_deck_controller.deck_components["base"]) == 1, "Expected level 002 to retain the level-one base deck recipe")
 	_assert(_all_enemy_cards_use_level_range(second_deck_controller.deck_components["base"], 2), "Expected level 002 base-deck enemies to scale to the current level")
-	_assert(_all_enemy_cards_use_level_range(second_deck_controller.deck_components["level"], 2), "Expected level 002 level-deck enemies and Ambush cards to use the current level")
+	_assert(_all_enemy_cards_use_level_range(second_deck_controller.deck_components["level"], 2), "Expected level 002 level-deck enemies and Trouble cards to use the current level")
 	_assert(_road_shape_counts(second_deck_controller.deck_components["level"]) == {
 		"Straight Road": 2,
 		"Corner": 1,
@@ -201,7 +205,7 @@ func run() -> void:
 		GameMap.ENCOUNTER_CACHE: 2,
 	}, "Expected seven of the eight authored Level 2 roads to have encounters")
 	_assert(_event_counts(second_deck_controller.deck_components["level"]) == {
-		GameConstants.EVENT_AMBUSH: 1,
+		GameConstants.EVENT_TROUBLE: 1,
 		GameConstants.EVENT_DRAW_TWO: 1,
 		GameConstants.EVENT_LUCKY_FIND: 1,
 		GameConstants.EVENT_DESTROY_TILE: 1,
@@ -239,7 +243,7 @@ func _all_level_cards_are_difficult(cards: Array[Dictionary]) -> bool:
 		if encounter.get("type", "") != GameMap.ENCOUNTER_ENEMY and event_type not in [
 			GameConstants.EVENT_DESTROY_TILE,
 			GameConstants.EVENT_ROTATE_TILE,
-			GameConstants.EVENT_AMBUSH,
+			GameConstants.EVENT_TROUBLE,
 		] and not is_dead_end:
 			return false
 	return true

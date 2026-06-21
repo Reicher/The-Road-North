@@ -39,7 +39,7 @@ func _initialize() -> void:
 	_assert(is_equal_approx(stats.gain_pulse_duration, 2.0), "Expected resource gain feedback to remain visible for two seconds")
 	_assert(is_equal_approx(stats.icon_size, PlayerStatsUI.STAT_ICON_SIZE), "Expected every resource icon to use the shared larger stat size")
 	_assert(is_equal_approx(stats.row_height, PlayerStatsUI.STAT_ROW_HEIGHT), "Expected larger resources to retain enough vertical spacing")
-	_assert(PlayerStatsUI.STAT_VALUE_FONT_SIZE == 38, "Expected every resource value to use the larger shared font size")
+	_assert(PlayerStatsUI.STAT_VALUE_FONT_SIZE == 30, "Expected every resource value to use the compact horizontal HUD font size")
 	for stat_name in ["food", "gold", "health", "deck", "power"]:
 		_assert(stats._get_stat_icon(stat_name) != null, "Expected exported stat texture to load for %s" % stat_name)
 	_assert(stats._get_stat_icon("health") == load("res://assets/images/stats/stat_health.png"), "Expected health to use the health icon")

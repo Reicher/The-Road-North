@@ -7,7 +7,7 @@ script = ExtResource("1_deck_recipes")
 
 ; Valid road keys: straight, corner, t_junction, four_way, dead_end, bridge.
 ; Valid encounter keys: enemy, berry, loot.
-; Valid event keys: destroy_tile, draw_two, rotate_tile, lucky_find, ambush.
+; Valid event keys: destroy_tile, draw_two, rotate_tile, lucky_find, trouble.
 ; Every recipe lists every card added by that deck.
 
 ; The base deck is rebuilt at the start of every level.
@@ -55,7 +55,7 @@ level_decks = {
 			"loot": 2
 		},
 		"events": {
-			"ambush": 1,
+			"trouble": 1,
 			"draw_two": 1,
 			"lucky_find": 1,
 			"destroy_tile": 1
@@ -75,7 +75,7 @@ level_decks = {
 			"loot": 2
 		},
 		"events": {
-			"ambush": 1,
+			"trouble": 1,
 			"draw_two": 1,
 			"lucky_find": 1,
 			"destroy_tile": 1,

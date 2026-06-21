@@ -79,12 +79,12 @@ The 18-card base deck is generated fresh at the start of each level:
 The Level 2 addition is generated fresh from a fixed 12-card recipe:
 - Roads: 2 Straight, 1 Corner, 1 T-Junction, 1 Four-Way, 2 Dead End, 1 Bridge
 - Encounters: exactly 3 enemies, 2 berry bushes, and 2 caches, assigned randomly across the eight Level 2 roads; one road stays plain
-- Events: exactly 1 Ambush, 1 Idea, 1 Lucky Find, and 1 Mirage
+- Events: exactly 1 Trouble, 1 Idea, 1 Lucky Find, and 1 Mirage
 
 The Level 3 addition is generated fresh from a fixed 14-card recipe:
 - Roads: 2 Straight, 2 Corner, 1 T-Junction, 1 Four-Way, 3 Dead End
 - Encounters: exactly 5 enemies, 2 berry bushes, and 2 caches, assigning one to every Level 3 road
-- Events: exactly 1 Ambush, 1 Idea, 1 Lucky Find, 1 Mirage, and 1 Doubt
+- Events: exactly 1 Trouble, 1 Idea, 1 Lucky Find, 1 Mirage, and 1 Doubt
 
 The combined deck is shuffled once at level start; no reshuffle.
 
@@ -175,13 +175,13 @@ Authored deck events and shop-only special events:
 | Doubt | Rotate a placed tile |
 | Lucky Find | Gain 3 food or 4 gold |
 | Clear Path | Remove encounter from a road (shop-only special) |
-| Ambush | Add enemy to a road |
+| Trouble | Add enemy to a road |
 | Wild Berries | Add berry bush to a road (shop-only special) |
 | Lost Belongings | Add cache to a road (shop-only special) |
 | Sleep | Discard full hand, redraw to normal hand size (shop-only special) |
 | It Was All a Dream | Restart level with fresh shuffle and reset state (shop special) |
 
-Targeting rules: same orthogonal range as road placement. Cannot target start, goal, or player's tile. Clear Path requires an encounter present; Ambush/Wild Berries/Lost Belongings require no encounter. Mirage/Doubt share targeting restrictions; Doubt previews clockwise rotation.
+Targeting rules: same orthogonal range as road placement. Cannot target start, goal, or player's tile. Clear Path requires an encounter present; Trouble/Wild Berries/Lost Belongings require no encounter. Mirage/Doubt share targeting restrictions; Doubt previews clockwise rotation.
 
 If no valid targets exist, the player may cancel. Destroying tiles may create awkward layouts.
 
@@ -191,7 +191,7 @@ If no valid targets exist, the player may cancel. Destroying tiles may create aw
 
 Encounters add risk/reward to route planning without changing the road-building loop.
 
-**Enemies:** power is uniformly rolled from `level` to `level + 2`, giving an average of `level + 1` (L1: 1–3, L2: 2–4, L3: 3–5). All enemy encounters in the current level use that level's range, including enemies added by road cards and Ambush. Attempting combat first moves the player onto the enemy tile and immediately spends the normal 1 food. Each Fight rolls `player_power + 1d6` against `enemy_power + 1d6`. A higher player score defeats and removes the enemy and grants loot. A higher enemy score deals exactly 1 health damage; a tie deals no damage. Defeat and tie keep the combat dialog open, allowing another Fight or a Retreat. Retreat moves the player back to the previous tile without another food cost and leaves the enemy unchanged.
+**Enemies:** power is uniformly rolled from `level` to `level + 2`, giving an average of `level + 1` (L1: 1–3, L2: 2–4, L3: 3–5). All enemy encounters in the current level use that level's range, including enemies added by road cards and Trouble. Attempting combat first moves the player onto the enemy tile and immediately spends the normal 1 food. Each Fight rolls `player_power + 1d6` against `enemy_power + 1d6`. A higher player score defeats and removes the enemy and grants loot. A higher enemy score deals exactly 1 health damage; a tie deals no damage. Defeat and tie keep the combat dialog open, allowing another Fight or a Retreat. Retreat moves the player back to the previous tile without another food cost and leaves the enemy unchanged.
 
 Enemy power-number color communicates risk before combat by comparing player power to enemy power: red at -2 or lower, orange at -1, yellow at equal power, light green at +1, and green at +2 or higher. After moving onto the enemy tile, a blocking popup shows power symbols and values for both fighters with `VS` between them, square pip dice showing `?`, and unknown totals below a visible full-width sum line. A `+` sits beside the player die on the dice row. The popup blocks other input without tinting the map or resource UI. Fight and Retreat remain visible but disabled while dice animate. Fight reveals both pip dice, plain totals, and Victory/Defeat/Tie. Defeat and Tie re-enable Fight and Retreat. Victory removes the enemy, resolves loot, and replaces both buttons with **OK**; pressing OK closes the popup and continues gameplay. A defeat at 0 health closes combat and immediately starts the normal death flow.
 

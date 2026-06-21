@@ -56,7 +56,7 @@ func _test_encounter_cards_scale_to_current_level() -> void:
 	var cards := [
 		{
 			"category": GameConstants.EVENT_CATEGORY,
-			"event_type": GameConstants.EVENT_AMBUSH,
+			"event_type": GameConstants.EVENT_TROUBLE,
 			"encounter": {"type": GameMap.ENCOUNTER_ENEMY, "power": 9},
 		},
 		{

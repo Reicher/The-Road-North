@@ -222,7 +222,7 @@ func _make_event_cards(count: int, rng: RandomNumberGenerator, config: Dictionar
 		{"title": "Idea", "detail": "Draw two extra cards.", "event_type": GameConstants.EVENT_DRAW_TWO},
 		{"title": "Doubt", "detail": "Rotate a placed tile.", "event_type": GameConstants.EVENT_ROTATE_TILE},
 		{"title": "Lucky Find", "detail": "Gain food or gold.", "event_type": GameConstants.EVENT_LUCKY_FIND},
-		{"title": "Ambush", "detail": "Add an enemy to a road.", "event_type": GameConstants.EVENT_AMBUSH},
+		{"title": "Trouble", "detail": "Add an enemy to a road.", "event_type": GameConstants.EVENT_TROUBLE},
 	]
 	_shuffle_cards(event_templates, rng)
 	var cards: Array[Dictionary] = []
@@ -231,7 +231,7 @@ func _make_event_cards(count: int, rng: RandomNumberGenerator, config: Dictionar
 		var card := _make_event_card(template["title"], template["detail"], template["event_type"])
 		var event_type := str(template["event_type"])
 		var level := int(config.get("level", 1))
-		if event_type == GameConstants.EVENT_AMBUSH:
+		if event_type == GameConstants.EVENT_TROUBLE:
 			_set_card_encounter(card, _make_enemy_encounter(rng, level))
 		cards.append(card)
 	return cards
@@ -259,7 +259,7 @@ func _make_event_card_for_type(event_type: String, rng: RandomNumberGenerator, l
 		push_warning("Unknown event type in deck recipe: %s" % event_type)
 		return {}
 	var card := _make_event_card(template["title"], template["detail"], event_type)
-	if event_type == GameConstants.EVENT_AMBUSH:
+	if event_type == GameConstants.EVENT_TROUBLE:
 		_set_card_encounter(card, _make_enemy_encounter(rng, level))
 	return card
 
@@ -274,8 +274,8 @@ func _event_template(event_type: String) -> Dictionary:
 			return {"title": "Doubt", "detail": "Rotate a placed tile."}
 		GameConstants.EVENT_LUCKY_FIND:
 			return {"title": "Lucky Find", "detail": "Gain food or gold."}
-		GameConstants.EVENT_AMBUSH:
-			return {"title": "Ambush", "detail": "Add an enemy to a road."}
+		GameConstants.EVENT_TROUBLE:
+			return {"title": "Trouble", "detail": "Add an enemy to a road."}
 		GameConstants.EVENT_RESTART_LEVEL:
 			return {"title": "It Was All a Dream", "detail": "Restart the level."}
 	return {}

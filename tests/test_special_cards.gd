@@ -139,7 +139,7 @@ func _test_fixed_level_two_deck(builder: DeckBuilder) -> void:
 		GameMap.ENCOUNTER_CACHE: 2,
 	}, "Expected seven of the eight Level 2 roads to have encounters")
 	_assert(_event_counts(level_cards) == {
-		GameConstants.EVENT_AMBUSH: 1,
+		GameConstants.EVENT_TROUBLE: 1,
 		GameConstants.EVENT_DRAW_TWO: 1,
 		GameConstants.EVENT_LUCKY_FIND: 1,
 		GameConstants.EVENT_DESTROY_TILE: 1,
@@ -176,7 +176,7 @@ func _test_fixed_level_three_deck(builder: DeckBuilder) -> void:
 		GameMap.ENCOUNTER_CACHE: 2,
 	}, "Expected all nine Level 3 roads to have encounters")
 	_assert(_event_counts(level_cards) == {
-		GameConstants.EVENT_AMBUSH: 1,
+		GameConstants.EVENT_TROUBLE: 1,
 		GameConstants.EVENT_DRAW_TWO: 1,
 		GameConstants.EVENT_LUCKY_FIND: 1,
 		GameConstants.EVENT_DESTROY_TILE: 1,

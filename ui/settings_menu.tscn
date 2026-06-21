@@ -1,0 +1,48 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/settings_menu.gd" id="1_settings"]
+
+[node name="SettingsMenu" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_settings")
+
+[node name="SettingsButton" type="Button" parent="."]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 0
+focus_mode = 0
+mouse_filter = 0
+text = ""
+
+[node name="SettingsPanel" type="PanelContainer" parent="."]
+visible = false
+layout_mode = 0
+mouse_filter = 0
+
+[node name="Margin" type="MarginContainer" parent="SettingsPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="Stack" type="VBoxContainer" parent="SettingsPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="SettingsPanel/Margin/Stack"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
+theme_override_font_sizes/font_size = 28
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="SettingsPanel/Margin/Stack"]
+custom_minimum_size = Vector2(0, 58)
+layout_mode = 2
+focus_mode = 0
+text = "Resume"

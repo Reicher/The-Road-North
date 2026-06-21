@@ -3,12 +3,12 @@
 [ext_resource type="Script" path="res://scripts/player_stats_ui.gd" id="1_sgy2y"]
 [ext_resource type="PackedScene" path="res://ui/stat_row.tscn" id="2_row"]
 
-[node name="PlayerStats" type="VBoxContainer"]
+[node name="PlayerStats" type="HBoxContainer"]
 anchors_preset = 0
-offset_right = 240.0
-offset_bottom = 330.0
+offset_right = 552.0
+offset_bottom = 54.0
 mouse_filter = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 8
 script = ExtResource("1_sgy2y")
 
 [node name="DeckRow" parent="." instance=ExtResource("2_row")]

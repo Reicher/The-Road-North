@@ -122,7 +122,7 @@ Focused `RefCounted` helper. Road placement hints (too far, occupied, terrain, o
 Same card pipeline as road cards, differing only in data and explicit behavior. No generic effect system.
 
 Immediate: Idea (draw 2 extra), Lucky Find (3 food or 4 gold), It was all a dream (restart level).
-Targeted: Mirage (destroy tile), Doubt (rotate tile), Clear Path (remove encounter), Ambush (add enemy), Wild Berries (add berry bush), Lost Belongings (add cache).
+Targeted: Mirage (destroy tile), Doubt (rotate tile), Clear Path (remove encounter), Trouble (add enemy), Wild Berries (add berry bush), Lost Belongings (add cache).
 
 All dragged onto map. Immediate events resolve on release. Targeted events enter confirm/cancel flow.
 

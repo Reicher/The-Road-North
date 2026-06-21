@@ -11,7 +11,7 @@ const EVENT_ART_TEXTURES := {
 	GameConstants.EVENT_ROTATE_TILE: "res://assets/images/cards/card_art_event_rotate_tile.png",
 	GameConstants.EVENT_LUCKY_FIND: "res://assets/images/cards/card_art_event_lucky_find.png",
 	GameConstants.EVENT_CLEAR_PATH: "res://assets/images/cards/card_art_event_clear_path.svg",
-	GameConstants.EVENT_AMBUSH: "res://assets/images/cards/card_art_event_ambush.svg",
+	GameConstants.EVENT_TROUBLE: "res://assets/images/cards/card_art_event_trouble.png",
 	GameConstants.EVENT_WILD_BERRIES: "res://assets/images/cards/card_art_event_wild_berries.svg",
 	GameConstants.EVENT_LOST_BELONGINGS: "res://assets/images/cards/card_art_event_lost_belongings.svg",
 	GameConstants.EVENT_SLEEP: "res://assets/images/cards/card_art_event_sleep.svg",

@@ -38,8 +38,8 @@ func _test_add_and_clear_encounters() -> void:
 		_assert(str(encounter.get("type", "")) == expected_type, "Expected event to add its encounter type")
 		_assert(str(roads.get_visual_tile(target).encounter_data.get("type", "")) == expected_type, "Expected event to update road visuals")
 		if expected_type == GameMap.ENCOUNTER_ENEMY:
-			_assert(encounter.get("revealed", false) == true, "Expected Ambush enemy to be revealed")
-			_assert(int(encounter.get("power", 0)) == 2, "Expected Ambush to keep its generated power")
+			_assert(encounter.get("revealed", false) == true, "Expected Trouble enemy to be revealed")
+			_assert(int(encounter.get("power", 0)) == 2, "Expected Trouble to keep its generated power")
 
 		var clear_card := hand.cards[0]
 		_assert(placement.begin_encounter_targeting(clear_card), "Expected Clear Path to enter targeting mode")
@@ -96,7 +96,7 @@ func _make_fixture() -> Dictionary:
 	ui.add_child(hand)
 	hand._ready()
 	hand.set_cards([
-		_encounter_card("Ambush", GameConstants.EVENT_AMBUSH, {"type": GameMap.ENCOUNTER_ENEMY, "power": 2}),
+		_encounter_card("Trouble", GameConstants.EVENT_TROUBLE, {"type": GameMap.ENCOUNTER_ENEMY, "power": 2}),
 		_clear_path_card(),
 		_encounter_card("Wild Berries", GameConstants.EVENT_WILD_BERRIES, {"type": GameMap.ENCOUNTER_BERRY_BUSH, "loot": [{"kind": "food", "amount": 3}]}),
 		_clear_path_card(),

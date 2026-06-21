@@ -19,7 +19,7 @@
 | ✅ | card_art_event_lucky_find.png | 132×72 | Card art for Lucky Find event |
 | ✅ | card_art_event_rotate_tile.png | 132×72 | Card art for Rotate Tile event |
 | 🟨 | card_art_event_clear_path.svg | 132×72 | Placeholder card art for Clear Path |
-| 🟨 | card_art_event_ambush.svg | 132×72 | Placeholder card art for Ambush |
+| 🟩 | card_art_event_trouble.png | 132×72 | Card art for Trouble |
 | 🟨 | card_art_event_wild_berries.svg | 132×72 | Placeholder card art for Wild Berries |
 | 🟨 | card_art_event_lost_belongings.svg | 132×72 | Placeholder card art for Lost Belongings |
 | 🟨 | card_art_event_sleep.svg | 132×72 | Placeholder card art for Sleep |

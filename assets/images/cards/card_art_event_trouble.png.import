@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://du8vqxu1jkg3p"
-path="res://.godot/imported/card_art_event_ambush.svg-565fa8514566903ce83ea953044c1820.ctex"
+uid="uid://8lmjyl0ndmiv"
+path="res://.godot/imported/card_art_event_trouble.png-9161e09d41822373a7c81d25146fb3e1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/images/cards/card_art_event_ambush.svg"
-dest_files=["res://.godot/imported/card_art_event_ambush.svg-565fa8514566903ce83ea953044c1820.ctex"]
+source_file="res://assets/images/cards/card_art_event_trouble.png"
+dest_files=["res://.godot/imported/card_art_event_trouble.png-9161e09d41822373a7c81d25146fb3e1.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

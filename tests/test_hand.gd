@@ -215,7 +215,7 @@ func _initialize() -> void:
 	_assert(is_equal_approx(event_category_label.offset_bottom, CardView.CATEGORY_RECT.end.y), "Expected event category badge to sit at the bottom of the card")
 	for event_type in [
 		GameConstants.EVENT_CLEAR_PATH,
-		GameConstants.EVENT_AMBUSH,
+		GameConstants.EVENT_TROUBLE,
 		GameConstants.EVENT_WILD_BERRIES,
 		GameConstants.EVENT_LOST_BELONGINGS,
 		GameConstants.EVENT_SLEEP,

@@ -1,15 +1,16 @@
 class_name PlayerStatsUI
-extends VBoxContainer
+extends HBoxContainer
 
-const STAT_ICON_SIZE := 54.0
-const STAT_VALUE_FONT_SIZE := 38
-const STAT_ROW_HEIGHT := 64.0
+const STAT_ICON_SIZE := 42.0
+const STAT_VALUE_FONT_SIZE := 30
+const STAT_ROW_HEIGHT := 54.0
 const ICON_PATHS := GameConstants.STAT_ICON_PATHS
 
 @export var player_path: NodePath
 @export var deck_controller_path: NodePath
-@export var top_margin := 10.0
-@export var left_margin := 10.0
+@export var top_margin := 18.0
+@export var left_margin := 18.0
+@export var right_margin := 18.0
 @export var icon_size := STAT_ICON_SIZE
 @export var row_height := STAT_ROW_HEIGHT
 @export var gain_pulse_duration := 2.0
@@ -22,6 +23,7 @@ var _food_row: StatRow
 var _gold_row: StatRow
 var _health_row: StatRow
 var _power_row: StatRow
+var _ready_completed := false
 
 ## Backward-compatible accessors for tests
 var _pulse_strength: Dictionary:
@@ -45,12 +47,17 @@ var _gain_amounts: Dictionary:
 
 
 func _ready() -> void:
+	if _ready_completed:
+		return
+	_ready_completed = true
 	position = Vector2(left_margin, top_margin)
 	_deck_row = $DeckRow as StatRow
 	_food_row = $FoodRow as StatRow
 	_gold_row = $GoldRow as StatRow
 	_health_row = $HealthRow as StatRow
 	_power_row = $PowerRow as StatRow
+	_configure_row_layout()
+	resized.connect(_layout_stats)
 	_food_row.low_warning_threshold = 3
 	_health_row.low_warning_threshold = 3
 	_player = get_node_or_null(player_path) as GamePlayer
@@ -70,6 +77,55 @@ func _ready() -> void:
 		inventory.stats_changed.connect(_on_inventory_stats_changed)
 	_last_values = _get_current_values()
 	_refresh_all_displays()
+	_layout_stats()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		_layout_stats()
+
+
+func _configure_row_layout() -> void:
+	for stat_name in ["deck", "food", "gold", "health", "power"]:
+		var row := _get_row(stat_name)
+		row.icon_size = icon_size
+		row.custom_minimum_size = Vector2(_get_row_width(stat_name), row_height)
+		row.size = row.custom_minimum_size
+		var value_label := row.get_node_or_null("Value") as Label
+		if value_label != null:
+			value_label.add_theme_font_size_override("font_size", STAT_VALUE_FONT_SIZE)
+		var gain_label := row.get_node_or_null("Gain") as Label
+		if gain_label != null:
+			gain_label.add_theme_font_size_override("font_size", STAT_VALUE_FONT_SIZE)
+
+
+func _get_row_width(stat_name: String) -> float:
+	match stat_name:
+		"deck":
+			return 118.0
+		"health":
+			return 106.0
+	return 92.0
+
+
+func _layout_stats() -> void:
+	var viewport_width := 0.0
+	if is_inside_tree():
+		viewport_width = get_viewport_rect().size.x
+	if viewport_width <= 0.0:
+		var parent_control := get_parent() as Control
+		if parent_control != null:
+			viewport_width = parent_control.size.x
+	if viewport_width <= 0.0:
+		return
+	var available_width := maxf(1.0, viewport_width - left_margin - right_margin)
+	position = Vector2(left_margin, top_margin)
+	size = Vector2(available_width, row_height)
+	var row_width_total := 0.0
+	for stat_name in ["deck", "food", "gold", "health", "power"]:
+		row_width_total += _get_row_width(stat_name)
+	var dynamic_separation := maxf(8.0, floorf((available_width - row_width_total) / 4.0))
+	add_theme_constant_override("separation", int(dynamic_separation))
 
 
 func sync_without_feedback() -> void:

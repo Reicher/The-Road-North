@@ -20,11 +20,13 @@ const SLOT_DISABLED_FILL := Color(0.86, 0.80, 0.66)
 
 @export var button_size := Vector2(144.0, 144.0)
 @export var slot_size := Vector2(93.0, 93.0)
-@export var top_margin := 18.0
+@export var top_margin := 73.0
+@export var left_margin := 5.0
 @export var right_margin := 18.0
 @export var slot_spacing := 4.0
 @export var overlay_gap := 0.0
 @export var overlay_padding := 6.0
+@export var frame_bottom_padding := 13.0
 @export var overlay_animation_duration := 0.36
 
 var items: Array[Dictionary] = [
@@ -323,7 +325,7 @@ func _bind_scene_nodes() -> void:
 	_backpack_button.add_theme_stylebox_override("pressed", _transparent_stylebox())
 	if not _backpack_button.pressed.is_connected(toggle_inventory):
 		_backpack_button.pressed.connect(toggle_inventory)
-	_frame.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, UIStyle.panel_fill(self), UIStyle.panel_border(self), 10, 3))
+	_frame.add_theme_stylebox_override("panel", _inventory_frame_stylebox())
 	_overlay.add_theme_stylebox_override("panel", _transparent_stylebox())
 
 
@@ -341,6 +343,18 @@ func _transparent_stylebox() -> StyleBoxFlat:
 	stylebox.border_color = Color(0, 0, 0, 0)
 	stylebox.set_corner_radius_all(0)
 	stylebox.set_border_width_all(0)
+	return stylebox
+
+
+func _inventory_frame_stylebox() -> StyleBoxFlat:
+	var stylebox := StyleBoxFlat.new()
+	stylebox.bg_color = UIStyle.panel_fill(self)
+	stylebox.border_color = Color(0, 0, 0, 0)
+	stylebox.set_border_width_all(0)
+	stylebox.corner_radius_top_left = 0
+	stylebox.corner_radius_top_right = 0
+	stylebox.corner_radius_bottom_left = 14
+	stylebox.corner_radius_bottom_right = 14
 	return stylebox
 
 
@@ -554,7 +568,7 @@ func _layout_inventory() -> void:
 		return
 
 	var active_button_size := button_size
-	var available_width := maxf(1.0, viewport_size.x - right_margin - 8.0)
+	var available_width := maxf(1.0, viewport_size.x - left_margin - 8.0)
 	var fixed_width := slot_spacing * float(SLOT_COUNT - 1) + overlay_padding * 2.0
 	var available_slot_width := maxf(1.0, available_width - button_size.x - fixed_width)
 	var responsive_scale := minf(1.0, available_slot_width / (slot_size.x * SLOT_COUNT))
@@ -563,16 +577,16 @@ func _layout_inventory() -> void:
 	_backpack_button.custom_minimum_size = active_button_size
 	_backpack_button.size = active_button_size
 	_backpack_button.position = Vector2(
-		viewport_size.x - active_button_size.x - right_margin,
+		left_margin,
 		top_margin
 	)
 
 	var overlay_width := _active_slot_size.x * SLOT_COUNT + slot_spacing * float(SLOT_COUNT - 1) + overlay_padding * 2.0
 	var overlay_height := active_button_size.y
 	_overlay.size = Vector2(overlay_width, overlay_height)
-	_overlay.pivot_offset = Vector2(overlay_width, overlay_height * 0.5)
+	_overlay.pivot_offset = Vector2(0.0, overlay_height * 0.5)
 	_overlay.position = Vector2(
-		clampf(_backpack_button.position.x - overlay_width - overlay_gap, 8.0, viewport_size.x - overlay_width),
+		clampf(_backpack_button.position.x + active_button_size.x + overlay_gap, 8.0, viewport_size.x - overlay_width - 8.0),
 		clampf(_backpack_button.position.y, 8.0, viewport_size.y - overlay_height - 8.0)
 	)
 	if _overlay_tween == null:
@@ -607,6 +621,7 @@ func _get_open_frame_rect() -> Rect2:
 	var top := minf(_overlay.position.y, _backpack_button.position.y)
 	var right := maxf(_overlay.position.x + _overlay.size.x, _backpack_button.position.x + _backpack_button.size.x)
 	var bottom := maxf(_overlay.position.y + _overlay.size.y, _backpack_button.position.y + _backpack_button.size.y)
+	bottom = maxf(bottom, _backpack_button.position.y + _backpack_button.size.y + frame_bottom_padding)
 	return Rect2(Vector2(left, top), Vector2(right - left, bottom - top))
 
 

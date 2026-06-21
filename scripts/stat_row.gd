@@ -108,8 +108,8 @@ func _finish_pulse() -> void:
 func _update_value_color() -> void:
 	if _value_label == null:
 		return
-	var base_color := Color(1.0, 0.96, 0.84)
-	var low_red := Color(1.0, 0.22, 0.18)
+	var base_color := Color(0.20, 0.14, 0.09)
+	var low_red := Color(0.78, 0.08, 0.06)
 	if _pulse_strength > 0.0:
 		_value_label.add_theme_color_override("font_color", base_color.lerp(_get_glow_color(), 0.86 * _pulse_strength))
 	elif _low_blink_strength > 0.0:
@@ -127,8 +127,8 @@ func _update_value_color() -> void:
 
 func _get_glow_color() -> Color:
 	if _pulse_sign < 0:
-		return Color(1.0, 0.32, 0.22)
-	return Color(0.32, 1.0, 0.38)
+		return Color(0.84, 0.12, 0.08)
+	return Color(0.08, 0.52, 0.18)
 
 
 func check_low_warning(value: int) -> void:
