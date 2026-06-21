@@ -4,8 +4,8 @@ extends RefCounted
 const UTILITY_ITEM_DROP_CHANCE := 0.15
 const BINOCULARS := {
 	"name": "Binoculars",
-	"effect": "Place cards further away.",
-	"target_range_bonus": 1,
+	"effect": "+1 Sight",
+	"sight_bonus": 1,
 }
 const GOLDSMITHS_SCALE := {
 	"name": "Goldsmith's Scale",

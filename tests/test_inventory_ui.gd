@@ -33,7 +33,7 @@ func _initialize() -> void:
 	_assert(not overlay.visible, "Expected inventory overlay to start closed")
 	_assert(inventory.get_active_items().size() == 1, "Expected player inventory to start with one visible weapon")
 	_assert(inventory.get_power_bonus() == 1, "Expected Walking Stick to add one power")
-	_assert(inventory.get_target_range_bonus() == 0, "Expected the starting inventory not to increase target range")
+	_assert(inventory.get_sight_bonus() == 0, "Expected the starting inventory not to increase Sight")
 	var stats_signal_result := {"count": 0}
 	inventory.stats_changed.connect(func() -> void:
 		stats_signal_result["count"] += 1
@@ -114,7 +114,7 @@ func _initialize() -> void:
 		"effect": "+2 Power",
 		"power_bonus": 2,
 	}), "Expected adding a test item to succeed")
-	_assert(inventory.get_target_range_bonus() == 0, "Expected weapons not to increase target range")
+	_assert(inventory.get_sight_bonus() == 0, "Expected weapons not to increase Sight")
 	_assert(stats_signal_result["count"] == 1, "Expected adding items to notify stat listeners")
 	inventory.set_inventory_open(true)
 	inventory._layout_inventory()
@@ -147,11 +147,11 @@ func _initialize() -> void:
 	_assert((slots.get_child(2) as Button).icon != null, "Expected moved inventory item to keep its icon")
 
 	inventory.set_items([
-		{"name": "Binoculars", "effect": "Place cards further away.", "target_range_bonus": 1},
+		{"name": "Binoculars", "effect": "+1 Sight", "sight_bonus": 1},
 		{"name": "Goldsmith's Scale", "effect": "Gain twice as much gold.", "gold_multiplier": 2},
 		{"name": "Field Medic's Bag", "effect": "+2 Max Health", "max_health_bonus": 2},
 	])
-	_assert(inventory.get_target_range_bonus() == 1, "Expected Binoculars to increase target range by one")
+	_assert(inventory.get_sight_bonus() == 1, "Expected Binoculars to grant +1 Sight")
 	_assert(inventory.get_gold_multiplier() == 2, "Expected Goldsmith's Scale to double gold gains")
 	_assert(inventory.get_max_health_bonus() == 2, "Expected Field Medic's Bag to increase max health by two")
 	_assert(inventory.get_minimum_hand_size_bonus() == 0, "Expected utility items without a hand bonus not to change minimum hand size")

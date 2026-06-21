@@ -15,6 +15,43 @@ const MODE_ROAD_PLACEMENT := "road_placement"
 const MODE_DESTROY_TARGETING := "destroy_targeting"
 const MODE_ROTATE_TARGETING := "rotate_targeting"
 const MODE_ENCOUNTER_TARGETING := "encounter_targeting"
+const SIGHT_FOG_COLOR := Color(0.008, 0.012, 0.016, 0.75)
+const SIGHT_MASK_SHADER := """
+shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never, depth_test_disabled, fog_disabled;
+
+uniform sampler2D depth_texture : hint_depth_texture, repeat_disable, filter_nearest;
+uniform vec2 player_grid;
+uniform vec2 map_size;
+uniform float tile_size;
+uniform float sight;
+uniform vec4 fog_color : source_color;
+
+void vertex() {
+	POSITION = vec4(VERTEX.xy, 1.0, 1.0);
+}
+
+void fragment() {
+	float depth = textureLod(depth_texture, SCREEN_UV, 0.0).r;
+	if (depth <= 0.00001) {
+		discard;
+	}
+	vec3 ndc = vec3(SCREEN_UV * 2.0 - 1.0, depth);
+	vec4 view_position = INV_PROJECTION_MATRIX * vec4(ndc, 1.0);
+	view_position.xyz /= view_position.w;
+	vec3 world_position = (INV_VIEW_MATRIX * vec4(view_position.xyz, 1.0)).xyz;
+	vec2 grid_position = floor(world_position.xz / tile_size);
+	bool inside_map = grid_position.x >= 0.0 && grid_position.y >= 0.0
+		&& grid_position.x < map_size.x && grid_position.y < map_size.y;
+	float distance_from_player = abs(grid_position.x - player_grid.x)
+		+ abs(grid_position.y - player_grid.y);
+	if (inside_map && distance_from_player <= sight) {
+		discard;
+	}
+	ALBEDO = fog_color.rgb;
+	ALPHA = fog_color.a;
+}
+"""
 
 class TargetPreview extends Node3D:
 	var preview_color := Color.TRANSPARENT
@@ -38,6 +75,57 @@ class TargetPreview extends Node3D:
 		_mesh_instance.mesh = mesh
 
 
+class SightFog extends Node3D:
+	var fogged_positions: Array[Vector2i] = []
+	var _mask: MeshInstance3D
+	var _mask_material: ShaderMaterial
+
+
+	func show_for(map: GameMap, origin: Vector2i, sight: int) -> void:
+		_ensure_mask()
+		fogged_positions.clear()
+		for y in map.playable_height:
+			for x in map.playable_width:
+				var grid_position := Vector2i(x, y)
+				if _manhattan_distance(origin, grid_position) <= sight:
+					continue
+				fogged_positions.append(grid_position)
+		_mask_material.set_shader_parameter("player_grid", Vector2(origin))
+		_mask_material.set_shader_parameter("map_size", Vector2(map.playable_width, map.playable_height))
+		_mask_material.set_shader_parameter("tile_size", map.tile_size)
+		_mask_material.set_shader_parameter("sight", float(sight))
+		_mask_material.set_shader_parameter("fog_color", SIGHT_FOG_COLOR)
+		visible = true
+
+
+	func hide_fog() -> void:
+		visible = false
+
+
+	func _ensure_mask() -> void:
+		if _mask != null:
+			return
+		var shader := Shader.new()
+		shader.code = SIGHT_MASK_SHADER
+		_mask_material = ShaderMaterial.new()
+		_mask_material.shader = shader
+		_mask_material.render_priority = 127
+		var quad := QuadMesh.new()
+		quad.size = Vector2(2.0, 2.0)
+		quad.material = _mask_material
+		_mask = MeshInstance3D.new()
+		_mask.name = "FullscreenMask"
+		_mask.mesh = quad
+		_mask.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_mask.extra_cull_margin = 16384.0
+		add_child(_mask)
+
+
+	func _manhattan_distance(from: Vector2i, to: Vector2i) -> int:
+		var delta := to - from
+		return absi(delta.x) + absi(delta.y)
+
+
 @export var map_path: NodePath
 @export var roads_path: NodePath
 @export var player_path: NodePath
@@ -46,7 +134,7 @@ class TargetPreview extends Node3D:
 @export var deck_controller_path: NodePath
 @export var tile_scene: PackedScene = preload("res://scenes/tile.tscn")
 @export var controls_scene: PackedScene = preload("res://ui/placement_controls.tscn")
-@export_range(1, 8, 1) var target_range := 1
+@export_range(1, 8, 1) var base_sight := 2
 
 var active_card: CardView
 var active_definition: Resource
@@ -63,6 +151,7 @@ var _deck_controller: DeckController
 var _validator: PlacementValidator
 var _preview_tile: RoadTile
 var _target_preview: TargetPreview
+var _sight_fog: SightFog
 var _controls_layer: PlacementControlsUI
 var _placement_valid := false
 var _hidden_preview_trees_position := Vector2i(-1, -1)
@@ -95,7 +184,7 @@ func _ready() -> void:
 		return
 
 	_validator = PlacementValidator.new()
-	_validator.setup(_map, _player, get_target_range)
+	_validator.setup(_map, _player, get_sight)
 	_ensure_controls()
 	_hide_preview()
 
@@ -198,6 +287,7 @@ func _begin_mode(card: CardView, mode: String, definition: Resource = null) -> v
 	_hand.interaction_enabled = false
 	_hand.clear_focus()
 	_hide_preview()
+	_show_sight_fog()
 	placement_started.emit(card)
 
 
@@ -354,9 +444,14 @@ func _refresh_preview() -> void:
 	set_process(true)
 
 
-func get_target_range() -> int:
-	var inventory_bonus := _inventory.get_target_range_bonus() if _inventory != null else 0
-	return target_range + inventory_bonus
+func get_sight() -> int:
+	var inventory_bonus := _inventory.get_sight_bonus() if _inventory != null else 0
+	return base_sight + inventory_bonus
+
+
+func is_in_sight(grid_position: Vector2i) -> bool:
+	var delta := grid_position - _player.grid_position
+	return absi(delta.x) + absi(delta.y) <= get_sight()
 
 
 func _confirm_destroy_target() -> bool:
@@ -458,9 +553,19 @@ func _hide_preview() -> void:
 		_preview_tile.visible = false
 	if _target_preview != null:
 		_target_preview.visible = false
+	if _sight_fog != null:
+		_sight_fog.hide_fog()
 	if _controls_layer != null:
 		_controls_layer.hide_all()
 	set_process(false)
+
+
+func _show_sight_fog() -> void:
+	if _sight_fog == null:
+		_sight_fog = SightFog.new()
+		_sight_fog.name = "SightFog"
+		add_child(_sight_fog)
+	_sight_fog.show_for(_map, _player.grid_position, get_sight())
 
 
 func _hide_preview_trees(grid_position: Vector2i) -> void:

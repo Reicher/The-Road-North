@@ -17,13 +17,13 @@ const HINT_HAS_ENCOUNTER := "Road already has an encounter"
 
 var _map: GameMap
 var _player: GamePlayer
-var _target_range_func: Callable
+var _sight_func: Callable
 
 
-func setup(map: GameMap, player: GamePlayer, target_range_func: Callable) -> void:
+func setup(map: GameMap, player: GamePlayer, sight_func: Callable) -> void:
 	_map = map
 	_player = player
-	_target_range_func = target_range_func
+	_sight_func = sight_func
 
 
 func get_road_placement_hint(grid_position: Vector2i, connections: Dictionary, placeable_on_river: bool = false) -> String:
@@ -64,7 +64,7 @@ func get_tile_target_hint(grid_position: Vector2i, event_type: String) -> String
 
 
 func is_valid_destroy_target(grid_position: Vector2i) -> bool:
-	if not _is_in_target_range(grid_position):
+	if not _is_in_sight(grid_position):
 		return false
 	if _map.get_tile(grid_position) == null:
 		return false
@@ -91,15 +91,15 @@ func is_valid_encounter_target(grid_position: Vector2i, event_type: String) -> b
 	return encounter.is_empty()
 
 
-func _is_in_target_range(grid_position: Vector2i) -> bool:
+func _is_in_sight(grid_position: Vector2i) -> bool:
 	var delta: Vector2i = grid_position - _player.grid_position
 	var distance: int = absi(delta.x) + absi(delta.y)
-	return distance > 0 and distance <= _target_range_func.call()
+	return distance > 0 and distance <= _sight_func.call()
 
 
 func _is_too_far_away(grid_position: Vector2i) -> bool:
 	var delta: Vector2i = grid_position - _player.grid_position
-	return absi(delta.x) + absi(delta.y) > _target_range_func.call()
+	return absi(delta.x) + absi(delta.y) > _sight_func.call()
 
 
 func _road_leads_off_map(grid_position: Vector2i, connections: Dictionary) -> bool:

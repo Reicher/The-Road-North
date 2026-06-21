@@ -74,7 +74,15 @@ func _initialize() -> void:
 
 	var straight_card = hand.cards[0]
 	var hand_rest_position: Vector2 = hand.position
+	_assert(placement.get_sight() == 2, "Expected placement to start with Sight 2")
 	_assert(placement.begin_placement(straight_card), "Expected road card to enter placement mode")
+	var sight_fog := placement.get_node("SightFog")
+	_assert(sight_fog.visible, "Expected fog-of-war to appear during placement")
+	_assert(sight_fog.get("fogged_positions").size() == 72, "Expected only cells outside Sight 2 to be fogged")
+	var fullscreen_mask := sight_fog.get_node("FullscreenMask") as MeshInstance3D
+	var mask_material := (fullscreen_mask.mesh as QuadMesh).material as ShaderMaterial
+	_assert(is_equal_approx(mask_material.get_shader_parameter("fog_color").a, 0.75), "Expected the fullscreen fog mask to darken content outside Sight by 75 percent")
+	_assert(mask_material.shader.code.contains("inside_map && distance_from_player <= sight"), "Expected only playable cells within Sight to bypass fog-of-war")
 	_assert(placement.is_placing(), "Expected placement mode to become active")
 	_assert(not player.input_enabled, "Expected movement input to pause during placement")
 	_assert(hand.get_focused_card() == null, "Expected placement mode to clear the focused card")
@@ -92,30 +100,30 @@ func _initialize() -> void:
 	_assert(placement.get_node("PlacementControls/Buttons/CancelButton").text.is_empty(), "Expected cancel to use an icon instead of text")
 	_assert(placement.get_node_or_null("PlacementHint_4_7") == null, "Expected road placement not to reveal valid empty tiles")
 
-	map.tile_pressed.emit(Vector2i(4, 6))
+	map.tile_pressed.emit(Vector2i(4, 5))
 	_assert(placement.preview_position == Vector2i(-1, -1), "Expected tapping the map not to select a road preview")
-	_set_initial_preview(placement, Vector2i(4, 6))
-	_assert(not placement.has_valid_preview(), "Expected non-adjacent preview to be invalid")
-	_assert(_get_hint(placement) == "Too far away", "Expected range to be the highest-priority placement hint")
+	_set_initial_preview(placement, Vector2i(4, 5))
+	_assert(not placement.has_valid_preview(), "Expected a preview beyond Sight to be invalid")
+	_assert(_get_hint(placement) == "Too far away", "Expected Sight to be the highest-priority placement hint")
 	hand.set_inactive(true, false)
-	placement.get_node("PlacementControls").call("position_buttons", Vector2i(4, 6), map, hand)
-	var preview_top_edge := map.grid_edge_to_screen_position(Vector2i(4, 6), false)
+	placement.get_node("PlacementControls").call("position_buttons", Vector2i(4, 5), map, hand)
+	var preview_top_edge := map.grid_edge_to_screen_position(Vector2i(4, 5), false)
 	_assert(
 		prompt_label.position.y + prompt_label.size.y + 6.0 <= preview_top_edge.y + 0.01
 			or is_equal_approx(prompt_label.position.y, 8.0),
 		"Expected placement error text above the preview tile or clamped to the screen edge"
 	)
-	_assert(not map.are_cell_trees_visible(Vector2i(4, 6)), "Expected preview to hide the empty cell's existing trees")
+	_assert(not map.are_cell_trees_visible(Vector2i(4, 5)), "Expected preview to hide the empty cell's existing trees")
 	_assert(not placement.confirm_placement(), "Expected confirm to reject invalid preview")
-	_assert(map.get_tile(Vector2i(4, 6)) == null, "Expected invalid confirm not to place a tile")
+	_assert(map.get_tile(Vector2i(4, 5)) == null, "Expected invalid confirm not to place a tile")
 	_assert(hand.cards.has(straight_card), "Expected invalid confirm to keep the card in hand")
 
 	map.tile_pressed.emit(Vector2i(4, 7))
-	_assert(placement.preview_position == Vector2i(4, 6), "Expected tapping another tile not to move the road preview")
-	_drag_preview(placement, Vector2i(4, 6), Vector2i(4, 7))
+	_assert(placement.preview_position == Vector2i(4, 5), "Expected tapping another tile not to move the road preview")
+	_drag_preview(placement, Vector2i(4, 5), Vector2i(4, 7))
 	_assert(placement.has_valid_preview(), "Expected adjacent matching road to be valid")
 	_assert(_get_hint(placement).is_empty(), "Expected valid placement to hide the helper text")
-	_assert(map.are_cell_trees_visible(Vector2i(4, 6)), "Expected moving preview to restore the previous cell's trees")
+	_assert(map.are_cell_trees_visible(Vector2i(4, 5)), "Expected moving preview to restore the previous cell's trees")
 	_assert(not map.are_cell_trees_visible(Vector2i(4, 7)), "Expected preview to hide trees under the proposed road")
 	_assert(not placement.get_node("PlacementControls/PromptLabel").visible, "Expected placement prompt to hide after preview appears")
 	_assert(not placement.get_node("PlacementControls/Buttons/RotateButton").disabled, "Expected rotate button to enable after selecting a preview")
@@ -158,6 +166,7 @@ func _initialize() -> void:
 	placement.rotate_preview()
 	_assert(placement.has_valid_preview(), "Expected rotating back to restore valid placement")
 	_assert(placement.confirm_placement(), "Expected valid preview to place the road")
+	_assert(not sight_fog.visible, "Expected fog-of-war to disappear after placement")
 	_assert(map.get_tile(Vector2i(4, 7)) != null, "Expected confirmed placement to store map tile")
 	_assert(map.get_tile(Vector2i(4, 7)).has("encounter"), "Expected enemy road card to place an encounter tile")
 	_assert(map.get_tile(Vector2i(4, 7))["encounter"]["revealed"] == true, "Expected enemy to reveal when the road card is placed")
@@ -180,6 +189,15 @@ func _initialize() -> void:
 	_assert(player.input_enabled, "Expected movement input to resume after cancel")
 	_assert(hand.position == hand_rest_position, "Expected hand to return after cancelling placement")
 	_assert(hand.get_focused_card() == null, "Expected cancelled placement to leave the hand unfocused")
+
+	var binocular_inventory := InventoryUI.new()
+	binocular_inventory.items[1] = ItemCatalog.BINOCULARS.duplicate(true)
+	placement.set("_inventory", binocular_inventory)
+	_assert(placement.get_sight() == 3, "Expected Binoculars to grant +1 Sight")
+	_assert(placement.begin_placement(corner_card), "Expected placement with Binoculars to start")
+	_assert(sight_fog.get("fogged_positions").size() == 65, "Expected Binoculars to expand the normal area to Sight 3")
+	placement.cancel_placement()
+	binocular_inventory.free()
 
 	quit()
 

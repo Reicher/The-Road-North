@@ -158,9 +158,14 @@ Placement mode:
 - Preview follows drag, snaps to tiles; green = valid, red = invalid
 - After release: drag preview to move it, buttons for rotate/confirm/cancel
 - Double-tap preview to rotate; confirm only active when valid
-- Must be on an empty tile within orthogonal target range (default 1)
+- Must be on an empty tile within Sight. The player starts with Sight 2.
 
-Validity requires: empty tile, within range, connects correctly to player's tile, matches all neighboring connections, no openings off-map. Only the current preview shows validity — no advance hints.
+During road placement and directed event targeting, cells within Sight are shown
+normally and all cells outside Sight are dimmed with fog-of-war. The overlay is
+hidden during normal movement and other game states. The world outside the
+playable map boundary is always covered by fog-of-war while the overlay is active.
+
+Validity requires: empty tile, within Sight, connects correctly to player's tile, matches all neighboring connections, no openings off-map. Only the current preview shows validity — no advance hints.
 
 ---
 
@@ -181,7 +186,7 @@ Authored deck events and shop-only special events:
 | Sleep | Discard full hand, redraw to normal hand size (shop-only special) |
 | It Was All a Dream | Restart level with fresh shuffle and reset state (shop special) |
 
-Targeting rules: same orthogonal range as road placement. Cannot target start, goal, or player's tile. Clear Path requires an encounter present; Trouble/Wild Berries/Lost Belongings require no encounter. Mirage/Doubt share targeting restrictions; Doubt previews clockwise rotation.
+Targeting rules: same Sight as road placement. Cannot target start, goal, or player's tile. Clear Path requires an encounter present; Trouble/Wild Berries/Lost Belongings require no encounter. Mirage/Doubt share targeting restrictions; Doubt previews clockwise rotation.
 
 If no valid targets exist, the player may cancel. Destroying tiles may create awkward layouts.
 
@@ -206,7 +211,7 @@ Cache weapons normally have power from `level` to `level + 2`, evenly distribute
 **Utility items:** Caches have a total 15% chance to contain a uniformly
 selected utility item instead of a weapon.
 
-- Binoculars: +1 target range (Manhattan distance 2)
+- Binoculars: +1 Sight
 - Goldsmith's Scale: doubles all gold gained
 - Field Medic's Bag: +2 max health while carried
 - Guiding Charm: minimum hand size +1 while carried

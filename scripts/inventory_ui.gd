@@ -108,11 +108,11 @@ func get_power_bonus() -> int:
 	return highest
 
 
-func get_target_range_bonus() -> int:
+func get_sight_bonus() -> int:
 	var bonus := 0
 	for item in items:
 		if not item.is_empty():
-			bonus += int(item.get("target_range_bonus", 0))
+			bonus += int(item.get("sight_bonus", 0))
 	return bonus
 
 

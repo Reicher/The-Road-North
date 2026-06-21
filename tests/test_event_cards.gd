@@ -73,6 +73,8 @@ func _test_destroy_tile_event() -> void:
 	var destroy_card = hand.cards[0]
 
 	_assert(placement.begin_destroy_targeting(destroy_card), "Expected destroy event to enter targeting mode")
+	var sight_fog := placement.get_node("SightFog")
+	_assert(sight_fog.visible, "Expected fog-of-war to appear during directed event targeting")
 	_assert(not player.input_enabled, "Expected movement input to pause during targeting")
 	_assert(not roads.get_visual_tile(Vector2i(4, 7)).highlight_enabled, "Expected valid targets not to be revealed")
 	_assert(not roads.get_visual_tile(Vector2i(3, 7)).highlight_enabled, "Expected diagonal placed tiles not to be highlighted")
@@ -99,10 +101,10 @@ func _test_destroy_tile_event() -> void:
 	_assert(not placement.has_valid_preview(), "Expected goal tile target to be invalid")
 
 	_drag_preview(placement, Vector2i(4, 0), Vector2i(3, 7))
-	_assert(not placement.has_valid_preview(), "Expected diagonal tile target to be outside target range")
-	_assert(_get_hint(placement) == "Too far away", "Expected range to be the highest-priority target hint")
+	_assert(placement.has_valid_preview(), "Expected a Manhattan-distance-two tile to be within Sight 2")
+	_assert(_get_hint(placement).is_empty(), "Expected a target within Sight to hide the helper text")
 	var target_preview = placement.get("_target_preview")
-	_assert(target_preview != null and target_preview.preview_color == PlacementController.INVALID_COLOR, "Expected only the selected invalid target to show red")
+	_assert(target_preview != null and target_preview.preview_color == PlacementController.VALID_COLOR, "Expected the selected target within Sight to show green")
 
 	_drag_preview(placement, Vector2i(3, 7), Vector2i(4, 7))
 	_assert(placement.has_valid_preview(), "Expected placed tile target to be valid")
@@ -110,7 +112,7 @@ func _test_destroy_tile_event() -> void:
 	_assert(target_preview.preview_color == PlacementController.VALID_COLOR, "Expected only the selected valid target to show green")
 
 	_drag_preview(placement, Vector2i(4, 7), Vector2i(6, 6))
-	_assert(not placement.has_valid_preview(), "Expected remote placed tile target to be outside target range")
+	_assert(not placement.has_valid_preview(), "Expected remote placed tile target to be outside Sight")
 	_assert(not placement.confirm_placement(), "Expected remote destroy target not to confirm")
 	_assert(map.get_tile(Vector2i(6, 6)) != null, "Expected remote tile to remain placed")
 
@@ -120,6 +122,7 @@ func _test_destroy_tile_event() -> void:
 	_assert(roads.get_visual_tile(Vector2i(4, 7)) == null, "Expected destroy event to remove the adjacent visual tile")
 	_assert(not hand.cards.has(destroy_card), "Expected confirmed destroy event to consume the card")
 	_assert(player.input_enabled, "Expected movement input to resume after destroy")
+	_assert(not sight_fog.visible, "Expected fog-of-war to disappear after targeting")
 
 	root.queue_free()
 
@@ -183,7 +186,7 @@ func _test_rotate_tile_event() -> void:
 	_set_initial_preview(placement, Vector2i(4, 8))
 	_assert(not placement.has_valid_preview(), "Expected player tile rotate target to be invalid")
 	_drag_preview(placement, Vector2i(4, 8), Vector2i(6, 6))
-	_assert(not placement.has_valid_preview(), "Expected remote rotate target to be outside target range")
+	_assert(not placement.has_valid_preview(), "Expected remote rotate target to be outside Sight")
 	_drag_preview(placement, Vector2i(6, 6), Vector2i(4, 7))
 	_assert(not placement.has_valid_preview(), "Expected unchanged rotate target not to be confirmable")
 	var target_preview = placement.get("_target_preview")

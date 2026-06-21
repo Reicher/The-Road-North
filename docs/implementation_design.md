@@ -107,13 +107,13 @@ Modes: road placement, destroy targeting, rotate targeting, encounter targeting.
 
 Flow: card dragged above hand → mode starts → preview follows drag → release shows controls → drag preview to move it → rotate/confirm/cancel. Double-tap rotates. Queries Map for validity; does not modify state until confirmation.
 
-Target range = base (1) + inventory bonus (Binoculars). Only the active preview shows green/red — no advance hints.
+Sight = base (2) + inventory bonus (Binoculars). Placement and directed event modes dim cells outside Sight with fog-of-war. Only the active preview shows green/red — no advance hints.
 
 ---
 
 ## PlacementValidator
 
-Focused `RefCounted` helper. Road placement hints (too far, occupied, terrain, off-map, doesn't fit). Tile targeting validation. Range checks via callable for live target range. Keeps PlacementController focused on interaction.
+Focused `RefCounted` helper. Road placement hints (too far, occupied, terrain, off-map, doesn't fit). Tile targeting validation. Sight checks via callable for live Sight. Keeps PlacementController focused on interaction.
 
 ---
 
@@ -146,7 +146,7 @@ No generic effect engine, no economy system, no equipment framework beyond stron
 
 **WeaponCatalog:** Walking Stick (+1), Dagger (+2), Hatchet (+3), Machete (+4), Sword (+5), Mace (+6), Spear (+7), Sword & Shield (+8), Great Axe (+9). Provides `roll_weapon(rng, target_power, power_weights)` with weighted randomization. Cache weapons normally use `level` through `level + 2`, with a 15% chance for `level + 3`.
 
-**ItemCatalog:** Utility items share a 15% cache drop chance. Carried item effects include target range, gold multiplier, max health, and minimum hand size bonuses. Both catalogs are static `RefCounted` classes.
+**ItemCatalog:** Utility items share a 15% cache drop chance. Carried item effects include Sight, gold multiplier, max health, and minimum hand size bonuses. Both catalogs are static `RefCounted` classes.
 
 ---
 
