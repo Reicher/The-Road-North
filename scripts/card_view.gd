@@ -33,6 +33,7 @@ const ENCOUNTER_MARKER_TEXTURES := {
 	GameMap.ENCOUNTER_TAVERN: "res://assets/images/cards/card_marker_tavern.svg",
 	GameMap.ENCOUNTER_WITCH_HUT: "res://assets/images/cards/card_marker_witch_hut.svg",
 	GameMap.ENCOUNTER_SHRINE: "res://assets/images/cards/card_marker_shrine.svg",
+	GameMap.ENCOUNTER_GRAVEYARD: "res://assets/images/cards/card_marker_graveyard.svg",
 }
 
 signal pointer_pressed(card: CardView, canvas_position: Vector2)
@@ -74,6 +75,15 @@ signal pointer_released(card: CardView, canvas_position: Vector2)
 		queue_redraw()
 
 @export var event_type := ""
+@export var deck_source := ""
+@export var rotation_locked := false:
+	set(value):
+		rotation_locked = value
+		queue_redraw()
+@export_range(0, 3, 1) var rotation_steps := 0:
+	set(value):
+		rotation_steps = posmod(value, 4)
+		queue_redraw()
 @export var encounter_data := {}:
 	set(value):
 		encounter_data = value
@@ -141,6 +151,8 @@ func _draw() -> void:
 	else:
 		UIStyle.draw_panel(self, rect, _resolved_card_color(), border)
 	_draw_card_art_texture(art_rect)
+	if rotation_locked:
+		_draw_rotation_lock(art_rect)
 
 	if focused:
 		var focus_box := UIStyle.rounded_box(self, Color.TRANSPARENT, UIStyle.focus(self), -1, 4)
@@ -161,6 +173,9 @@ func configure(card_data: Dictionary) -> void:
 	category = str(card_data.get("category", "Road"))
 	detail = str(card_data.get("detail", detail))
 	event_type = str(card_data.get("event_type", ""))
+	deck_source = str(card_data.get("deck_source", ""))
+	rotation_locked = bool(card_data.get("rotation_locked", false))
+	rotation_steps = int(card_data.get("rotation_steps", 0))
 	var raw_encounter: Dictionary = card_data.get("encounter", card_data.get("enemy", {}))
 	if not raw_encounter.is_empty() and not raw_encounter.has("type") and card_data.has("enemy"):
 		raw_encounter = raw_encounter.duplicate(true)
@@ -269,7 +284,14 @@ func get_card_data() -> Dictionary:
 		"event_type": event_type,
 		"encounter": encounter_data.duplicate(true),
 		"card_color": card_color,
+		"deck_source": deck_source,
+		"rotation_locked": rotation_locked,
+		"rotation_steps": rotation_steps,
 	}
+
+
+func set_rotation_lock(value: bool) -> void:
+	rotation_locked = value
 
 
 func _title_from_definition() -> String:
@@ -281,7 +303,7 @@ func _title_from_definition() -> String:
 func _card_header_text() -> String:
 	if category != GameConstants.ROAD_CATEGORY or tile_definition == null:
 		return title
-	if _encounter_type() in GameConstants.PERMANENT_ENCOUNTER_TYPES:
+	if _encounter_type() in GameConstants.REUSABLE_ENCOUNTER_TYPES:
 		return title
 	return _title_from_definition()
 
@@ -289,7 +311,12 @@ func _card_header_text() -> String:
 func _draw_card_art_texture(art_rect: Rect2) -> void:
 	var art_texture := _card_art_texture()
 	if art_texture != null:
-		draw_texture_rect(art_texture, art_rect, false)
+		if category == GameConstants.ROAD_CATEGORY and rotation_steps != 0:
+			draw_set_transform(art_rect.get_center(), float(rotation_steps) * PI * 0.5)
+			draw_texture_rect(art_texture, Rect2(-art_rect.size * 0.5, art_rect.size), false)
+			draw_set_transform(Vector2.ZERO, 0.0)
+		else:
+			draw_texture_rect(art_texture, art_rect, false)
 
 	if category == GameConstants.EVENT_CATEGORY:
 		return
@@ -301,6 +328,14 @@ func _draw_card_art_texture(art_rect: Rect2) -> void:
 	if _encounter_type() != GameMap.ENCOUNTER_ENEMY:
 		marker_position += Vector2(-art_rect.size.x * 0.22, art_rect.size.y * 0.12)
 	draw_texture_rect(marker_texture, Rect2(marker_position, marker_size), false)
+
+
+func _draw_rotation_lock(art_rect: Rect2) -> void:
+	var center := art_rect.position + Vector2(art_rect.size.x - 13.0, 13.0)
+	var color := Color(0.18, 0.12, 0.07, 0.96)
+	draw_arc(center + Vector2(0.0, -3.0), 5.0, PI, TAU, 12, color, 2.5, true)
+	draw_rect(Rect2(center + Vector2(-7.0, -2.0), Vector2(14.0, 11.0)), color, true)
+	draw_circle(center + Vector2(0.0, 3.0), 1.5, Color(0.92, 0.78, 0.43))
 
 
 func get_card_art_rect() -> Rect2:
@@ -346,7 +381,7 @@ func _category_badge_text() -> String:
 		return "ROAD + FOOD"
 	if _encounter_type() == GameMap.ENCOUNTER_CACHE:
 		return "ROAD + LOOT"
-	if _encounter_type() in GameConstants.PERMANENT_ENCOUNTER_TYPES:
+	if _encounter_type() in GameConstants.REUSABLE_ENCOUNTER_TYPES:
 		return "SPECIAL ROAD"
 	if not encounter_data.is_empty():
 		return "ROAD + LOOT"
@@ -355,7 +390,7 @@ func _category_badge_text() -> String:
 
 func _compact_detail_text() -> String:
 	if category == GameConstants.ROAD_CATEGORY:
-		if _encounter_type() in GameConstants.PERMANENT_ENCOUNTER_TYPES:
+		if _encounter_type() in GameConstants.REUSABLE_ENCOUNTER_TYPES:
 			return detail
 		return ""
 	if detail.is_empty():

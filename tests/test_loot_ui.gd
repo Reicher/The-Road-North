@@ -45,7 +45,7 @@ func _initialize() -> void:
 	await process_frame
 	(player.get_node("Rewards") as PlayerRewards).setup(player, inventory, loot_ui, map)
 	_assert(inventory.is_open(), "Expected opening loot to automatically open the backpack")
-	var overlay := inventory.get_node("InventoryOverlay") as PanelContainer
+	var overlay := inventory.get_node("InventoryReveal/InventoryOverlay") as PanelContainer
 	var loot_panel := loot_ui.get_node("LootPanel") as PanelContainer
 	var inventory_frame := inventory.get_node("InventoryFrame") as PanelContainer
 	var loot_panel_click := InputEventMouseButton.new()
@@ -126,7 +126,7 @@ func _initialize() -> void:
 	_assert(inventory.get_carried_items()[0]["name"] == "Walking Stick", "Expected the old walking stick to stay in its slot")
 	_assert(inventory.get_carried_items()[2]["name"] == "Guiding Charm", "Expected the new small item to use another slot")
 	_assert(inventory.get_power_bonus() == 1 and inventory.get_minimum_hand_size_bonus() == 1, "Expected all carried item stats to contribute")
-	var slots := inventory.get_node("InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
+	var slots := inventory.get_node("InventoryReveal/InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
 	_assert((slots.get_child(0) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected weaker walking stick slot not to be tinted")
 	_assert((slots.get_child(1) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected weaker loot weapon slot not to be tinted")
 	_assert((slots.get_child(2) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected items not to use an active/inactive tint")
@@ -158,7 +158,7 @@ func _initialize() -> void:
 
 	inventory.set_inventory_open(true)
 	loot_item = loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootItem0") as Button
-	slots = inventory.get_node("InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
+	slots = inventory.get_node("InventoryReveal/InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
 	var first_backpack_slot := slots.get_child(0) as Button
 	_assert(inventory.get_slot_index_at_canvas_position(first_backpack_slot.get_global_rect().get_center()) == 0, "Expected first backpack slot center to resolve to slot zero")
 	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())

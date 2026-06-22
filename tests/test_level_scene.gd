@@ -80,7 +80,8 @@ func run() -> void:
 		GameMap.ENCOUNTER_ENEMY: 1,
 		GameMap.ENCOUNTER_BERRY_BUSH: 1,
 		GameMap.ENCOUNTER_CACHE: 1,
-	}, "Expected exactly one enemy, berry bush, and cache on random base roads")
+		GameMap.ENCOUNTER_GRAVEYARD: 1,
+	}, "Expected exactly one enemy, berry bush, cache, and Graveyard on random base roads")
 	_assert(_event_counts(deck_controller.deck_components["base"]) == {
 		GameConstants.EVENT_DRAW_TWO: 1,
 		GameConstants.EVENT_LUCKY_FIND: 1,

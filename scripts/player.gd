@@ -597,7 +597,7 @@ func _resolve_reward_encounter_at(target_position: Vector2i) -> void:
 	if _map == null:
 		return
 	var encounter := _map.get_encounter(target_position)
-	if str(encounter.get("type", "")) in GameConstants.PERMANENT_ENCOUNTER_TYPES:
+	if str(encounter.get("type", "")) in GameConstants.REUSABLE_ENCOUNTER_TYPES:
 		permanent_encounter_reached.emit(target_position, encounter.duplicate(true))
 		return
 	if _rewards.collect_reward_at(target_position):

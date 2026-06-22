@@ -158,6 +158,11 @@ bush, cache). Total authored encounter counts before player special cards:
 - Level 2: 4 enemy, 3 berry, 3 cache
 - Level 3: 6 enemy, 3 berry, 3 cache
 
+Road cards may be rotation-locked. A lock is shown clearly on the card, fixes
+its current orientation before placement, and does not otherwise change the
+placed road. When each level deck is created, `level - 1` of its road cards are
+chosen randomly and locked at random valid starting rotations (none in Level 1).
+
 Placement mode:
 - Preview follows drag, snaps to tiles; green = valid, red = invalid
 - After release: drag preview to move it, buttons for rotate/confirm/cancel
@@ -181,7 +186,7 @@ Authored deck events and shop-only special events:
 |-------|--------|
 | Mirage | Destroy a placed tile |
 | Idea | Draw 2 extra cards |
-| Doubt | Rotate a placed tile |
+| Doubt | Rotate a placed tile to another valid orientation |
 | Lucky Find | Gain 3 food or 4 gold |
 | Clear Path | Remove encounter from a road (shop-only special) |
 | Trouble | Add enemy to a road |
@@ -190,7 +195,20 @@ Authored deck events and shop-only special events:
 | Sleep | Discard full hand, redraw to normal hand size (shop-only special) |
 | It Was All a Dream | Restart level with fresh shuffle and reset state (shop special) |
 
-Targeting rules: same Sight as road placement. Cannot target start, goal, or player's tile. Clear Path requires an encounter present; Trouble/Wild Berries/Lost Belongings require no encounter. Mirage/Doubt share targeting restrictions; Doubt previews clockwise rotation.
+Targeting rules: same Sight as road placement. Cannot target start, goal, or player's tile. Clear Path requires an encounter present; Trouble/Wild Berries/Lost Belongings require no encounter. Mirage/Doubt share targeting restrictions. Doubt only offers functionally different rotations that still obey map-edge and neighboring-connection placement rules; a road with no alternative valid rotation cannot be targeted.
+
+## Graveyard
+
+The base deck contains one permanent Graveyard encounter, assigned randomly to
+an otherwise plain base road. Its road is surrounded by gravestones and crosses.
+Each time the player enters it, one random unlocked road card from the remaining
+base draw pile or current hand is locked in its current orientation. The lock is
+a permanent run modifier once the level is completed and is then reapplied when
+the base deck is rebuilt for later levels. Restarting the current level, including
+with It Was All a Dream, restores the locks from level start and discards any
+Graveyard locks gained during that level. Nothing happens if every remaining
+base road is already locked. The Graveyard remains on the map and can therefore
+lock multiple cards during one level.
 
 If no valid targets exist, the player may cancel. Destroying tiles may create awkward layouts.
 

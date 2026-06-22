@@ -53,7 +53,7 @@ func collect_reward_at(target_position: Vector2i) -> bool:
 	var encounter := _map.get_encounter(target_position)
 	if encounter.is_empty() or str(encounter.get("type", "")) == GameMap.ENCOUNTER_ENEMY:
 		return false
-	if str(encounter.get("type", "")) in GameConstants.PERMANENT_ENCOUNTER_TYPES:
+	if str(encounter.get("type", "")) in GameConstants.REUSABLE_ENCOUNTER_TYPES:
 		return false
 	var consumed := _map.consume_encounter(target_position)
 	var loot: Array = consumed.get("loot", [])

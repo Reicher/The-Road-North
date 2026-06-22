@@ -6,7 +6,7 @@
 script = ExtResource("1_deck_recipes")
 
 ; Valid road keys: straight, corner, t_junction, four_way, dead_end, bridge.
-; Valid encounter keys: enemy, berry, loot.
+; Valid encounter keys: enemy, berry, loot, graveyard.
 ; Valid event keys: destroy_tile, draw_two, rotate_tile, lucky_find, trouble.
 ; Every recipe lists every card added by that deck.
 
@@ -24,7 +24,8 @@ base_deck = {
 	"encounters": {
 		"enemy": 1,
 		"berry": 1,
-		"loot": 1
+		"loot": 1,
+		"graveyard": 1
 	},
 	"events": {
 		"draw_two": 1,

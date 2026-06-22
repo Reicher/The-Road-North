@@ -17,9 +17,10 @@ func _initialize() -> void:
 
 	var backpack_button := inventory.get_node("BackpackButton") as Button
 	var frame := inventory.get_node("InventoryFrame") as PanelContainer
-	var overlay := inventory.get_node("InventoryOverlay") as PanelContainer
-	var title := inventory.get_node("InventoryOverlay/ContentMargin/Stack/Title") as Label
-	var slots := inventory.get_node("InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
+	var reveal := inventory.get_node("InventoryReveal") as Control
+	var overlay := inventory.get_node("InventoryReveal/InventoryOverlay") as PanelContainer
+	var title := inventory.get_node("InventoryReveal/InventoryOverlay/ContentMargin/Stack/Title") as Label
+	var slots := inventory.get_node("InventoryReveal/InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
 	var tooltip := inventory.get_node("ItemTooltip") as PanelContainer
 
 	_assert(backpack_button != null, "Expected inventory to create a backpack button")
@@ -30,6 +31,9 @@ func _initialize() -> void:
 	_assert(backpack_button.expand_icon, "Expected backpack image to fill the button")
 	_assert(is_equal_approx(backpack_button.position.x, inventory.left_margin), "Expected backpack button to sit at the left HUD edge")
 	_assert(is_equal_approx(backpack_button.position.y, inventory.top_margin), "Expected backpack button to sit below the resource row")
+	_assert(inventory.top_margin == 81.0, "Expected a small gap between the resource row and backpack image")
+	_assert(is_equal_approx(frame.position.y, backpack_button.position.y - inventory.frame_top_padding), "Expected the backpack panel to remain connected while its image moves down")
+	_assert(is_equal_approx(frame.size.y, backpack_button.size.y + inventory.frame_top_padding + inventory.frame_bottom_padding), "Expected the closed backpack panel to use its full height")
 	_assert(not overlay.visible, "Expected inventory overlay to start closed")
 	_assert(inventory.get_carried_items().size() == 1, "Expected player inventory to start with one visible weapon")
 	_assert(inventory.get_power_bonus() == 1, "Expected Walking Stick to add one power")
@@ -43,17 +47,19 @@ func _initialize() -> void:
 	inventory.set_inventory_open(true)
 	_assert(overlay.visible, "Expected backpack button to open the inventory overlay")
 	_assert(slots.get_child_count() == 3, "Expected inventory overlay to contain three slots")
-	_assert(overlay.position.x >= backpack_button.position.x + backpack_button.size.x, "Expected inventory overlay to grow out to the right of the backpack")
-	_assert(is_equal_approx(overlay.position.x, backpack_button.position.x + backpack_button.size.x), "Expected inventory overlay to connect directly to the backpack button")
-	_assert(overlay.position.y == backpack_button.position.y, "Expected inventory overlay to share the backpack button top edge")
+	_assert(reveal.position.x >= backpack_button.position.x + backpack_button.size.x, "Expected inventory overlay to grow out to the right of the backpack")
+	_assert(is_equal_approx(reveal.position.x, backpack_button.position.x + backpack_button.size.x), "Expected inventory overlay to connect directly to the backpack button")
+	_assert(reveal.position.y == backpack_button.position.y, "Expected inventory overlay to share the backpack button top edge")
 	_assert(is_equal_approx(overlay.size.y, backpack_button.size.y), "Expected inventory overlay height %s to share backpack button height %s" % [overlay.size.y, backpack_button.size.y])
 	_assert(overlay.pivot_offset.x == 0.0, "Expected inventory overlay to animate from its left edge")
 	_assert(title.text == "Inventory", "Expected expanded inventory area to show its title")
 	_assert(title.get_theme_font_size("font_size") == 18, "Expected inventory title to be clearly readable")
 	_assert(title.get_theme_color("font_color") == UIStyle.text(inventory), "Expected inventory title to use the clear primary text color")
-	_assert(frame.position == backpack_button.position, "Expected shared inventory frame to start at the backpack button")
+	_assert(frame.position.x == backpack_button.position.x and frame.position.y < backpack_button.position.y, "Expected shared inventory frame to extend above the backpack image")
 	_assert(frame.size.x == overlay.size.x + backpack_button.size.x, "Expected shared inventory frame to wrap slots and backpack as one control")
 	_assert(is_equal_approx(frame.position.y + frame.size.y, backpack_button.position.y + backpack_button.size.y + inventory.frame_bottom_padding), "Expected shared inventory frame to end at the backpack panel bottom edge")
+	_assert(overlay.scale == Vector2.ONE, "Expected inventory contents to remain undistorted while the shared panel expands")
+	_assert(reveal.clip_contents, "Expected the growing panel to clip inventory contents during its transition")
 	var open_frame_size := frame.size
 	inventory.toggle_inventory()
 	_assert(frame.size == open_frame_size, "Expected closing inventory animation to start from the fully open frame")

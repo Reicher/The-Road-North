@@ -223,6 +223,8 @@ func _draw_reward_encounter(encounter: Dictionary, tile_size: float) -> void:
 		_add_witch_hut(tile_size)
 	elif kind == GameMap.ENCOUNTER_SHRINE:
 		_add_shrine(tile_size)
+	elif kind == GameMap.ENCOUNTER_GRAVEYARD:
+		_add_graveyard(tile_size)
 
 
 func _add_campfire(tile_size: float) -> void:
@@ -255,6 +257,18 @@ func _add_shrine(tile_size: float) -> void:
 	_add_box("ShrineBase", Vector3(tile_size * 0.28, tile_size * 0.08, tile_size * 0.24), center + Vector3(0.0, tile_size * 0.04, 0.0), Color(0.40, 0.43, 0.46))
 	_add_box("ShrinePillar", Vector3(tile_size * 0.12, tile_size * 0.34, tile_size * 0.12), center + Vector3(0.0, tile_size * 0.23, 0.0), Color(0.58, 0.61, 0.62))
 	_add_sphere("ShrineLight", tile_size * 0.075, center + Vector3(0.0, tile_size * 0.45, 0.0), Color(0.38, 0.82, 1.0))
+
+
+func _add_graveyard(tile_size: float) -> void:
+	var stone := Color(0.46, 0.47, 0.45)
+	for index in 3:
+		var side := -1.0 if index % 2 == 0 else 1.0
+		var z := (-0.24 + float(index) * 0.22) * tile_size
+		var center := Vector3(side * tile_size * 0.27, GROUND_HEIGHT, z)
+		_add_box("Gravestone%d" % index, Vector3(tile_size * 0.14, tile_size * 0.22, tile_size * 0.055), center + Vector3(0.0, tile_size * 0.11, 0.0), stone)
+	var cross_center := Vector3(tile_size * 0.29, GROUND_HEIGHT, tile_size * 0.24)
+	_add_box("GraveCrossPost", Vector3(tile_size * 0.045, tile_size * 0.30, tile_size * 0.045), cross_center + Vector3(0.0, tile_size * 0.15, 0.0), Color(0.25, 0.19, 0.13))
+	_add_box("GraveCrossBar", Vector3(tile_size * 0.17, tile_size * 0.045, tile_size * 0.045), cross_center + Vector3(0.0, tile_size * 0.20, 0.0), Color(0.25, 0.19, 0.13))
 
 
 func _add_road_tile_trees(openings: Dictionary, tile_size: float) -> void:

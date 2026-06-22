@@ -20,12 +20,13 @@ const SLOT_DISABLED_FILL := Color(0.86, 0.80, 0.66)
 
 @export var button_size := Vector2(144.0, 144.0)
 @export var slot_size := Vector2(93.0, 93.0)
-@export var top_margin := 73.0
+@export var top_margin := 81.0
 @export var left_margin := 5.0
 @export var right_margin := 18.0
 @export var slot_spacing := 4.0
 @export var overlay_gap := 0.0
 @export var overlay_padding := 6.0
+@export var frame_top_padding := 13.0
 @export var frame_bottom_padding := 13.0
 @export var overlay_animation_duration := 0.36
 
@@ -44,6 +45,7 @@ var items: Array[Dictionary] = [
 
 var _frame: PanelContainer
 var _backpack_button: Button
+var _reveal: Control
 var _overlay: PanelContainer
 var _overlay_title: Label
 var _slot_row: HBoxContainer
@@ -280,20 +282,20 @@ func set_inventory_open(open: bool, animate := true) -> void:
 	if open:
 		_overlay.visible = true
 		_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-		if animate and overlay_animation_duration > 0.0:
-			if not previous_open:
-				_set_frame_rect(_get_closed_frame_rect())
+		_overlay.scale = Vector2.ONE
+		if animate and overlay_animation_duration > 0.0 and not previous_open:
+			_set_frame_rect(_get_closed_frame_rect())
+			_reveal.size.x = 0.0
 			var open_frame_rect := _get_open_frame_rect()
-			_overlay.scale = Vector2(0.05, 1.0)
 			_overlay.modulate.a = 1.0
 			_overlay_tween = create_tween()
 			_overlay_tween.set_parallel(true)
-			_overlay_tween.tween_property(_frame, "position", open_frame_rect.position, overlay_animation_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-			_overlay_tween.tween_property(_frame, "size", open_frame_rect.size, overlay_animation_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-			_overlay_tween.tween_property(_overlay, "scale:x", 1.0, overlay_animation_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+			_overlay_tween.tween_property(_frame, "position", open_frame_rect.position, overlay_animation_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+			_overlay_tween.tween_property(_frame, "size", open_frame_rect.size, overlay_animation_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+			_overlay_tween.tween_property(_reveal, "size:x", _overlay.size.x, overlay_animation_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 		else:
 			_set_frame_rect(_get_open_frame_rect())
-			_overlay.scale = Vector2.ONE
+			_reveal.size.x = _overlay.size.x
 			_overlay.modulate.a = 1.0
 	else:
 		if animate and overlay_animation_duration > 0.0 and _overlay.visible:
@@ -305,18 +307,20 @@ func set_inventory_open(open: bool, animate := true) -> void:
 			_overlay.modulate.a = 1.0
 			_overlay_tween = create_tween()
 			_overlay_tween.set_parallel(true)
-			_overlay_tween.tween_property(_frame, "position", closed_frame_rect.position, overlay_animation_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-			_overlay_tween.tween_property(_frame, "size", closed_frame_rect.size, overlay_animation_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
-			_overlay_tween.tween_property(_overlay, "scale:x", 0.05, overlay_animation_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+			_overlay_tween.tween_property(_frame, "position", closed_frame_rect.position, overlay_animation_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+			_overlay_tween.tween_property(_frame, "size", closed_frame_rect.size, overlay_animation_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+			_overlay_tween.tween_property(_reveal, "size:x", 0.0, overlay_animation_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 			_overlay_tween.finished.connect(func() -> void:
 				if not _inventory_open:
 					_overlay.visible = false
 					_set_frame_rect(_get_closed_frame_rect())
+					_reveal.size.x = 0.0
 					_overlay.scale = Vector2.ONE
 			)
 		else:
 			_overlay.visible = false
 			_set_frame_rect(_get_closed_frame_rect())
+			_reveal.size.x = 0.0
 			_overlay.scale = Vector2.ONE
 			_overlay.modulate.a = 1.0
 	if not open:
@@ -330,9 +334,10 @@ func set_outside_close_enabled(enabled: bool) -> void:
 func _bind_scene_nodes() -> void:
 	_frame = get_node("InventoryFrame") as PanelContainer
 	_backpack_button = get_node("BackpackButton") as Button
-	_overlay = get_node("InventoryOverlay") as PanelContainer
-	_overlay_title = get_node("InventoryOverlay/ContentMargin/Stack/Title") as Label
-	_slot_row = get_node("InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
+	_reveal = get_node("InventoryReveal") as Control
+	_overlay = get_node("InventoryReveal/InventoryOverlay") as PanelContainer
+	_overlay_title = get_node("InventoryReveal/InventoryOverlay/ContentMargin/Stack/Title") as Label
+	_slot_row = get_node("InventoryReveal/InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
 	_tooltip = get_node("ItemTooltip") as PanelContainer
 	_tooltip_name = get_node("ItemTooltip/ContentMargin/Text/ItemName") as Label
 	_tooltip_effect = get_node("ItemTooltip/ContentMargin/Text/ItemEffect") as Label
@@ -586,12 +591,15 @@ func _layout_inventory() -> void:
 	var overlay_height := active_button_size.y
 	_overlay.size = Vector2(overlay_width, overlay_height)
 	_overlay.pivot_offset = Vector2(0.0, overlay_height * 0.5)
-	_overlay.position = Vector2(
+	_overlay.position = Vector2.ZERO
+	_reveal.position = Vector2(
 		clampf(_backpack_button.position.x + active_button_size.x + overlay_gap, 8.0, viewport_size.x - overlay_width - 8.0),
 		clampf(_backpack_button.position.y, 8.0, viewport_size.y - overlay_height - 8.0)
 	)
+	_reveal.size.y = overlay_height
 	if _overlay_tween == null:
 		_set_frame_rect(_get_open_frame_rect() if _inventory_open else _get_closed_frame_rect())
+		_reveal.size.x = overlay_width if _inventory_open else 0.0
 
 	if _tooltip != null and _tooltip.visible:
 		_tooltip.position.x = clampf(_tooltip.position.x, 8.0, maxf(8.0, viewport_size.x - _tooltip.size.x - 8.0))
@@ -612,17 +620,23 @@ func _get_layout_size() -> Vector2:
 func _get_closed_frame_rect() -> Rect2:
 	if _backpack_button == null:
 		return Rect2()
-	return Rect2(_backpack_button.position, _backpack_button.size)
+	return Rect2(
+		_backpack_button.position - Vector2(0.0, frame_top_padding),
+		Vector2(
+			_backpack_button.size.x,
+			_backpack_button.size.y + frame_top_padding + frame_bottom_padding
+		)
+	)
 
 
 func _get_open_frame_rect() -> Rect2:
 	if _backpack_button == null or _overlay == null:
 		return _get_closed_frame_rect()
-	var left := minf(_overlay.position.x, _backpack_button.position.x)
-	var top := minf(_overlay.position.y, _backpack_button.position.y)
-	var right := maxf(_overlay.position.x + _overlay.size.x, _backpack_button.position.x + _backpack_button.size.x)
-	var bottom := maxf(_overlay.position.y + _overlay.size.y, _backpack_button.position.y + _backpack_button.size.y)
-	bottom = maxf(bottom, _backpack_button.position.y + _backpack_button.size.y + frame_bottom_padding)
+	var closed_rect := _get_closed_frame_rect()
+	var left := minf(_reveal.position.x, _backpack_button.position.x)
+	var top := minf(_reveal.position.y, closed_rect.position.y)
+	var right := maxf(_reveal.position.x + _overlay.size.x, _backpack_button.position.x + _backpack_button.size.x)
+	var bottom := maxf(_reveal.position.y + _overlay.size.y, closed_rect.end.y)
 	return Rect2(Vector2(left, top), Vector2(right - left, bottom - top))
 
 

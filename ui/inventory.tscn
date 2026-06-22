@@ -23,50 +23,55 @@ mouse_filter = 0
 text = ""
 expand_icon = true
 
-[node name="InventoryOverlay" type="PanelContainer" parent="."]
+[node name="InventoryReveal" type="Control" parent="."]
+layout_mode = 0
+mouse_filter = 2
+clip_contents = true
+
+[node name="InventoryOverlay" type="PanelContainer" parent="InventoryReveal"]
 visible = false
 layout_mode = 0
 mouse_filter = 0
 
-[node name="ContentMargin" type="MarginContainer" parent="InventoryOverlay"]
+[node name="ContentMargin" type="MarginContainer" parent="InventoryReveal/InventoryOverlay"]
 layout_mode = 2
 theme_override_constants/margin_left = 6
 theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 6
 theme_override_constants/margin_bottom = 6
 
-[node name="Stack" type="VBoxContainer" parent="InventoryOverlay/ContentMargin"]
+[node name="Stack" type="VBoxContainer" parent="InventoryReveal/InventoryOverlay/ContentMargin"]
 layout_mode = 2
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="Title" type="Label" parent="InventoryOverlay/ContentMargin/Stack"]
+[node name="Title" type="Label" parent="InventoryReveal/InventoryOverlay/ContentMargin/Stack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
 theme_override_font_sizes/font_size = 18
 text = "Inventory"
 horizontal_alignment = 1
 
-[node name="Slots" type="HBoxContainer" parent="InventoryOverlay/ContentMargin/Stack"]
+[node name="Slots" type="HBoxContainer" parent="InventoryReveal/InventoryOverlay/ContentMargin/Stack"]
 layout_mode = 2
 theme_override_constants/separation = 4
 alignment = 1
 
-[node name="Slot1" type="Button" parent="InventoryOverlay/ContentMargin/Stack/Slots"]
+[node name="Slot1" type="Button" parent="InventoryReveal/InventoryOverlay/ContentMargin/Stack/Slots"]
 custom_minimum_size = Vector2(93, 93)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 focus_mode = 0
 
-[node name="Slot2" type="Button" parent="InventoryOverlay/ContentMargin/Stack/Slots"]
+[node name="Slot2" type="Button" parent="InventoryReveal/InventoryOverlay/ContentMargin/Stack/Slots"]
 custom_minimum_size = Vector2(93, 93)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4
 focus_mode = 0
 
-[node name="Slot3" type="Button" parent="InventoryOverlay/ContentMargin/Stack/Slots"]
+[node name="Slot3" type="Button" parent="InventoryReveal/InventoryOverlay/ContentMargin/Stack/Slots"]
 custom_minimum_size = Vector2(93, 93)
 layout_mode = 2
 size_flags_horizontal = 4

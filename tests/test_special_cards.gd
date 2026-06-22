@@ -99,7 +99,8 @@ func _test_fixed_base_deck(builder: DeckBuilder) -> void:
 		GameMap.ENCOUNTER_ENEMY: 1,
 		GameMap.ENCOUNTER_BERRY_BUSH: 1,
 		GameMap.ENCOUNTER_CACHE: 1,
-	}, "Expected exactly three encountered base roads")
+		GameMap.ENCOUNTER_GRAVEYARD: 1,
+	}, "Expected exactly four encountered base roads including Graveyard")
 	_assert(_event_counts(base_cards) == {
 		GameConstants.EVENT_DRAW_TWO: 1,
 		GameConstants.EVENT_LUCKY_FIND: 1,

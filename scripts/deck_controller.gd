@@ -30,6 +30,7 @@ var deck_components: Dictionary = {}
 var drawn_count := 0
 var player_removed_base_cards: Array[String] = []
 var player_special_cards: Array[Dictionary] = []
+var player_locked_base_cards: Array[Dictionary] = []
 
 var _map: GameMap
 var _hand: HandUI
@@ -78,11 +79,12 @@ func generate_deck() -> void:
 	deck_components = _deck_builder.make_deck_components(_get_deck_size(), _rng, config)
 	_apply_player_deck_modifiers()
 	_scale_encounters_to_level()
+	_lock_level_road_cards()
 	deck = _deck_builder.combine_deck_components(deck_components)
 	starting_deck = deck.duplicate(true)
 
 
-func set_player_deck_modifiers(removals: Array, special_cards: Array) -> void:
+func set_player_deck_modifiers(removals: Array, special_cards: Array, locked_base_cards: Array = []) -> void:
 	player_removed_base_cards.clear()
 	for removal in removals:
 		player_removed_base_cards.append(str(removal))
@@ -90,6 +92,10 @@ func set_player_deck_modifiers(removals: Array, special_cards: Array) -> void:
 	for card in special_cards:
 		if card is Dictionary:
 			player_special_cards.append((card as Dictionary).duplicate(true))
+	player_locked_base_cards.clear()
+	for lock_data in locked_base_cards:
+		if lock_data is Dictionary:
+			player_locked_base_cards.append((lock_data as Dictionary).duplicate(true))
 
 
 func _apply_player_deck_modifiers() -> void:
@@ -99,6 +105,7 @@ func _apply_player_deck_modifiers() -> void:
 			if GameConstants.card_signature(base_cards[index]) == removal:
 				base_cards.remove_at(index)
 				break
+	_apply_persistent_base_locks(base_cards)
 	deck_components[DeckBuilder.DECK_SOURCE_BASE] = base_cards
 	var specials: Array[Dictionary] = []
 	for card in player_special_cards:
@@ -108,9 +115,85 @@ func _apply_player_deck_modifiers() -> void:
 	deck_components[DeckBuilder.DECK_SOURCE_PLAYER_SPECIAL] = specials
 
 
+func _apply_persistent_base_locks(base_cards: Array) -> void:
+	for lock_data in player_locked_base_cards:
+		var signature := str(lock_data.get("signature", ""))
+		for card in base_cards:
+			if not bool(card.get("rotation_locked", false)) and GameConstants.card_signature(card) == signature:
+				card["rotation_locked"] = true
+				card["rotation_steps"] = posmod(int(lock_data.get("rotation_steps", 0)), 4)
+				break
+
+
 func _scale_encounters_to_level() -> void:
 	for source in [DeckBuilder.DECK_SOURCE_BASE, DeckBuilder.DECK_SOURCE_LEVEL, DeckBuilder.DECK_SOURCE_PLAYER_SPECIAL]:
 		_deck_builder.scale_encounters_to_level(deck_components.get(source, []), _rng, level)
+
+
+func _lock_level_road_cards() -> void:
+	var candidates: Array = []
+	for card in deck_components.get(DeckBuilder.DECK_SOURCE_LEVEL, []):
+		if card.get("category", "") == GameConstants.ROAD_CATEGORY:
+			candidates.append(card)
+	for _index in mini(maxi(0, level - 1), candidates.size()):
+		var candidate_index := _rng.randi_range(0, candidates.size() - 1)
+		var card: Dictionary = candidates.pop_at(candidate_index)
+		card["rotation_locked"] = true
+		card["rotation_steps"] = _random_distinct_rotation(card.get("tile_definition"))
+
+
+func _random_distinct_rotation(definition: Resource) -> int:
+	if definition == null or not definition.has_method("get_rotated_openings"):
+		return 0
+	var rotations: Array[int] = []
+	var signatures: Dictionary = {}
+	for rotation in 4:
+		var openings: Dictionary = definition.get_rotated_openings(rotation)
+		var signature := "%s%s%s%s" % [openings.get("north", false), openings.get("east", false), openings.get("south", false), openings.get("west", false)]
+		if not signatures.has(signature):
+			signatures[signature] = true
+			rotations.append(rotation)
+	return rotations[_rng.randi_range(0, rotations.size() - 1)]
+
+
+func lock_random_unlocked_base_road_card() -> bool:
+	var deck_candidates: Array[Dictionary] = []
+	for card in deck:
+		if _is_unlocked_base_road_data(card):
+			deck_candidates.append(card)
+	var hand_candidates: Array[CardView] = []
+	if _hand != null:
+		for card in _hand.cards:
+			if card.category == GameConstants.ROAD_CATEGORY and card.deck_source == GameConstants.DECK_SOURCE_BASE and not card.rotation_locked:
+				hand_candidates.append(card)
+	var total := deck_candidates.size() + hand_candidates.size()
+	if total == 0:
+		return false
+	var selected := _rng.randi_range(0, total - 1)
+	if selected < deck_candidates.size():
+		var card := deck_candidates[selected]
+		card["rotation_locked"] = true
+		card["rotation_steps"] = int(card.get("rotation_steps", 0))
+		_register_persistent_base_lock(card)
+	else:
+		var card := hand_candidates[selected - deck_candidates.size()]
+		card.set_rotation_lock(true)
+		_register_persistent_base_lock(card.get_card_data())
+	return true
+
+
+func _register_persistent_base_lock(card: Dictionary) -> void:
+	var lock_data := {
+		"signature": GameConstants.card_signature(card),
+		"rotation_steps": posmod(int(card.get("rotation_steps", 0)), 4),
+	}
+	player_locked_base_cards.append(lock_data)
+
+
+func _is_unlocked_base_road_data(card: Dictionary) -> bool:
+	return card.get("category", "") == GameConstants.ROAD_CATEGORY \
+		and card.get("deck_source", "") == GameConstants.DECK_SOURCE_BASE \
+		and not bool(card.get("rotation_locked", false))
 
 
 func _card_signature(card: Dictionary) -> String:

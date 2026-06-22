@@ -46,6 +46,8 @@ func _ready() -> void:
 func open(encounter: Dictionary) -> void:
 	_encounter = encounter.duplicate(true)
 	_witch_offer_bought = false
+	if _type() == GameConstants.ENCOUNTER_GRAVEYARD:
+		_encounter["locked_card"] = _deck_controller != null and _deck_controller.lock_random_unlocked_base_road_card()
 	if _type() == GameConstants.ENCOUNTER_WITCH_HUT:
 		_roll_witch_offer()
 	visible = true
@@ -113,6 +115,12 @@ func _refresh() -> void:
 			_offer_card.configure(_witch_offer)
 			_trade_button.text = "2 Health  ->  Take Card"
 			_trade_button.disabled = _player.health <= 2 or _witch_offer_bought or _witch_offer.is_empty()
+		GameConstants.ENCOUNTER_GRAVEYARD:
+			_title.text = "Graveyard"
+			_description.text = "A base road card was locked in its current orientation." if bool(_encounter.get("locked_card", false)) else "All base road cards are already locked."
+			_trade_button.visible = false
+			return
+	_trade_button.visible = true
 
 
 func _roll_witch_offer() -> void:

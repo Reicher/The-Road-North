@@ -7,9 +7,10 @@ const UIStyle = preload("res://scripts/ui_style.gd")
 @export var top_bar_height := 76.0
 @export var pocket_overlap := 8.0
 @export var backpack_width := 154.0
-@export var backpack_height := 162.0
+@export var backpack_height := 170.0
 @export var settings_width := 68.0
 @export var settings_height := 68.0
+@export var inner_corner_radius := 16.0
 
 
 func _ready() -> void:
@@ -42,6 +43,8 @@ func _draw() -> void:
 	draw_style_box(top_panel, top_rect)
 	draw_style_box(backpack_panel, backpack_rect)
 	draw_style_box(settings_panel, settings_rect)
+	_draw_inner_corner(Vector2(backpack_rect.end.x, top_bar_height), false, fill)
+	_draw_inner_corner(Vector2(settings_rect.position.x, top_bar_height), true, fill)
 
 
 func _layout_panel() -> void:
@@ -83,3 +86,18 @@ func _square_style(fill: Color) -> StyleBoxFlat:
 	stylebox.set_border_width_all(0)
 	stylebox.set_corner_radius_all(0)
 	return stylebox
+
+
+func _draw_inner_corner(corner: Vector2, opens_left: bool, fill: Color) -> void:
+	var radius := maxf(0.0, inner_corner_radius)
+	if radius <= 0.0:
+		return
+	var points := PackedVector2Array([corner])
+	var center := corner + Vector2(-radius if opens_left else radius, radius)
+	var start_angle := -PI * 0.5
+	var end_angle := 0.0 if opens_left else -PI
+	for step in 9:
+		var weight := float(step) / 8.0
+		var angle := lerpf(start_angle, end_angle, weight)
+		points.append(center + Vector2(cos(angle), sin(angle)) * radius)
+	draw_colored_polygon(points, fill)

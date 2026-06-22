@@ -72,6 +72,22 @@ func _init() -> void:
 	_assert(deck.player_special_cards.size() == special_count + 1, "Expected Witch's Hut card to join permanent special deck")
 	_assert((level.get_node("UI/Hand") as HandUI).cards.size() == hand_count + 1, "Expected Witch's Hut card to join hand immediately")
 
+	encounter_ui.close()
+	var hand := level.get_node("UI/Hand") as HandUI
+	hand.set_cards([])
+	deck.deck = [{
+		"category": GameConstants.ROAD_CATEGORY,
+		"tile_definition": preload("res://data/road_straight.tres"),
+		"deck_source": GameConstants.DECK_SOURCE_BASE,
+	}]
+	roads.set_encounter(target, {"type": GameConstants.ENCOUNTER_GRAVEYARD})
+	_assert(roads.get_visual_tile(target).get_node_or_null("Visuals/GraveCrossPost") != null, "Expected Graveyard to show crosses and gravestones")
+	player.food = 4
+	_assert(player.move_to(map.get_start_position()), "Expected player to leave Graveyard road")
+	_assert(player.move_to(target), "Expected player to re-enter Graveyard")
+	_assert(bool(deck.deck[0].get("rotation_locked", false)), "Expected entering Graveyard to lock an unlocked base draw-pile road")
+	_assert(not map.get_encounter(target).is_empty(), "Expected Graveyard to remain after triggering")
+
 	level.queue_free()
 	await process_frame
 	quit(1 if failures > 0 else 0)

@@ -183,12 +183,13 @@ func _capture_progression() -> Dictionary:
 
 func _capture_progression_with_extras(extras: Dictionary) -> Dictionary:
 	var progression := _capture_progression()
-	for key in ["player_removed_base_cards", "player_removed_card_count", "player_special_cards", "active_power_bonus", "active_max_health_bonus"]:
+	for key in ["player_removed_base_cards", "player_removed_card_count", "player_special_cards", "player_locked_base_cards", "active_power_bonus", "active_max_health_bonus"]:
 		if extras.has(key):
 			progression[key] = extras[key].duplicate(true) if extras[key] is Array or extras[key] is Dictionary else extras[key]
 	var deck_controller := _current_level.get_node_or_null("DeckController") as DeckController if _current_level != null else null
 	if deck_controller != null:
 		progression["player_special_cards"] = deck_controller.player_special_cards.duplicate(true)
+		progression["player_locked_base_cards"] = deck_controller.player_locked_base_cards.duplicate(true)
 	return progression
 
 
@@ -225,7 +226,8 @@ func _configure_player_deck(progression: Dictionary) -> void:
 		return
 	deck_controller.set_player_deck_modifiers(
 		progression.get("player_removed_base_cards", []),
-		progression.get("player_special_cards", [])
+		progression.get("player_special_cards", []),
+		progression.get("player_locked_base_cards", [])
 	)
 	if not deck_controller.restart_level_requested.is_connected(_on_dream_restart_level_requested):
 		deck_controller.restart_level_requested.connect(_on_dream_restart_level_requested)

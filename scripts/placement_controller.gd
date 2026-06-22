@@ -281,7 +281,7 @@ func _begin_mode(card: CardView, mode: String, definition: Resource = null) -> v
 	active_definition = definition
 	active_mode = mode
 	preview_position = Vector2i(-1, -1)
-	rotation_steps = 0
+	rotation_steps = card.rotation_steps if mode == MODE_ROAD_PLACEMENT else 0
 	_placement_valid = false
 	_player.input_enabled = false
 	_hand.interaction_enabled = false
@@ -298,6 +298,8 @@ func rotate_preview() -> void:
 		_rotate_selected_target()
 		return
 	if active_mode != MODE_ROAD_PLACEMENT:
+		return
+	if active_card.rotation_locked:
 		return
 	rotation_steps = posmod(rotation_steps + 1, 4)
 	_refresh_preview()
@@ -438,7 +440,7 @@ func _refresh_preview() -> void:
 	_preview_tile.tile_tint = Color(1.08, 1.08, 1.04, 0.98)
 	_preview_tile.set_highlight(true, VALID_COLOR if _placement_valid else INVALID_COLOR)
 	if not _card_drag_in_progress:
-		_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, true, invalid_hint)
+		_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, not active_card.rotation_locked, invalid_hint)
 	else:
 		_controls_layer.show_hint(invalid_hint, _hand, preview_position, _map)
 	set_process(true)
@@ -658,7 +660,13 @@ func _rotate_selected_target() -> void:
 	if active_mode != MODE_ROTATE_TARGETING or not _validator.is_valid_rotate_target(preview_position):
 		return
 	_capture_rotate_target()
-	rotation_steps = posmod(rotation_steps + 1, 4)
+	var valid_rotations := _validator.get_valid_alternative_rotations(preview_position)
+	var next_index := 0
+	for index in valid_rotations.size():
+		if valid_rotations[index] == rotation_steps:
+			next_index = posmod(index + 1, valid_rotations.size())
+			break
+	rotation_steps = valid_rotations[next_index]
 	_apply_rotate_target_rotation(rotation_steps)
 	_placement_valid = _rotate_target_has_changed()
 	_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, true)

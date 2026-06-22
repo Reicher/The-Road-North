@@ -171,6 +171,7 @@ func _make_road_cards(count: int, rng: RandomNumberGenerator, config: Dictionary
 	var special_roads: Dictionary = config.get("special_roads", {})
 	_add_enemy_encounters_to_road_cards(cards, rng, int(special_roads.get("enemy", 0)), level)
 	_add_reward_encounters_to_road_cards(cards, rng, int(special_roads.get("berry", 0)), int(special_roads.get("loot", 0)), level, map_size)
+	_add_graveyards_to_road_cards(cards, rng, int(special_roads.get("graveyard", 0)))
 	return cards
 
 
@@ -332,6 +333,18 @@ func _add_reward_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomN
 		_set_card_encounter(card, _make_reward_encounter(reward_kind, rng, level, map_size))
 		card["detail"] = _encounter_detail(card["encounter"])
 		cards[card_index] = card
+
+
+func _add_graveyards_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, graveyard_count: int) -> void:
+	var eligible_indices: Array[int] = []
+	for index in cards.size():
+		if not cards[index].has("encounter"):
+			eligible_indices.append(index)
+	_shuffle_ints(eligible_indices, rng)
+	for index in mini(graveyard_count, eligible_indices.size()):
+		var card := cards[eligible_indices[index]]
+		_set_card_encounter(card, {"type": GameConstants.ENCOUNTER_GRAVEYARD})
+		card["detail"] = "Locks a base road card when reached."
 
 
 func _set_card_encounter(card: Dictionary, encounter: Dictionary) -> void:
