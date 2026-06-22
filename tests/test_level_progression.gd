@@ -12,6 +12,25 @@ func run() -> void:
 	get_root().add_child(main)
 	await process_frame
 
+	var start_screen := main.get_node("StartScreen") as StartScreen
+	_assert(start_screen != null, "Expected the game to open on the start screen")
+	_assert(main.get_node_or_null("Level") == null, "Expected level 1 to wait for Play or debug mode")
+	_assert((start_screen.get_node("AuthorLabel") as Label).text == "A game by Robin Reicher", "Expected the splash credit")
+	_assert((start_screen.get_node("Content/Title") as Label).text == "Road To Karlskoga", "Expected the working title")
+	start_screen.finish_intro()
+	_assert((start_screen.get_node("Content/MenuButtons/PlayButton") as Button).text == "Play", "Expected a Play button")
+	_assert((start_screen.get_node("Content/MenuButtons/HowToPlayButton") as Button).text == "How to play", "Expected a How to play button")
+	_assert((start_screen.get_node("Content/MenuButtons/SettingsButton") as Button).text == "Settings", "Expected a Settings button")
+	_assert((start_screen.get_node("Content/MenuButtons/AboutButton") as Button).text == "About the game", "Expected an About the game button")
+	(start_screen.get_node("Content/MenuButtons/SettingsButton") as Button).pressed.emit()
+	_assert(not (start_screen.get_node("Content/MenuButtons") as VBoxContainer).visible, "Expected information to replace the menu buttons")
+	_assert((start_screen.get_node("Content/Information") as VBoxContainer).visible, "Expected information to appear in the main layout")
+	_assert((start_screen.get_node("Content/Title") as Label).visible, "Expected the game title to remain visible")
+	(start_screen.get_node("Content/Information/BackButton") as Button).pressed.emit()
+	(start_screen.get_node("Content/MenuButtons/PlayButton") as Button).pressed.emit()
+	await process_frame
+	_assert(main.get_node_or_null("StartScreen") == null, "Expected Play to leave the start screen")
+
 	var first_level := main.get_node("Level")
 	var first_map := first_level.get_node("Map") as GameMap
 	var first_player := first_level.get_node("Player") as GamePlayer
@@ -20,19 +39,27 @@ func run() -> void:
 	_assert(first_map.playable_width == 5 and first_map.playable_height == 5, "Expected the game to start on the 5x5 level")
 	var debug_label := main.get_node("DebugOverlay/DebugLabel") as Label
 	_assert(debug_label != null, "Expected main scene to create a debug label")
-	_assert(not debug_label.visible, "Expected debug label to start hidden")
+	_assert(not debug_label.visible, "Expected debug mode to start disabled")
 
 	_send_key(main, KEY_2)
 	await process_frame
-	_assert((main.get_node("Level/Map") as GameMap).playable_width == 5, "Expected level shortcuts to do nothing before debug mode is enabled")
+	_assert(main.get_node("Level") == first_level, "Expected level shortcuts to do nothing before debug mode is enabled")
 	_send_key(main, KEY_ENTER)
 	await process_frame
 	_assert(not first_screen.visible, "Expected Enter to do nothing before debug mode is enabled")
 
+	var level_before_debug := first_level
 	_send_key(main, KEY_D)
 	await process_frame
+	first_level = main.get_node("Level")
+	first_map = first_level.get_node("Map") as GameMap
+	first_player = first_level.get_node("Player") as GamePlayer
+	first_screen = first_level.get_node("UI/GameOver") as GameOverUI
+	first_hand = first_level.get_node("UI/Hand") as HandUI
 	_assert(debug_label.visible, "Expected D to enable debug mode")
 	_assert(debug_label.text == "Debug", "Expected debug mode to show a clear Debug label")
+	_assert(first_level != level_before_debug, "Expected entering debug mode to restart at level 1")
+	_assert(first_map.playable_width == 5 and first_map.playable_height == 5, "Expected D to start level 1")
 
 	_send_key(main, KEY_Q)
 	await process_frame

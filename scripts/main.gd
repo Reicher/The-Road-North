@@ -8,6 +8,7 @@ const LEVEL_SCENES: Array[PackedScene] = [
 	preload("res://levels/level_003.tscn"),
 ]
 const SHOP_SCENE := preload("res://ui/shop.tscn")
+const START_SCREEN_SCENE := preload("res://ui/start_screen.tscn")
 const LEVEL_NAMES := ["Level 1", "2 bridges", "6 mountains"]
 # Map sizes per level — avoids instantiating next scene just to query playable_width/height
 const LEVEL_MAP_SIZES := [5, 7, 9]
@@ -30,6 +31,7 @@ var _debug_layer: CanvasLayer
 var _debug_label: Label
 var _shop: Control
 var _shop_layer: CanvasLayer
+var _start_screen: StartScreen
 
 
 func _ready() -> void:
@@ -37,15 +39,18 @@ func _ready() -> void:
 	assert(LEVEL_NAMES.size() == LEVEL_SCENES.size(), "LEVEL_NAMES and LEVEL_SCENES must have the same size")
 	assert(LEVEL_MAP_SIZES.size() == LEVEL_SCENES.size(), "LEVEL_MAP_SIZES and LEVEL_SCENES must have the same size")
 	_ensure_debug_overlay()
-	_load_level(_current_level_index)
+	_show_start_screen()
 
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if not event.is_pressed() or event.is_echo():
 		return
 
 	if event.is_action_pressed("debug_toggle"):
-		_set_debug_mode_enabled(not _debug_mode_enabled)
+		var enabling_debug := not _debug_mode_enabled
+		_set_debug_mode_enabled(enabling_debug)
+		if enabling_debug:
+			_start_new_game()
 		get_viewport().set_input_as_handled()
 		return
 
@@ -75,6 +80,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _load_level(level_index: int) -> void:
+	_dismiss_start_screen()
 	_close_shop()
 	if _current_level != null:
 		remove_child(_current_level)
@@ -119,6 +125,27 @@ func _set_debug_mode_enabled(enabled: bool) -> void:
 	_debug_mode_enabled = enabled
 	if _debug_label != null:
 		_debug_label.visible = _debug_mode_enabled
+
+
+func _show_start_screen() -> void:
+	if _start_screen != null:
+		return
+	_start_screen = START_SCREEN_SCENE.instantiate() as StartScreen
+	_start_screen.play_requested.connect(_start_new_game)
+	add_child(_start_screen)
+
+
+func _dismiss_start_screen() -> void:
+	if _start_screen == null:
+		return
+	_start_screen.hide()
+	_start_screen.queue_free()
+	_start_screen = null
+
+
+func _start_new_game() -> void:
+	_level_start_progression.clear()
+	_load_level(0)
 
 
 func _complete_current_level() -> void:

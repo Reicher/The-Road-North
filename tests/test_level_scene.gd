@@ -216,6 +216,7 @@ func run() -> void:
 	_assert(second_camera.reserved_bottom_path == NodePath("../UI/Hand"), "Expected camera to reserve the card hand area when sizing the map viewport")
 	_assert(is_equal_approx(second_camera.pan_margin_x_tiles, 3.0), "Expected camera to allow visual forest margin beyond the left and right edges")
 	_assert(is_equal_approx(second_camera.pan_margin_z_tiles, 3.0), "Expected camera to allow visual forest margin beyond the top and bottom edges")
+	_assert(is_equal_approx(second_camera.initial_visible_tile_width, 5.5), "Expected the intro camera to start one zoom step farther out")
 	_assert(is_equal_approx(second_camera.zoom_in_visible_tile_width, 4.0), "Expected maximum zoom-in to keep adjacent placement tiles fully visible")
 	var second_start_world := second_map.grid_to_world(second_map.get_start_position())
 	var second_intro_size: float = second_camera.call("_get_initial_zoom_target")

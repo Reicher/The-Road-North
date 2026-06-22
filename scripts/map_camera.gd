@@ -3,7 +3,7 @@ extends Camera3D
 @export var map_path: NodePath
 @export var player_path: NodePath
 @export var reserved_bottom_path: NodePath
-@export var initial_visible_tile_width := 5.0
+@export var initial_visible_tile_width := 5.5
 @export var zoom_in_visible_tile_width := 4.0
 @export_range(0.0, 10.0, 0.1) var start_zoom_hold_duration := 2.0
 @export_range(0.0, 5.0, 0.05) var start_zoom_duration := 0.85
