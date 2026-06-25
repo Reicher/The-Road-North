@@ -1,5 +1,7 @@
 extends Camera3D
 
+signal start_zoom_started
+
 @export var map_path: NodePath
 @export var player_path: NodePath
 @export var reserved_bottom_path: NodePath
@@ -11,6 +13,7 @@ extends Camera3D
 @export var zoom_step := 0.10
 @export var mouse_pan_threshold := 4.0
 @export_range(20.0, 80.0, 1.0) var camera_angle_degrees := 55.0
+@export_range(0.0, 1.0, 0.01) var player_screen_y_ratio := 0.67
 @export_range(0.0, 3.0, 0.05) var pan_margin_x_tiles := 0.0
 @export_range(0.0, 3.0, 0.05) var pan_margin_z_tiles := 0.0
 
@@ -22,6 +25,7 @@ var _target_xz := Vector2.ZERO
 var _start_zoom_tween: Tween
 var _move_focus_tween: Tween
 var _following_player := false
+var _start_zoom_announced := false
 
 
 func _ready() -> void:
@@ -229,6 +233,7 @@ func _play_start_zoom_sequence() -> void:
 	_start_zoom_tween.set_ease(Tween.EASE_IN_OUT)
 	if start_zoom_hold_duration > 0.0:
 		_start_zoom_tween.tween_interval(start_zoom_hold_duration)
+	_start_zoom_tween.tween_callback(_announce_start_zoom)
 	_start_zoom_tween.tween_method(func(value: float) -> void:
 		size = lerpf(start_size, target_size, value)
 		var target_xz := _get_clamped_target_for_world_position(start_world_position, size)
@@ -243,10 +248,18 @@ func _on_player_move_started(_target_position: Vector2i) -> void:
 	if _start_zoom_tween != null:
 		_start_zoom_tween.kill()
 		_start_zoom_tween = null
+		_announce_start_zoom()
 	if _move_focus_tween != null:
 		_move_focus_tween.kill()
 		_move_focus_tween = null
 	_follow_player_position()
+
+
+func _announce_start_zoom() -> void:
+	if _start_zoom_announced:
+		return
+	_start_zoom_announced = true
+	start_zoom_started.emit()
 
 
 func _on_player_moved(grid_position: Vector2i) -> void:
@@ -286,7 +299,14 @@ func _focus_on_grid_position(grid_position: Vector2i) -> void:
 
 func _get_clamped_target_for_world_position(world_position: Vector3, camera_size := -1.0) -> Vector2:
 	var size_for_clamp := size if camera_size <= 0.0 else camera_size
-	return _clamp_xz_for_size(_world_to_xz(world_position), size_for_clamp)
+	return _clamp_xz_for_size(_get_composed_focus_xz(world_position, size_for_clamp), size_for_clamp)
+
+
+func _get_composed_focus_xz(world_position: Vector3, camera_size: float) -> Vector2:
+	var focus_xz := _world_to_xz(world_position)
+	var visible_ground_size := _get_visible_ground_size_for_size(camera_size)
+	focus_xz.y -= visible_ground_size.y * (player_screen_y_ratio - 0.5)
+	return focus_xz
 
 
 func _clamp_xz_for_size(target_xz: Vector2, camera_size: float) -> Vector2:

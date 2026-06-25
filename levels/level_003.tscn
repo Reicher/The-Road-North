@@ -4,6 +4,7 @@
 [ext_resource type="Resource" path="res://data/road_straight.tres" id="2_rs001"]
 
 [node name="Level" instance=ExtResource("1_v7mna")]
+level_name = "6 mountains"
 
 [node name="Map" parent="." index="0"]
 playable_width = 9

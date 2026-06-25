@@ -10,20 +10,20 @@ const EVENT_ART_TEXTURES := {
 	GameConstants.EVENT_DRAW_TWO: "res://assets/images/cards/card_art_event_draw_two.png",
 	GameConstants.EVENT_ROTATE_TILE: "res://assets/images/cards/card_art_event_rotate_tile.png",
 	GameConstants.EVENT_LUCKY_FIND: "res://assets/images/cards/card_art_event_lucky_find.png",
-	GameConstants.EVENT_CLEAR_PATH: "res://assets/images/cards/card_art_event_clear_path.svg",
+	GameConstants.EVENT_CLEAR_PATH: "res://assets/images/cards/card_art_event_clear_path.png",
 	GameConstants.EVENT_TROUBLE: "res://assets/images/cards/card_art_event_trouble.png",
-	GameConstants.EVENT_WILD_BERRIES: "res://assets/images/cards/card_art_event_wild_berries.svg",
-	GameConstants.EVENT_LOST_BELONGINGS: "res://assets/images/cards/card_art_event_lost_belongings.svg",
-	GameConstants.EVENT_SLEEP: "res://assets/images/cards/card_art_event_sleep.svg",
-	GameConstants.EVENT_RESTART_LEVEL: "res://assets/images/cards/card_art_event_restart_level.svg",
+	GameConstants.EVENT_WILD_BERRIES: "res://assets/images/cards/card_art_event_wild_berries.png",
+	GameConstants.EVENT_LOST_BELONGINGS: "res://assets/images/cards/card_art_event_lost_belongings.png",
+	GameConstants.EVENT_SLEEP: "res://assets/images/cards/card_art_event_sleep.png",
+	GameConstants.EVENT_RESTART_LEVEL: "res://assets/images/cards/card_art_event_restart_level.png",
 }
 const ROAD_ART_TEXTURES := {
-	"Straight Road": "res://assets/images/cards/card_art_road_straight.svg",
-	"Corner": "res://assets/images/cards/card_art_road_corner.svg",
-	"T-Junction": "res://assets/images/cards/card_art_road_t_junction.svg",
-	"Four-Way Intersection": "res://assets/images/cards/card_art_road_four_way.svg",
-	"Dead End": "res://assets/images/cards/card_art_road_dead_end.svg",
-	"Bridge": "res://assets/images/cards/card_art_road_bridge.svg",
+	"Straight Road": "res://assets/images/cards/card_art_road_straight.png",
+	"Corner": "res://assets/images/cards/card_art_road_corner.png",
+	"T-Junction": "res://assets/images/cards/card_art_road_t_junction.png",
+	"Four-Way Intersection": "res://assets/images/cards/card_art_road_four_way.png",
+	"Dead End": "res://assets/images/cards/card_art_road_dead_end.png",
+	"Bridge": "res://assets/images/cards/card_art_road_bridge.png",
 }
 const ENCOUNTER_MARKER_TEXTURES := {
 	GameMap.ENCOUNTER_ENEMY: "res://assets/images/cards/card_marker_enemy.png",
@@ -122,6 +122,8 @@ const CATEGORY_FONT_SIZE := 14
 const DETAIL_FONT_MAX := 16
 const DETAIL_FONT_MIN := 14
 const BASE_CARD_SIZE := Vector2(150.0, 216.0)
+const DISPLAY_CARD_SIZE := Vector2(174.0, 250.0)
+const CARD_STATUS_ICON_SIZE := Vector2(28.0, 28.0)
 const NO_ACTIVE_POINTER := -2
 const MOUSE_POINTER := -1
 
@@ -130,7 +132,7 @@ var _active_pointer_id := NO_ACTIVE_POINTER
 
 func _ready() -> void:
 	if custom_minimum_size == Vector2.ZERO:
-		custom_minimum_size = Vector2(150.0, 216.0)
+		custom_minimum_size = DISPLAY_CARD_SIZE
 	if size == Vector2.ZERO:
 		size = custom_minimum_size
 	pivot_offset = size * 0.5
@@ -140,10 +142,17 @@ func _ready() -> void:
 	queue_redraw()
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		pivot_offset = size * 0.5
+		_layout_content()
+		_refresh_text()
+
+
 func _draw() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
 	var base_art_rect := get_card_art_rect()
-	var art_rect := Rect2(Vector2(base_art_rect.position.x, base_art_rect.position.y), Vector2(size.x - base_art_rect.position.x * 2.0, base_art_rect.size.y))
+	var art_rect := _pixel_snapped_rect(Rect2(Vector2(base_art_rect.position.x, base_art_rect.position.y), Vector2(size.x - base_art_rect.position.x * 2.0, base_art_rect.size.y)))
 	var border := _resolved_card_border_color()
 	var card_base_texture := _load_texture(card_base_texture_path)
 	if card_base_texture != null:
@@ -189,6 +198,15 @@ func set_focused(value: bool) -> void:
 	focused = value
 
 
+func set_display_size(value: Vector2) -> void:
+	var snapped_size := _pixel_snapped_vector(value)
+	custom_minimum_size = snapped_size
+	size = snapped_size
+	pivot_offset = snapped_size * 0.5
+	_layout_content()
+	_refresh_text()
+
+
 func _bind_scene_nodes() -> void:
 	if _title_label != null:
 		return
@@ -216,8 +234,9 @@ func _layout_content() -> void:
 
 func _apply_scaled_rect(control: Control, rect: Rect2, scale_factor: Vector2) -> void:
 	control.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	control.position = rect.position * scale_factor
-	control.size = rect.size * scale_factor
+	var scaled_rect := _pixel_snapped_rect(Rect2(rect.position * scale_factor, rect.size * scale_factor))
+	control.position = scaled_rect.position
+	control.size = scaled_rect.size
 
 
 func _content_scale() -> Vector2:
@@ -226,7 +245,15 @@ func _content_scale() -> Vector2:
 
 func _scaled_rect(rect: Rect2) -> Rect2:
 	var scale_factor := _content_scale()
-	return Rect2(rect.position * scale_factor, rect.size * scale_factor)
+	return _pixel_snapped_rect(Rect2(rect.position * scale_factor, rect.size * scale_factor))
+
+
+func _pixel_snapped_rect(rect: Rect2) -> Rect2:
+	return Rect2(_pixel_snapped_vector(rect.position), _pixel_snapped_vector(rect.size))
+
+
+func _pixel_snapped_vector(value: Vector2) -> Vector2:
+	return Vector2(roundf(value.x), roundf(value.y))
 
 
 func _refresh_text() -> void:
@@ -311,31 +338,37 @@ func _card_header_text() -> String:
 func _draw_card_art_texture(art_rect: Rect2) -> void:
 	var art_texture := _card_art_texture()
 	if art_texture != null:
-		if category == GameConstants.ROAD_CATEGORY and rotation_steps != 0:
-			draw_set_transform(art_rect.get_center(), float(rotation_steps) * PI * 0.5)
-			draw_texture_rect(art_texture, Rect2(-art_rect.size * 0.5, art_rect.size), false)
-			draw_set_transform(Vector2.ZERO, 0.0)
-		else:
-			draw_texture_rect(art_texture, art_rect, false)
+		draw_texture_rect(art_texture, art_rect, false)
 
 	if category == GameConstants.EVENT_CATEGORY:
 		return
 	var marker_texture := _encounter_marker_texture()
 	if marker_texture == null:
 		return
-	var marker_size := marker_texture.get_size()
-	var marker_position := art_rect.get_center() - marker_size * 0.5
-	if _encounter_type() != GameMap.ENCOUNTER_ENEMY:
-		marker_position += Vector2(-art_rect.size.x * 0.22, art_rect.size.y * 0.12)
+	var marker_size := _status_icon_size()
+	var marker_position := Vector2(art_rect.position.x, _status_icon_y(art_rect, marker_size))
 	draw_texture_rect(marker_texture, Rect2(marker_position, marker_size), false)
 
 
 func _draw_rotation_lock(art_rect: Rect2) -> void:
-	var center := art_rect.position + Vector2(art_rect.size.x - 13.0, 13.0)
+	var icon_size := _status_icon_size()
+	var icon_position := Vector2(art_rect.end.x - icon_size.x, _status_icon_y(art_rect, icon_size))
+	var center := icon_position + icon_size * 0.5
+	var lock_scale := icon_size.x / CARD_STATUS_ICON_SIZE.x
 	var color := Color(0.18, 0.12, 0.07, 0.96)
-	draw_arc(center + Vector2(0.0, -3.0), 5.0, PI, TAU, 12, color, 2.5, true)
-	draw_rect(Rect2(center + Vector2(-7.0, -2.0), Vector2(14.0, 11.0)), color, true)
-	draw_circle(center + Vector2(0.0, 3.0), 1.5, Color(0.92, 0.78, 0.43))
+	draw_arc(center + Vector2(0.0, -4.0) * lock_scale, 6.0 * lock_scale, PI, TAU, 12, color, 2.5 * lock_scale, true)
+	draw_rect(Rect2(center + Vector2(-8.0, -2.0) * lock_scale, Vector2(16.0, 13.0) * lock_scale), color, true)
+	draw_circle(center + Vector2(0.0, 4.0) * lock_scale, 1.7 * lock_scale, Color(0.92, 0.78, 0.43))
+
+
+func _status_icon_size() -> Vector2:
+	return _pixel_snapped_vector(CARD_STATUS_ICON_SIZE * minf(_content_scale().x, _content_scale().y))
+
+
+func _status_icon_y(art_rect: Rect2, icon_size: Vector2) -> float:
+	var title_bottom := _scaled_rect(TITLE_RECT).end.y
+	var available_gap := maxf(0.0, art_rect.position.y - title_bottom)
+	return roundf(title_bottom + (available_gap - icon_size.y) * 0.5)
 
 
 func get_card_art_rect() -> Rect2:
@@ -393,6 +426,27 @@ func _compact_detail_text() -> String:
 		if _encounter_type() in GameConstants.REUSABLE_ENCOUNTER_TYPES:
 			return detail
 		return ""
+	match event_type:
+		GameConstants.EVENT_DESTROY_TILE:
+			return "Remove a tile"
+		GameConstants.EVENT_DRAW_TWO:
+			return "Draw +2 cards"
+		GameConstants.EVENT_ROTATE_TILE:
+			return "Rotate a tile"
+		GameConstants.EVENT_LUCKY_FIND:
+			return "Gain food or gold"
+		GameConstants.EVENT_CLEAR_PATH:
+			return "Clear encounter"
+		GameConstants.EVENT_TROUBLE:
+			return "Add an enemy"
+		GameConstants.EVENT_WILD_BERRIES:
+			return "Add berry bush"
+		GameConstants.EVENT_LOST_BELONGINGS:
+			return "Add a cache"
+		GameConstants.EVENT_SLEEP:
+			return "Redraw hand"
+		GameConstants.EVENT_RESTART_LEVEL:
+			return "Restart level"
 	if detail.is_empty():
 		if _encounter_type() == GameMap.ENCOUNTER_BERRY_BUSH:
 			return "+Food"
@@ -404,29 +458,22 @@ func _compact_detail_text() -> String:
 		return "+Food"
 	if detail == "Contains an item when reached.":
 		return "+Treasure"
-	if detail == "Draw two extra cards.":
-		return "Draw +2 cards"
-	if detail == "Destroy a placed tile.":
-		return "Remove a tile"
 	return detail
 
 
 func _fit_label_font_size(label: Label, max_size: int, min_size: int) -> void:
-	var text_value := label.text.strip_edges()
-	var line_count := maxi(1, text_value.count("\n") + 1)
-	var longest_line := 0
-	for line in text_value.split("\n"):
-		longest_line = maxi(longest_line, line.length())
-
-	var font_size := max_size
-	if line_count > 1:
-		font_size -= 1
-	if longest_line > 15:
-		font_size -= ceili(float(longest_line - 15) / 4.0)
-	if line_count > 2:
-		font_size -= line_count - 2
-
-	label.add_theme_font_size_override("font_size", clampi(font_size, min_size, max_size))
+	var font := label.get_theme_font("font")
+	for font_size in range(max_size, min_size - 1, -1):
+		var text_size := font.get_multiline_string_size(
+			label.text,
+			HORIZONTAL_ALIGNMENT_CENTER,
+			label.size.x,
+			font_size
+		)
+		if text_size.y <= label.size.y:
+			label.add_theme_font_size_override("font_size", font_size)
+			return
+	label.add_theme_font_size_override("font_size", min_size)
 
 
 func _scaled_font_size(font_size: int) -> int:

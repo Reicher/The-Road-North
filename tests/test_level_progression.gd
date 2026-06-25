@@ -91,6 +91,14 @@ func run() -> void:
 	_assert(main.find_child("Shop", true, false) != null, "Expected debug Enter to open the between-level shop")
 	_assert(first_player.grid_position == first_map.get_goal_position(), "Expected debug Enter to use the normal goal completion state")
 
+	_send_key(main, KEY_3)
+	await process_frame
+	var debug_third_level := main.get_node("Level")
+	_assert((debug_third_level.get_node("Map") as GameMap).playable_width == 9, "Expected debug key 3 to load the third level")
+	_send_key(main, KEY_4)
+	await process_frame
+	_assert(main.get_node("Level") == debug_third_level, "Expected an unconfigured debug level key to leave the current level unchanged")
+
 	_send_key(main, KEY_2)
 	await process_frame
 	var debug_second_level := main.get_node("Level")

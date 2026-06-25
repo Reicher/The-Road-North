@@ -33,7 +33,7 @@ func _ready() -> void:
 	_trade_button = $Panel/Margin/Stack/TradeButton as Button
 	_offer_card = CARD_SCENE.instantiate() as CardView
 	_offer_card.name = "Card"
-	_offer_card.custom_minimum_size = Vector2(150.0, 216.0)
+	_offer_card.custom_minimum_size = CardView.DISPLAY_CARD_SIZE
 	_offer_card.size = _offer_card.custom_minimum_size
 	_offer_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_offer_card_container.add_child(_offer_card)

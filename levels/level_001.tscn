@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" path="res://scenes/level.tscn" id="1_f3kdo"]
 
 [node name="Level" instance=ExtResource("1_f3kdo")]
+level_name = "Level 1"
 
 [node name="Map" parent="." index="0"]
 playable_width = 5

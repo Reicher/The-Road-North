@@ -44,6 +44,7 @@ tests=(
 	tests/test_permanent_encounters.gd
 	tests/test_rotation_locks_and_graveyard.gd
 	tests/test_level_scene.gd
+	tests/test_debug_level_shortcuts.gd
 	tests/test_level_progression.gd
 )
 

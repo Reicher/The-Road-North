@@ -11,7 +11,7 @@ signal card_drag_finished(card: CardView, canvas_position: Vector2, activated: b
 
 @export var card_scene: PackedScene = preload("res://ui/card.tscn")
 @export var demo_cards_enabled := true
-@export var card_size := Vector2(174.0, 250.0)
+@export var card_size := CardView.DISPLAY_CARD_SIZE
 @export var side_margin := 16.0
 @export var bottom_margin := 20.0
 @export var show_panel_background := false
@@ -89,9 +89,7 @@ func add_card(card_data: Dictionary, animate := true) -> CardView:
 	if _card_parent == null:
 		return null
 	var card := card_scene.instantiate() as CardView
-	card.custom_minimum_size = card_size
-	card.size = card_size
-	card.pivot_offset = card_size * 0.5
+	card.set_display_size(card_size)
 	card.configure(card_data)
 	card.pointer_pressed.connect(_on_card_pointer_pressed)
 	card.pointer_moved.connect(_on_card_pointer_moved)
@@ -183,28 +181,31 @@ func _layout_cards(animated := true) -> void:
 		var center_offset := float(index) - float(count - 1) * 0.5
 		var target_position := Vector2(start_x + spacing * index, base_y + absf(center_offset) * arc_depth / maxf(1.0, float(count - 1)))
 		var target_rotation := deg_to_rad(center_offset * 4.0)
-		var target_scale := Vector2.ONE
+		var target_size := card_size
 		var target_z := index
 
 		if index == focused_index:
 			target_position += Vector2.UP.rotated(target_rotation) * card_size.y * focused_lift_ratio
-			target_scale = Vector2.ONE * focused_scale
+			target_size = _pixel_snapped_vector(card_size * focused_scale)
+			target_position -= (target_size - card_size) * 0.5
 			target_z = 100
 		elif focused_index != -1:
 			var direction := signf(float(index - focused_index))
 			var distance_from_focus := absf(float(index - focused_index))
 			target_position.x += direction * focused_side_shift / distance_from_focus
 
-		target_position.x = _clamp_card_x(target_position.x, target_scale.x)
+		target_position = _pixel_snapped_vector(target_position)
+		target_position.x = _clamp_card_x(target_position.x, target_size)
 		card.z_index = target_z
 		if animated and layout_duration > 0.0:
 			_layout_tween.tween_property(card, "position", target_position, layout_duration)
 			_layout_tween.tween_property(card, "rotation", target_rotation, layout_duration)
-			_layout_tween.tween_property(card, "scale", target_scale, layout_duration)
+			_layout_tween.tween_method(Callable(card, "set_display_size"), card.size, target_size, layout_duration)
 		else:
 			card.position = target_position
 			card.rotation = target_rotation
-			card.scale = target_scale
+			card.set_display_size(target_size)
+		card.scale = Vector2.ONE
 
 func _on_card_focus_requested(card: CardView) -> void:
 	if card == get_focused_card():
@@ -285,9 +286,7 @@ func _cancel_drag_visual() -> void:
 
 func _show_drag_ghost(card: CardView, canvas_position: Vector2) -> void:
 	_drag_ghost = card_scene.instantiate() as CardView
-	_drag_ghost.custom_minimum_size = card_size
-	_drag_ghost.size = card_size
-	_drag_ghost.pivot_offset = card_size * 0.5
+	_drag_ghost.set_display_size(card_size)
 	_drag_ghost.configure(card.get_card_data())
 	_drag_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_drag_ghost.modulate.a = 0.88
@@ -300,7 +299,7 @@ func _update_drag_ghost(canvas_position: Vector2) -> void:
 	if _drag_ghost == null:
 		return
 	var local_position := get_global_transform_with_canvas().affine_inverse() * canvas_position
-	_drag_ghost.position = local_position - _drag_ghost.size * 0.5
+	_drag_ghost.position = _pixel_snapped_vector(local_position - _drag_ghost.size * 0.5)
 
 
 func get_activation_boundary_y() -> float:
@@ -364,11 +363,14 @@ func _available_height() -> float:
 	return get_viewport_rect().size.y
 
 
-func _clamp_card_x(card_x: float, card_scale: float) -> float:
-	var scale_overhang := card_size.x * maxf(0.0, card_scale - 1.0) * 0.5
-	var minimum_x := side_margin + scale_overhang
-	var maximum_x := _available_width() - side_margin - card_size.x - scale_overhang
+func _clamp_card_x(card_x: float, active_card_size: Vector2) -> float:
+	var minimum_x := side_margin
+	var maximum_x := _available_width() - side_margin - active_card_size.x
 	return clampf(card_x, minimum_x, maxf(minimum_x, maximum_x))
+
+
+func _pixel_snapped_vector(value: Vector2) -> Vector2:
+	return Vector2(roundf(value.x), roundf(value.y))
 
 
 func _card_at_canvas_position(canvas_position: Vector2) -> CardView:

@@ -5,17 +5,23 @@
 [sub_resource type="SystemFont" id="SystemFont_title"]
 font_names = PackedStringArray("Avenir Next Condensed", "Trebuchet MS", "Verdana")
 font_weight = 700
+multichannel_signed_distance_field = true
+msdf_pixel_range = 8
+msdf_size = 64
 
 [sub_resource type="SystemFont" id="SystemFont_label"]
 font_names = PackedStringArray("Avenir Next", "Trebuchet MS", "Verdana")
 font_weight = 600
+multichannel_signed_distance_field = true
+msdf_pixel_range = 8
+msdf_size = 64
 
 [node name="Card" type="Control"]
-custom_minimum_size = Vector2(150, 216)
+custom_minimum_size = Vector2(174, 250)
 layout_mode = 3
 anchors_preset = 0
-offset_right = 150.0
-offset_bottom = 216.0
+offset_right = 174.0
+offset_bottom = 250.0
 mouse_filter = 0
 script = ExtResource("1_h3x6f")
 

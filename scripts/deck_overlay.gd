@@ -4,7 +4,7 @@ extends PanelContainer
 const UIStyle = preload("res://scripts/ui_style.gd")
 const CARD_SCENE := preload("res://ui/card.tscn")
 
-const OVERVIEW_CARD_SIZE := CardView.BASE_CARD_SIZE
+const OVERVIEW_CARD_SIZE := CardView.DISPLAY_CARD_SIZE
 const OVERVIEW_ENTRY_HEIGHT := 262.0
 
 signal close_requested

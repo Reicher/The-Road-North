@@ -75,7 +75,8 @@ func _initialize() -> void:
 	hand.call("focus_card", focused_card)
 	_assert(hand.call("get_focused_card") == focused_card, "Expected tapped card to become focused")
 	_assert(focused_card.focused, "Expected focused card state to update")
-	_assert(focused_card.scale.x > hand.cards[1].scale.x, "Expected focused card to grow larger than surrounding cards")
+	_assert(focused_card.scale == Vector2.ONE, "Expected focused cards to redraw at final size instead of bitmap-scaling text")
+	_assert(focused_card.size.x > hand.cards[1].size.x, "Expected focused card to grow larger than surrounding cards")
 	_assert(hand.get_node_or_null("UseButton") == null, "Expected the hand to have no Use button")
 	_assert(focused_card.get_node_or_null("UseButton") == null, "Expected cards to have no Use button")
 	var title_label := focused_card.get_node("Title") as Label
@@ -102,25 +103,24 @@ func _initialize() -> void:
 		_assert(road_art != null, "Expected every normal road type to have dedicated card art")
 		_assert(road_art.get_size() == Vector2(132.0, 72.0), "Expected road art to use the shared centered card-art canvas")
 		var opaque_bounds := _opaque_bounds(road_art.get_image())
-		_assert(opaque_bounds.get_center().distance_to(road_art.get_size() * 0.5) <= 2.0, "Expected %s art to be centered on its canvas; got %s" % [card.title, opaque_bounds])
-		_assert(maxf(opaque_bounds.size.x, opaque_bounds.size.y) >= 50.0, "Expected %s art to have clearly extended road arms; got %s" % [card.title, opaque_bounds])
-	var four_way_bounds := _opaque_bounds((hand.cards[3].call("_card_art_texture") as Texture2D).get_image())
-	_assert(absf(four_way_bounds.size.x - four_way_bounds.size.y) <= 2.0, "Expected four-way road arms to be symmetrical; got %s" % four_way_bounds)
+		_assert(opaque_bounds == Rect2(Vector2.ZERO, road_art.get_size()), "Expected %s road art to fill the shared card-art canvas; got %s" % [card.title, opaque_bounds])
 	_assert(title_label.offset_bottom < focused_card.get_card_art_rect().position.y, "Expected two-line card titles to stay above the card art")
 	_assert(focused_card.get_card_art_rect().size.y > CardView.NO_DETAIL_ART_RECT.size.y, "Expected larger cards to scale up their road art")
 	var card_scale_y: float = focused_card.size.y / CardView.BASE_CARD_SIZE.y
-	_assert(is_equal_approx(category_label.offset_top, CardView.CATEGORY_RECT.position.y * card_scale_y), "Expected road category badge to keep the scaled bottom category position")
-	_assert(is_equal_approx(category_label.offset_bottom, CardView.CATEGORY_RECT.end.y * card_scale_y), "Expected road category badge to sit at the bottom of the larger card")
+	var expected_category_top := roundf(CardView.CATEGORY_RECT.position.y * card_scale_y)
+	var expected_category_bottom := expected_category_top + roundf(CardView.CATEGORY_RECT.size.y * card_scale_y)
+	_assert(is_equal_approx(category_label.offset_top, expected_category_top), "Expected road category badge to keep the scaled bottom category position")
+	_assert(is_equal_approx(category_label.offset_bottom, expected_category_bottom), "Expected road category badge to sit at the bottom of the larger card")
 	_assert(detail_label.offset_bottom < focused_card.size.y, "Expected focused card detail text to stay inside the card")
-	_assert(title_label.get_theme_font_size("font_size") > CardView.TITLE_FONT_MAX, "Expected larger cards to scale up their title text")
+	_assert(title_label.get_theme_font_size("font_size") >= CardView.TITLE_FONT_MAX, "Expected larger cards to keep readable title text")
 	_assert(detail_label.get_theme_font_size("font_size") > CardView.DETAIL_FONT_MAX, "Expected larger cards to scale up their detail text")
 	_assert(focused_card.position.y < hand.cards[1].position.y, "Expected focused card to lift above surrounding cards")
 	_assert(hand.cards[1].position.y <= hand.cards[0].position.y, "Expected neighboring cards to keep the hand arc height")
 	_assert(hand.cards[3].position.y <= hand.cards[4].position.y, "Expected neighboring cards to keep the hand arc height")
 	for card in hand.cards:
-		var scale_overhang: float = card.size.x * maxf(0.0, card.scale.x - 1.0) * 0.5
-		_assert(card.position.x - scale_overhang >= hand.side_margin, "Expected focused hand layout to keep its left margin")
-		_assert(card.position.x + card.size.x + scale_overhang <= hand.size.x - hand.side_margin, "Expected focused hand layout to keep its right margin")
+		_assert(card.scale == Vector2.ONE, "Expected hand cards to avoid bitmap scaling so text stays sharper")
+		_assert(card.position.x >= hand.side_margin, "Expected focused hand layout to keep its left margin")
+		_assert(card.position.x + card.size.x <= hand.size.x - hand.side_margin, "Expected focused hand layout to keep its right margin")
 
 	hand.call("_on_card_focus_requested", focused_card)
 	_assert(hand.call("get_focused_card") == null, "Expected tapping the focused card again to clear focus")
@@ -207,12 +207,39 @@ func _initialize() -> void:
 	})
 	var event_detail_label := event_card.get_node("Detail") as Label
 	var event_category_label := event_card.get_node("Category") as Label
+	var event_title_label := event_card.get_node("Title") as Label
+	var event_scale := event_card.size / CardView.BASE_CARD_SIZE
+	var expected_event_art_rect := Rect2(_snapped_vector(CardView.ART_RECT.position * event_scale), _snapped_vector(CardView.ART_RECT.size * event_scale))
+	_assert(event_title_label.get_theme_font("font").multichannel_signed_distance_field, "Expected card titles to stay sharp while cards scale and rotate")
+	_assert(event_detail_label.get_theme_font("font").multichannel_signed_distance_field, "Expected card details to stay sharp while cards scale and rotate")
 	_assert(event_detail_label.text == "Remove a tile", "Expected event cards to keep compact detail text")
-	_assert(event_card.get_card_art_rect() == CardView.ART_RECT, "Expected default-size event card art to stay above the detail text")
+	_assert(event_card.get_card_art_rect() == expected_event_art_rect, "Expected event card art to stay above the detail text")
 	_assert(event_detail_label.offset_top > event_card.get_card_art_rect().end.y, "Expected event detail text to sit below the card art")
 	_assert(event_detail_label.offset_bottom < event_category_label.offset_top, "Expected event detail text to sit between art and category")
-	_assert(is_equal_approx(event_category_label.offset_top, CardView.CATEGORY_RECT.position.y), "Expected event category badge to use the bottom category position")
-	_assert(is_equal_approx(event_category_label.offset_bottom, CardView.CATEGORY_RECT.end.y), "Expected event category badge to sit at the bottom of the card")
+	var expected_event_category_top := roundf(CardView.CATEGORY_RECT.position.y * event_scale.y)
+	var expected_event_category_bottom := expected_event_category_top + roundf(CardView.CATEGORY_RECT.size.y * event_scale.y)
+	_assert(is_equal_approx(event_category_label.offset_top, expected_event_category_top), "Expected event category badge to use the scaled bottom category position")
+	_assert(is_equal_approx(event_category_label.offset_bottom, expected_event_category_bottom), "Expected event category badge to sit at the bottom of the card")
+	var event_details := {
+		GameConstants.EVENT_DESTROY_TILE: ["Mirage", "Destroy a placed tile.", "Remove a tile"],
+		GameConstants.EVENT_DRAW_TWO: ["Idea", "Draw two extra cards.", "Draw +2 cards"],
+		GameConstants.EVENT_ROTATE_TILE: ["Doubt", "Rotate a placed tile.", "Rotate a tile"],
+		GameConstants.EVENT_LUCKY_FIND: ["Lucky Find", "Gain food or gold.", "Gain food or gold"],
+		GameConstants.EVENT_CLEAR_PATH: ["Clear Path", "Remove an encounter from a road.", "Clear encounter"],
+		GameConstants.EVENT_TROUBLE: ["Trouble", "Add an enemy to a road.", "Add an enemy"],
+		GameConstants.EVENT_WILD_BERRIES: ["Wild Berries", "Add a berry bush to a road.", "Add berry bush"],
+		GameConstants.EVENT_LOST_BELONGINGS: ["Lost Belongings", "Add a cache to a road.", "Add a cache"],
+		GameConstants.EVENT_SLEEP: ["Sleep", "Discard hand and redraw.", "Redraw hand"],
+		GameConstants.EVENT_RESTART_LEVEL: ["It was all a dream", "Restart the current level.", "Restart level"],
+	}
+	for event_type in event_details:
+		var values: Array = event_details[event_type]
+		event_card.configure({"category": "Event", "title": values[0], "detail": values[1], "event_type": event_type})
+		_assert(event_detail_label.text == values[2], "Expected %s to use compact card text" % values[0])
+		var font := event_detail_label.get_theme_font("font")
+		var font_size := event_detail_label.get_theme_font_size("font_size")
+		var text_size := font.get_multiline_string_size(event_detail_label.text, HORIZONTAL_ALIGNMENT_CENTER, event_detail_label.size.x, font_size)
+		_assert(text_size.y <= event_detail_label.size.y, "Expected %s detail text to fit inside the card" % values[0])
 	for event_type in [
 		GameConstants.EVENT_CLEAR_PATH,
 		GameConstants.EVENT_TROUBLE,
@@ -235,6 +262,10 @@ func _assert(condition: bool, message: String) -> void:
 		return
 	push_error(message)
 	quit(1)
+
+
+func _snapped_vector(value: Vector2) -> Vector2:
+	return Vector2(roundf(value.x), roundf(value.y))
 
 
 func _opaque_bounds(image: Image) -> Rect2:

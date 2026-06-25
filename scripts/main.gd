@@ -2,16 +2,13 @@ extends Node
 
 const ItemCatalog = preload("res://scripts/item_catalog.gd")
 
-const LEVEL_SCENES: Array[PackedScene] = [
-	preload("res://levels/level_001.tscn"),
-	preload("res://levels/level_002.tscn"),
-	preload("res://levels/level_003.tscn"),
+const LEVELS: Array[Dictionary] = [
+	{"scene": preload("res://levels/level_001.tscn"), "name": "Level 1", "map_size": 5},
+	{"scene": preload("res://levels/level_002.tscn"), "name": "2 bridges", "map_size": 7},
+	{"scene": preload("res://levels/level_003.tscn"), "name": "6 mountains", "map_size": 9},
 ]
 const SHOP_SCENE := preload("res://ui/shop.tscn")
 const START_SCREEN_SCENE := preload("res://ui/start_screen.tscn")
-const LEVEL_NAMES := ["Level 1", "2 bridges", "6 mountains"]
-# Map sizes per level — avoids instantiating next scene just to query playable_width/height
-const LEVEL_MAP_SIZES := [5, 7, 9]
 
 const DEBUG_OVERLAY_SCENE := preload("res://ui/debug_overlay.tscn")
 const DEBUG_LABEL_TEXT := "Debug"
@@ -36,8 +33,7 @@ var _start_screen: StartScreen
 
 func _ready() -> void:
 	ItemCatalog.initialize()
-	assert(LEVEL_NAMES.size() == LEVEL_SCENES.size(), "LEVEL_NAMES and LEVEL_SCENES must have the same size")
-	assert(LEVEL_MAP_SIZES.size() == LEVEL_SCENES.size(), "LEVEL_MAP_SIZES and LEVEL_SCENES must have the same size")
+	assert(not LEVELS.is_empty(), "At least one level must be configured")
 	_ensure_debug_overlay()
 	_show_start_screen()
 
@@ -57,13 +53,10 @@ func _input(event: InputEvent) -> void:
 	if not _debug_mode_enabled:
 		return
 
-	if event.is_action_pressed("debug_level_1"):
+	var debug_level_index := _debug_level_index_from_event(event)
+	if debug_level_index >= 0:
 		_level_start_progression.clear()
-		_load_level(0)
-		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("debug_level_2"):
-		_level_start_progression.clear()
-		_load_level(1)
+		_load_level(debug_level_index)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("debug_complete_level"):
 		_complete_current_level()
@@ -79,6 +72,19 @@ func _input(event: InputEvent) -> void:
 				return
 
 
+func _debug_level_index_from_event(event: InputEvent) -> int:
+	if not event is InputEventKey:
+		return -1
+	var key_event := event as InputEventKey
+	var keycode := key_event.keycode
+	if keycode < KEY_1 or keycode > KEY_9:
+		keycode = key_event.physical_keycode
+	if keycode < KEY_1 or keycode > KEY_9:
+		return -1
+	var level_index := int(keycode - KEY_1)
+	return level_index if level_index < LEVELS.size() else -1
+
+
 func _load_level(level_index: int) -> void:
 	_dismiss_start_screen()
 	_close_shop()
@@ -86,8 +92,10 @@ func _load_level(level_index: int) -> void:
 		remove_child(_current_level)
 		_current_level.queue_free()
 
-	_current_level_index = clampi(level_index, 0, LEVEL_SCENES.size() - 1)
-	_current_level = LEVEL_SCENES[_current_level_index].instantiate()
+	_current_level_index = clampi(level_index, 0, LEVELS.size() - 1)
+	var level_scene := LEVELS[_current_level_index].get("scene") as PackedScene
+	assert(level_scene != null, "Every configured level needs a PackedScene")
+	_current_level = level_scene.instantiate()
 	_current_level.name = "Level"
 	add_child(_current_level)
 	if not _level_start_progression.is_empty():
@@ -101,7 +109,7 @@ func _configure_level_end_screen() -> void:
 	var end_screen := _current_level.get_node_or_null("UI/GameOver") as GameOverUI
 	if end_screen == null:
 		return
-	end_screen.has_next_level = _current_level_index < LEVEL_SCENES.size() - 1
+	end_screen.has_next_level = _current_level_index < LEVELS.size() - 1
 	if not end_screen.next_level_requested.is_connected(_on_next_level_requested):
 		end_screen.next_level_requested.connect(_on_next_level_requested)
 	if not end_screen.restart_level_requested.is_connected(_on_restart_level_requested):
@@ -266,7 +274,7 @@ func _on_dream_restart_level_requested() -> void:
 
 
 func _open_shop() -> void:
-	if _shop != null or _current_level_index >= LEVEL_SCENES.size() - 1:
+	if _shop != null or _current_level_index >= LEVELS.size() - 1:
 		return
 	var progression := _capture_progression_with_extras(_level_start_progression)
 	var active_power := int(progression.get("active_power_bonus", 0))
@@ -279,14 +287,15 @@ func _open_shop() -> void:
 	progression.erase("removed_base_card_this_shop")
 	var deck_controller := _current_level.get_node_or_null("DeckController") as DeckController
 	var available_base_cards: Array = deck_controller.deck_components.get(DeckBuilder.DECK_SOURCE_BASE, []) if deck_controller != null else []
-	var map_size: int = LEVEL_MAP_SIZES[_current_level_index + 1] if _current_level_index + 1 < LEVEL_MAP_SIZES.size() else 5
+	var next_level: Dictionary = LEVELS[_current_level_index + 1]
+	var map_size := int(next_level.get("map_size", 5))
 	_shop = SHOP_SCENE.instantiate() as Control
 	_shop_layer = CanvasLayer.new()
 	_shop_layer.name = "ShopLayer"
 	_shop_layer.layer = 50
 	add_child(_shop_layer)
 	_shop_layer.add_child(_shop)
-	_shop.setup(progression, LEVEL_NAMES[_current_level_index + 1], map_size, available_base_cards)
+	_shop.setup(progression, str(next_level.get("name", "Level %d" % (_current_level_index + 2))), map_size, available_base_cards)
 	_shop.play_next_requested.connect(_on_shop_play_next_requested)
 	var level_ui := _current_level.get_node_or_null("UI") as CanvasLayer
 	if level_ui != null:

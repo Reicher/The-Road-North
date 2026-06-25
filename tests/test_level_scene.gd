@@ -23,6 +23,7 @@ func run() -> void:
 	var settings_menu := level.get_node("UI/SettingsMenu")
 	var player := level.get_node("Player") as GamePlayer
 	var camera := level.get_node("Camera3D") as Camera3D
+	var level_name_label := level.get_node("UI/LevelName") as Label
 	var placement := level.get_node("PlacementController") as PlacementController
 	var typed_level := level as Level
 
@@ -35,6 +36,7 @@ func run() -> void:
 	_assert(inventory != null, "Expected level scene to include InventoryUI")
 	_assert(hud_background != null, "Expected level scene to include the shared HUD background panel")
 	_assert(settings_menu != null, "Expected level scene to include a settings menu")
+	_assert(level_name_label.text == "Level 1" and level_name_label.visible, "Expected the level name to show during the opening map hold")
 	_assert(inventory.get_index() > loot.get_index(), "Expected inventory to sit above loot for backpack interaction")
 	_assert(player.loot_ui_path == NodePath("../UI/Loot"), "Expected player to connect to LootUI")
 	_assert(map.playable_width == 5 and map.playable_height == 5, "Expected level 001 to configure a 5x5 map")
@@ -114,6 +116,8 @@ func run() -> void:
 	_assert(typed_level.state == Level.RunState.IDLE, "Expected level to return idle after movement")
 	_assert(player.input_enabled, "Expected level to re-enable player input after movement")
 	_assert(not camera.get("_following_player"), "Expected camera to stop continuously following after movement")
+	_assert(camera.get("_start_zoom_announced"), "Expected interrupting the intro camera to start fading the level name")
+	_assert(typed_level.get("_level_name_tween") != null, "Expected the level name fade to begin with the camera zoom")
 
 	var road_card: CardView
 	for card in hand.cards:
@@ -218,10 +222,11 @@ func run() -> void:
 	_assert(is_equal_approx(second_camera.pan_margin_z_tiles, 3.0), "Expected camera to allow visual forest margin beyond the top and bottom edges")
 	_assert(is_equal_approx(second_camera.initial_visible_tile_width, 5.5), "Expected the intro camera to start one zoom step farther out")
 	_assert(is_equal_approx(second_camera.zoom_in_visible_tile_width, 4.0), "Expected maximum zoom-in to keep adjacent placement tiles fully visible")
+	_assert(is_equal_approx(second_camera.player_screen_y_ratio, 0.67), "Expected automatic player focus to frame the player two thirds down the map viewport")
 	var second_start_world := second_map.grid_to_world(second_map.get_start_position())
 	var second_intro_size: float = second_camera.call("_get_initial_zoom_target")
 	var second_intro_target: Vector2 = second_camera.call("_get_clamped_target_for_world_position", second_start_world, second_intro_size)
-	_assert(is_equal_approx(second_intro_target.y, second_start_world.z), "Expected level 002 intro camera target to center on the start tile")
+	_assert(second_intro_target.y < second_start_world.z, "Expected level 002 intro camera target to sit above the start tile so the player appears lower on screen")
 	_assert(second_intro_size < second_camera.call("_get_zoom_out_limit"), "Expected portrait intro camera sequence to visibly zoom toward the player")
 
 	level.queue_free()

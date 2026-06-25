@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" path="res://scenes/level.tscn" id="1_x0hhk"]
 
 [node name="Level" instance=ExtResource("1_x0hhk")]
+level_name = "2 bridges"
 
 [node name="Map" parent="." index="0"]
 playable_width = 7

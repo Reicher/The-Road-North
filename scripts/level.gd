@@ -15,6 +15,10 @@ enum RunState {
 @export var placement_controller_path: NodePath = NodePath("PlacementController")
 @export var player_path: NodePath = NodePath("Player")
 @export var encounter_ui_path: NodePath = NodePath("UI/Encounter")
+@export var camera_path: NodePath = NodePath("Camera3D")
+@export var level_name_label_path: NodePath = NodePath("UI/LevelName")
+@export var level_name := ""
+@export_range(0.0, 2.0, 0.05) var level_name_fade_duration := 0.45
 
 var state := RunState.IDLE
 
@@ -22,6 +26,9 @@ var _hand: HandUI
 var _placement_controller: PlacementController
 var _player: GamePlayer
 var _encounter_ui: Control
+var _camera: Camera3D
+var _level_name_label: Label
+var _level_name_tween: Tween
 
 
 func _ready() -> void:
@@ -29,6 +36,9 @@ func _ready() -> void:
 	_placement_controller = get_node_or_null(placement_controller_path) as PlacementController
 	_player = get_node_or_null(player_path) as GamePlayer
 	_encounter_ui = get_node_or_null(encounter_ui_path) as Control
+	_camera = get_node_or_null(camera_path) as Camera3D
+	_level_name_label = get_node_or_null(level_name_label_path) as Label
+	_setup_level_name_intro()
 
 	if _hand == null:
 		push_warning("Level needs a HandUI at hand_path.")
@@ -44,6 +54,33 @@ func _ready() -> void:
 		push_warning("Level needs a GamePlayer at player_path.")
 	else:
 		_connect_player()
+
+
+func _exit_tree() -> void:
+	if _level_name_tween != null:
+		_level_name_tween.kill()
+
+
+func _setup_level_name_intro() -> void:
+	if _level_name_label == null:
+		return
+	_level_name_label.text = level_name
+	_level_name_label.modulate.a = 1.0
+	_level_name_label.visible = not level_name.is_empty()
+	if _camera != null and _camera.has_signal("start_zoom_started"):
+		_camera.connect("start_zoom_started", _fade_out_level_name)
+
+
+func _fade_out_level_name() -> void:
+	if _level_name_label == null or not _level_name_label.visible:
+		return
+	if _level_name_tween != null:
+		_level_name_tween.kill()
+	_level_name_tween = create_tween()
+	_level_name_tween.set_trans(Tween.TRANS_SINE)
+	_level_name_tween.set_ease(Tween.EASE_OUT)
+	_level_name_tween.tween_property(_level_name_label, "modulate:a", 0.0, level_name_fade_duration)
+	_level_name_tween.tween_callback(_level_name_label.hide)
 
 
 func _connect_hand() -> void:
