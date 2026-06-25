@@ -116,6 +116,7 @@ const ART_RECT := Rect2(18.0, 72.0, 114.0, 62.0)
 const NO_DETAIL_ART_RECT := Rect2(18.0, 94.0, 114.0, 62.0)
 const DETAIL_RECT := Rect2(14.0, 141.0, 122.0, 38.0)
 const CATEGORY_RECT := Rect2(22.0, 186.0, 106.0, 22.0)
+const TINT_RECT := Rect2(6.0, 6.0, 138.0, 204.0)
 const TITLE_FONT_MAX := 19
 const TITLE_FONT_MIN := 16
 const CATEGORY_FONT_SIZE := 14
@@ -124,6 +125,7 @@ const DETAIL_FONT_MIN := 14
 const BASE_CARD_SIZE := Vector2(150.0, 216.0)
 const DISPLAY_CARD_SIZE := Vector2(174.0, 250.0)
 const CARD_STATUS_ICON_SIZE := Vector2(28.0, 28.0)
+const CARD_TINT_ALPHA := 0.58
 const NO_ACTIVE_POINTER := -2
 const MOUSE_POINTER := -1
 
@@ -157,6 +159,7 @@ func _draw() -> void:
 	var card_base_texture := _load_texture(card_base_texture_path)
 	if card_base_texture != null:
 		draw_texture_rect(card_base_texture, rect, false)
+		_draw_card_tint()
 	else:
 		UIStyle.draw_panel(self, rect, _resolved_card_color(), border)
 	_draw_card_art_texture(art_rect)
@@ -330,8 +333,6 @@ func _title_from_definition() -> String:
 func _card_header_text() -> String:
 	if category != GameConstants.ROAD_CATEGORY or tile_definition == null:
 		return title
-	if _encounter_type() in GameConstants.REUSABLE_ENCOUNTER_TYPES:
-		return title
 	return _title_from_definition()
 
 
@@ -415,16 +416,42 @@ func _category_badge_text() -> String:
 	if _encounter_type() == GameMap.ENCOUNTER_CACHE:
 		return "ROAD + LOOT"
 	if _encounter_type() in GameConstants.REUSABLE_ENCOUNTER_TYPES:
-		return "SPECIAL ROAD"
+		return "ROAD + SPECIAL"
 	if not encounter_data.is_empty():
 		return "ROAD + LOOT"
 	return "ROAD"
 
 
+func _draw_card_tint() -> void:
+	var tint := _resolved_card_tint_color()
+	if tint == Color.TRANSPARENT:
+		return
+	draw_style_box(UIStyle.rounded_box(self, tint, Color.TRANSPARENT, 10, 0), _scaled_rect(TINT_RECT))
+
+
+func _resolved_card_tint_color() -> Color:
+	if card_color != Color.TRANSPARENT:
+		return Color(card_color.r, card_color.g, card_color.b, CARD_TINT_ALPHA)
+	var tint := _category_tint_color()
+	return Color(tint.r, tint.g, tint.b, CARD_TINT_ALPHA)
+
+
+func _category_tint_color() -> Color:
+	if category == GameConstants.EVENT_CATEGORY:
+		return Color(0.98, 0.91, 0.62)
+	if _encounter_type() == GameMap.ENCOUNTER_ENEMY:
+		return Color(0.97, 0.82, 0.76)
+	if _encounter_type() == GameMap.ENCOUNTER_BERRY_BUSH:
+		return Color(0.84, 0.93, 0.78)
+	if _encounter_type() == GameMap.ENCOUNTER_CACHE:
+		return Color(0.78, 0.91, 0.90)
+	if _encounter_type() in GameConstants.REUSABLE_ENCOUNTER_TYPES:
+		return Color(0.88, 0.84, 0.96)
+	return Color(0.78, 0.86, 0.82)
+
+
 func _compact_detail_text() -> String:
 	if category == GameConstants.ROAD_CATEGORY:
-		if _encounter_type() in GameConstants.REUSABLE_ENCOUNTER_TYPES:
-			return detail
 		return ""
 	match event_type:
 		GameConstants.EVENT_DESTROY_TILE:

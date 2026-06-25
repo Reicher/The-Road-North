@@ -65,7 +65,12 @@ func _init() -> void:
 	_assert(witch_offer_card.visible, "Expected Witch's Hut to show an actual card scene")
 	_assert(witch_offer_card.title == str(encounter_ui._witch_offer.get("title", "")), "Expected Witch's Hut card scene to show the offered card")
 	_assert(witch_offer_card.tile_definition == encounter_ui._witch_offer.get("tile_definition"), "Expected Witch's Hut card scene to show the offered road shape")
-	_assert(witch_offer_card._compact_detail_text() == str(encounter_ui._witch_offer.get("detail", "")), "Expected Witch's Hut card scene to show the offered effect")
+	var witch_offer_encounter := str((encounter_ui._witch_offer.get("encounter", {}) as Dictionary).get("type", ""))
+	if witch_offer_card.category == GameConstants.ROAD_CATEGORY and witch_offer_encounter in GameConstants.REUSABLE_ENCOUNTER_TYPES:
+		_assert((witch_offer_card.get_node("Title") as Label).text == str(witch_offer_card.tile_definition.get("display_name")), "Expected Witch's Hut special road preview to show the offered road shape")
+		_assert(witch_offer_card._compact_detail_text() == "", "Expected Witch's Hut special road preview to hide effect text")
+	else:
+		_assert(not witch_offer_card._compact_detail_text().is_empty(), "Expected Witch's Hut card scene to show a compact effect")
 	var hand_count := (level.get_node("UI/Hand") as HandUI).cards.size()
 	player.set_health(5)
 	encounter_ui._trade()

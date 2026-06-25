@@ -98,6 +98,9 @@ func _initialize() -> void:
 	_assert(enemy_title_label.text == "Four-Way Intersection", "Expected enemy road cards to show only the road type")
 	_assert(enemy_detail_label.text == "", "Expected enemy road cards to leave the detail text empty")
 	_assert(enemy_category_label.text == "ROAD + ENEMY", "Expected enemy road cards to identify their enemy encounter")
+	_assert(hand.cards[0]._resolved_card_tint_color() == Color(0.78, 0.86, 0.82, CardView.CARD_TINT_ALPHA), "Expected plain road cards to use the neutral road tint")
+	_assert(hand.cards[1]._resolved_card_tint_color() == Color(0.84, 0.93, 0.78, CardView.CARD_TINT_ALPHA), "Expected food road cards to use the food tint")
+	_assert(hand.cards[3]._resolved_card_tint_color() == Color(0.97, 0.82, 0.76, CardView.CARD_TINT_ALPHA), "Expected enemy road cards to use the danger tint")
 	for card in hand.cards:
 		var road_art := card.call("_card_art_texture") as Texture2D
 		_assert(road_art != null, "Expected every normal road type to have dedicated card art")
@@ -195,7 +198,24 @@ func _initialize() -> void:
 	})
 	_assert((cache_card.get_node("Title") as Label).text == "Corner", "Expected treasure road cards to show only the road type")
 	_assert((cache_card.get_node("Category") as Label).text == "ROAD + LOOT", "Expected treasure road cards to identify their loot encounter")
+	_assert(cache_card._resolved_card_tint_color() == Color(0.78, 0.91, 0.90, CardView.CARD_TINT_ALPHA), "Expected treasure road cards to use the loot tint")
 	cache_card.queue_free()
+
+	var special_road_card := CARD_SCENE.instantiate() as CardView
+	root.add_child(special_road_card)
+	special_road_card.configure({
+		"category": "Road",
+		"title": "Campfire",
+		"detail": "Trade food for health.",
+		"tile_definition": DEAD_END,
+		"encounter": {"type": GameConstants.ENCOUNTER_CAMPFIRE},
+	})
+	_assert((special_road_card.get_node("Title") as Label).text == "Dead End", "Expected permanent encounter roads to show only the road type")
+	_assert((special_road_card.get_node("Category") as Label).text == "ROAD + SPECIAL", "Expected permanent encounter roads to identify their special encounter category")
+	_assert((special_road_card.get_node("Detail") as Label).text == "", "Expected permanent encounter roads to leave the detail text empty")
+	_assert(special_road_card.get_card_art_rect() == special_road_card._scaled_rect(CardView.NO_DETAIL_ART_RECT), "Expected permanent encounter roads to use normal road card art placement")
+	_assert(special_road_card._resolved_card_tint_color() == Color(0.88, 0.84, 0.96, CardView.CARD_TINT_ALPHA), "Expected permanent encounter roads to use the special road tint")
+	special_road_card.queue_free()
 
 	var event_card := CARD_SCENE.instantiate() as CardView
 	root.add_child(event_card)
@@ -213,6 +233,7 @@ func _initialize() -> void:
 	_assert(event_title_label.get_theme_font("font").multichannel_signed_distance_field, "Expected card titles to stay sharp while cards scale and rotate")
 	_assert(event_detail_label.get_theme_font("font").multichannel_signed_distance_field, "Expected card details to stay sharp while cards scale and rotate")
 	_assert(event_detail_label.text == "Remove a tile", "Expected event cards to keep compact detail text")
+	_assert(event_card._resolved_card_tint_color() == Color(0.98, 0.91, 0.62, CardView.CARD_TINT_ALPHA), "Expected event cards to use the event tint")
 	_assert(event_card.get_card_art_rect() == expected_event_art_rect, "Expected event card art to stay above the detail text")
 	_assert(event_detail_label.offset_top > event_card.get_card_art_rect().end.y, "Expected event detail text to sit below the card art")
 	_assert(event_detail_label.offset_bottom < event_category_label.offset_top, "Expected event detail text to sit between art and category")
