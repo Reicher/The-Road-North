@@ -3,9 +3,16 @@ extends Node
 const ItemCatalog = preload("res://scripts/item_catalog.gd")
 
 const LEVELS: Array[Dictionary] = [
-	{"scene": preload("res://levels/level_001.tscn"), "name": "Level 1", "map_size": 5},
-	{"scene": preload("res://levels/level_002.tscn"), "name": "2 bridges", "map_size": 7},
-	{"scene": preload("res://levels/level_003.tscn"), "name": "6 mountains", "map_size": 9},
+	{"scene": preload("res://levels/level_001.tscn"), "name": "First Bend", "map_size": 5},
+	{"scene": preload("res://levels/level_002.tscn"), "name": "Twin Crossings", "map_size": 7},
+	{"scene": preload("res://levels/level_003.tscn"), "name": "Guarded Cut", "map_size": 9},
+	{"scene": preload("res://levels/level_004.tscn"), "name": "Crossroads", "map_size": 7},
+	{"scene": preload("res://levels/level_005.tscn"), "name": "Crooked Vale", "map_size": 9},
+	{"scene": preload("res://levels/level_006.tscn"), "name": "Still Fields", "map_size": 9},
+	{"scene": preload("res://levels/level_007.tscn"), "name": "Berry Trail", "map_size": 7},
+	{"scene": preload("res://levels/level_008.tscn"), "name": "Flooded Stones", "map_size": 9},
+	{"scene": preload("res://levels/level_009.tscn"), "name": "Raider's Road", "map_size": 9},
+	{"scene": preload("res://levels/level_010.tscn"), "name": "Karlskoga Gate", "map_size": 11},
 ]
 const SHOP_SCENE := preload("res://ui/shop.tscn")
 const START_SCREEN_SCENE := preload("res://ui/start_screen.tscn")
@@ -77,6 +84,8 @@ func _debug_level_index_from_event(event: InputEvent) -> int:
 		return -1
 	var key_event := event as InputEventKey
 	var keycode := key_event.keycode
+	if keycode == KEY_0 or key_event.physical_keycode == KEY_0:
+		return 9 if LEVELS.size() >= 10 else -1
 	if keycode < KEY_1 or keycode > KEY_9:
 		keycode = key_event.physical_keycode
 	if keycode < KEY_1 or keycode > KEY_9:

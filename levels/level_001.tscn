@@ -3,7 +3,9 @@
 [ext_resource type="PackedScene" path="res://scenes/level.tscn" id="1_f3kdo"]
 
 [node name="Level" instance=ExtResource("1_f3kdo")]
-level_name = "Level 1"
+chapter_title = "Kapitel I — Vägen börjar"
+level_number = 1
+level_name = "First Bend"
 
 [node name="Map" parent="." index="0"]
 playable_width = 5

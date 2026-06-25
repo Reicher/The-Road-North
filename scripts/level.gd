@@ -17,11 +17,16 @@ enum RunState {
 @export var encounter_ui_path: NodePath = NodePath("UI/Encounter")
 @export var camera_path: NodePath = NodePath("Camera3D")
 @export var level_name_label_path: NodePath = NodePath("UI/LevelName")
+@export var map_path: NodePath = NodePath("Map")
+@export var chapter_title := ""
+@export var level_number := 1
 @export var level_name := ""
+@export_range(0.0, 8.0, 0.1) var level_name_hold_after_zoom_started := 2.0
 @export_range(0.0, 2.0, 0.05) var level_name_fade_duration := 0.45
 
 var state := RunState.IDLE
 
+var _map: GameMap
 var _hand: HandUI
 var _placement_controller: PlacementController
 var _player: GamePlayer
@@ -38,6 +43,7 @@ func _ready() -> void:
 	_encounter_ui = get_node_or_null(encounter_ui_path) as Control
 	_camera = get_node_or_null(camera_path) as Camera3D
 	_level_name_label = get_node_or_null(level_name_label_path) as Label
+	_map = get_node_or_null(map_path) as GameMap
 	_setup_level_name_intro()
 
 	if _hand == null:
@@ -64,11 +70,46 @@ func _exit_tree() -> void:
 func _setup_level_name_intro() -> void:
 	if _level_name_label == null:
 		return
-	_level_name_label.text = level_name
+	_level_name_label.text = _level_intro_text()
 	_level_name_label.modulate.a = 1.0
-	_level_name_label.visible = not level_name.is_empty()
+	_level_name_label.visible = not _level_name_label.text.is_empty()
 	if _camera != null and _camera.has_signal("start_zoom_started"):
 		_camera.connect("start_zoom_started", _fade_out_level_name)
+
+
+func _level_intro_text() -> String:
+	var lines: Array[String] = []
+	lines.append("%s - %d" % [_chapter_roman(), level_number])
+	var display_name := level_name if not level_name.is_empty() else "Bana %d" % level_number
+	lines.append(display_name)
+	return "\n".join(lines)
+
+
+func _chapter_roman() -> String:
+	var stripped_title := chapter_title.strip_edges()
+	if stripped_title.begins_with("Kapitel "):
+		var parts := stripped_title.split(" ", false)
+		if parts.size() >= 2:
+			return str(parts[1])
+	return _to_roman(maxi(1, level_number))
+
+
+func _to_roman(value: int) -> String:
+	var remaining := value
+	var result := ""
+	var numerals := [
+		[10, "X"],
+		[9, "IX"],
+		[5, "V"],
+		[4, "IV"],
+		[1, "I"],
+	]
+	for numeral in numerals:
+		var amount := int(numeral[0])
+		while remaining >= amount:
+			result += str(numeral[1])
+			remaining -= amount
+	return result
 
 
 func _fade_out_level_name() -> void:
@@ -79,6 +120,8 @@ func _fade_out_level_name() -> void:
 	_level_name_tween = create_tween()
 	_level_name_tween.set_trans(Tween.TRANS_SINE)
 	_level_name_tween.set_ease(Tween.EASE_OUT)
+	if level_name_hold_after_zoom_started > 0.0:
+		_level_name_tween.tween_interval(level_name_hold_after_zoom_started)
 	_level_name_tween.tween_property(_level_name_label, "modulate:a", 0.0, level_name_fade_duration)
 	_level_name_tween.tween_callback(_level_name_label.hide)
 

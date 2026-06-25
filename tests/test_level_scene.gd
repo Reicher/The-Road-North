@@ -26,6 +26,7 @@ func run() -> void:
 	var level_name_label := level.get_node("UI/LevelName") as Label
 	var placement := level.get_node("PlacementController") as PlacementController
 	var typed_level := level as Level
+	deck_controller.start_run()
 
 	_assert(map != null, "Expected level scene to include a GameMap")
 	_assert(roads != null, "Expected level scene to include Roads")
@@ -36,7 +37,7 @@ func run() -> void:
 	_assert(inventory != null, "Expected level scene to include InventoryUI")
 	_assert(hud_background != null, "Expected level scene to include the shared HUD background panel")
 	_assert(settings_menu != null, "Expected level scene to include a settings menu")
-	_assert(level_name_label.text == "Level 1" and level_name_label.visible, "Expected the level name to show during the opening map hold")
+	_assert(level_name_label.text == "I - 1\nFirst Bend" and level_name_label.visible, "Expected the level intro to show compact chapter and level name during the opening map hold")
 	_assert(inventory.get_index() > loot.get_index(), "Expected inventory to sit above loot for backpack interaction")
 	_assert(player.loot_ui_path == NodePath("../UI/Loot"), "Expected player to connect to LootUI")
 	_assert(map.playable_width == 5 and map.playable_height == 5, "Expected level 001 to configure a 5x5 map")
@@ -185,6 +186,7 @@ func run() -> void:
 	var second_map := level_002.get_node("Map") as GameMap
 	var second_deck_controller := level_002.get_node("DeckController") as DeckController
 	var second_camera := level_002.get_node("Camera3D") as Camera3D
+	second_deck_controller.start_run()
 	_assert(second_map.playable_width == 7 and second_map.playable_height == 7, "Expected level 002 to configure a 7x7 map")
 	_assert(second_map.get_fixed_feature(Vector2i(3, 3))["type"] == GameMap.FEATURE_RIVER, "Expected level 002 to include a horizontal river")
 	_assert(second_map.get_fixed_feature(Vector2i(2, 3))["type"] == GameMap.FEATURE_BRIDGE, "Expected level 002 river to include bridge crossings")

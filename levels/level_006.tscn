@@ -1,0 +1,63 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/level.tscn" id="1_level"]
+[ext_resource type="Resource" path="res://data/road_straight.tres" id="2_straight"]
+[ext_resource type="Resource" path="res://data/road_t_junction.tres" id="3_tjunction"]
+[ext_resource type="Resource" path="res://data/road_dead_end.tres" id="4_deadend"]
+
+[node name="Level" instance=ExtResource("1_level")]
+chapter_title = "Kapitel II — Valen blir fler"
+level_number = 6
+level_name = "Still Fields"
+
+[node name="Map" parent="." index="0"]
+playable_width = 9
+playable_height = 9
+fixed_features = [{
+"position": Vector2i(1, 1),
+"type": "mountain"
+}, {
+"position": Vector2i(7, 1),
+"type": "mountain"
+}, {
+"position": Vector2i(2, 4),
+"type": "mountain"
+}, {
+"position": Vector2i(6, 4),
+"type": "mountain"
+}, {
+"position": Vector2i(1, 7),
+"type": "mountain"
+}, {
+"position": Vector2i(7, 7),
+"type": "mountain"
+}]
+
+[node name="Roads" parent="." index="1"]
+seed_start_and_goal = true
+initial_tiles = [{
+"definition": ExtResource("3_tjunction"),
+"position": Vector2i(4, 5),
+"rotation_steps": 0,
+"encounter": {
+"type": "graveyard"
+}
+}, {
+"definition": ExtResource("4_deadend"),
+"position": Vector2i(2, 3),
+"rotation_steps": 1,
+"encounter": {
+"type": "shrine"
+}
+}, {
+"definition": ExtResource("2_straight"),
+"position": Vector2i(6, 6),
+"rotation_steps": 0,
+"encounter": {
+"type": "graveyard"
+}
+}]
+
+[node name="DeckController" parent="." index="9"]
+hand_size = 4
+level = 6

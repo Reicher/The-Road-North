@@ -172,6 +172,7 @@ func _make_road_cards(count: int, rng: RandomNumberGenerator, config: Dictionary
 	_add_enemy_encounters_to_road_cards(cards, rng, int(special_roads.get("enemy", 0)), level)
 	_add_reward_encounters_to_road_cards(cards, rng, int(special_roads.get("berry", 0)), int(special_roads.get("loot", 0)), level, map_size)
 	_add_graveyards_to_road_cards(cards, rng, int(special_roads.get("graveyard", 0)))
+	_add_permanent_encounters_to_road_cards(cards, rng, special_roads)
 	return cards
 
 
@@ -345,6 +346,35 @@ func _add_graveyards_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGe
 		var card := cards[eligible_indices[index]]
 		_set_card_encounter(card, {"type": GameConstants.ENCOUNTER_GRAVEYARD})
 		card["detail"] = "Locks a base road card when reached."
+
+
+func _add_permanent_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, special_roads: Dictionary) -> void:
+	for encounter_type in GameConstants.PERMANENT_ENCOUNTER_TYPES:
+		var count := int(special_roads.get(encounter_type, 0))
+		if count <= 0:
+			continue
+		var eligible_indices: Array[int] = []
+		for index in cards.size():
+			if not cards[index].has("encounter"):
+				eligible_indices.append(index)
+		_shuffle_ints(eligible_indices, rng)
+		for index in mini(count, eligible_indices.size()):
+			var card := cards[eligible_indices[index]]
+			_set_card_encounter(card, {"type": encounter_type})
+			card["detail"] = _permanent_encounter_detail(encounter_type)
+
+
+func _permanent_encounter_detail(encounter_type: String) -> String:
+	match encounter_type:
+		GameConstants.ENCOUNTER_CAMPFIRE:
+			return "Trade food for health when reached."
+		GameConstants.ENCOUNTER_TAVERN:
+			return "Trade gold for food when reached."
+		GameConstants.ENCOUNTER_WITCH_HUT:
+			return "Trade health for a special card when reached."
+		GameConstants.ENCOUNTER_SHRINE:
+			return "Trade food to draw extra cards when reached."
+	return "A special place waits on this road."
 
 
 func _set_card_encounter(card: Dictionary, encounter: Dictionary) -> void:

@@ -58,8 +58,14 @@ for test_script in "${tests[@]}"; do
 	output_file="$(mktemp)"
 	test_passed=true
 
-	if ! timeout "${TIMEOUT_SECONDS}" "${GODOT_BIN}" --headless --path . -s "${test_script}" 2>&1 | tee "${output_file}"; then
-		test_passed=false
+	if command -v timeout &>/dev/null; then
+		if ! timeout "${TIMEOUT_SECONDS}" "${GODOT_BIN}" --headless --path . -s "${test_script}" 2>&1 | tee "${output_file}"; then
+			test_passed=false
+		fi
+	else
+		if ! "${GODOT_BIN}" --headless --path . -s "${test_script}" 2>&1 | tee "${output_file}"; then
+			test_passed=false
+		fi
 	fi
 
 	if ${test_passed} && grep -qE "^(ERROR|SCRIPT ERROR):" "${output_file}"; then
@@ -70,10 +76,10 @@ for test_script in "${tests[@]}"; do
 
 	if ${test_passed}; then
 		print "PASS ${test_script}"
-		((passed++))
+		((++passed))
 	else
 		print "FAIL ${test_script}"
-		((failed++))
+		((++failed))
 		failed_tests+=("${test_script}")
 	fi
 done

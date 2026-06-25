@@ -4,7 +4,9 @@
 [ext_resource type="Resource" path="res://data/road_straight.tres" id="2_rs001"]
 
 [node name="Level" instance=ExtResource("1_v7mna")]
-level_name = "6 mountains"
+chapter_title = "Kapitel I — Vägen börjar"
+level_number = 3
+level_name = "Guarded Cut"
 
 [node name="Map" parent="." index="0"]
 playable_width = 9

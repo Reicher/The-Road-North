@@ -6,7 +6,7 @@
 script = ExtResource("1_deck_recipes")
 
 ; Valid road keys: straight, corner, t_junction, four_way, dead_end, bridge.
-; Valid encounter keys: enemy, berry, loot, graveyard.
+; Valid encounter keys: enemy, berry, loot, graveyard, campfire, tavern, witch_hut, shrine.
 ; Valid event keys: destroy_tile, draw_two, rotate_tile, lucky_find, trouble.
 ; Every recipe lists every card added by that deck.
 
@@ -81,6 +81,163 @@ level_decks = {
 			"lucky_find": 1,
 			"destroy_tile": 1,
 			"rotate_tile": 1
+		}
+	},
+	4: {
+		"roads": {
+			"straight": 1,
+			"corner": 1,
+			"t_junction": 3,
+			"four_way": 2,
+			"dead_end": 1
+		},
+		"encounters": {
+			"enemy": 2,
+			"berry": 2,
+			"loot": 1,
+			"tavern": 1
+		},
+		"events": {
+			"trouble": 1,
+			"draw_two": 2,
+			"lucky_find": 1,
+			"destroy_tile": 1
+		}
+	},
+	5: {
+		"roads": {
+			"straight": 1,
+			"corner": 4,
+			"t_junction": 1,
+			"four_way": 1,
+			"dead_end": 3
+		},
+		"encounters": {
+			"enemy": 3,
+			"berry": 1,
+			"loot": 2,
+			"witch_hut": 1
+		},
+		"events": {
+			"trouble": 1,
+			"draw_two": 1,
+			"lucky_find": 1,
+			"destroy_tile": 1,
+			"rotate_tile": 2
+		}
+	},
+	6: {
+		"roads": {
+			"straight": 2,
+			"corner": 2,
+			"t_junction": 2,
+			"four_way": 1,
+			"dead_end": 3
+		},
+		"encounters": {
+			"enemy": 2,
+			"berry": 1,
+			"loot": 1,
+			"graveyard": 5,
+			"shrine": 1
+		},
+		"events": {
+			"trouble": 1,
+			"draw_two": 1,
+			"lucky_find": 1,
+			"destroy_tile": 1,
+			"rotate_tile": 1
+		}
+	},
+	7: {
+		"roads": {
+			"straight": 3,
+			"corner": 2,
+			"t_junction": 2,
+			"four_way": 1,
+			"dead_end": 1
+		},
+		"encounters": {
+			"enemy": 1,
+			"berry": 4,
+			"loot": 3,
+			"campfire": 1
+		},
+		"events": {
+			"draw_two": 1,
+			"lucky_find": 2,
+			"destroy_tile": 1
+		}
+	},
+	8: {
+		"roads": {
+			"straight": 2,
+			"corner": 2,
+			"t_junction": 1,
+			"four_way": 1,
+			"dead_end": 2,
+			"bridge": 3
+		},
+		"encounters": {
+			"enemy": 3,
+			"berry": 1,
+			"loot": 3,
+			"shrine": 1
+		},
+		"events": {
+			"trouble": 1,
+			"draw_two": 1,
+			"lucky_find": 1,
+			"destroy_tile": 2,
+			"rotate_tile": 1
+		}
+	},
+	9: {
+		"roads": {
+			"straight": 2,
+			"corner": 2,
+			"t_junction": 2,
+			"four_way": 1,
+			"dead_end": 3
+		},
+		"encounters": {
+			"enemy": 6,
+			"berry": 1,
+			"loot": 2,
+			"tavern": 1
+		},
+		"events": {
+			"trouble": 2,
+			"draw_two": 1,
+			"lucky_find": 1,
+			"destroy_tile": 1,
+			"rotate_tile": 1
+		}
+	},
+	10: {
+		"roads": {
+			"straight": 3,
+			"corner": 3,
+			"t_junction": 2,
+			"four_way": 1,
+			"dead_end": 2,
+			"bridge": 2
+		},
+		"encounters": {
+			"enemy": 5,
+			"berry": 1,
+			"loot": 2,
+			"graveyard": 2,
+			"tavern": 1,
+			"witch_hut": 1,
+			"shrine": 1
+		},
+		"events": {
+			"trouble": 2,
+			"draw_two": 1,
+			"lucky_find": 1,
+			"destroy_tile": 2,
+			"rotate_tile": 2
 		}
 	}
 }

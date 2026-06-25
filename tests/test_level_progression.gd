@@ -97,7 +97,8 @@ func run() -> void:
 	_assert((debug_third_level.get_node("Map") as GameMap).playable_width == 9, "Expected debug key 3 to load the third level")
 	_send_key(main, KEY_4)
 	await process_frame
-	_assert(main.get_node("Level") == debug_third_level, "Expected an unconfigured debug level key to leave the current level unchanged")
+	var debug_fourth_level := main.get_node("Level")
+	_assert(debug_fourth_level != debug_third_level and (debug_fourth_level.get_node("Map") as GameMap).playable_width == 7, "Expected debug key 4 to load the fourth level")
 
 	_send_key(main, KEY_2)
 	await process_frame
@@ -133,7 +134,7 @@ func run() -> void:
 	_assert(not (first_level.get_node("UI") as CanvasLayer).visible, "Expected resource stats and backpack UI to hide while the shop is open")
 	_assert(not first_screen.is_visible_in_tree(), "Expected the shop to replace the completion prompt between levels")
 	_assert(not first_hand.visible, "Expected the card hand to hide on the completion screen")
-	_assert(shop.next_map_name == "2 bridges" and shop.next_map_size == 7, "Expected shop to describe the next map")
+	_assert(shop.next_map_name == "Twin Crossings" and shop.next_map_size == 7, "Expected shop to describe the next map")
 
 	(shop.find_child("PlayNextButton", true, false) as Button).pressed.emit()
 	await process_frame
@@ -199,17 +200,27 @@ func run() -> void:
 	var third_level := main.get_node("Level")
 	var third_map := third_level.get_node("Map") as GameMap
 	var third_player := third_level.get_node("Player") as GamePlayer
-	var third_screen := third_level.get_node("UI/GameOver") as GameOverUI
-	var third_hand := third_level.get_node("UI/Hand") as HandUI
-	_assert(third_map.playable_width == 9 and third_map.playable_height == 9, "Expected the second shop to load the final map")
+	_assert(third_map.playable_width == 9 and third_map.playable_height == 9, "Expected the second shop to load the third map")
 	third_player.grid_position = third_map.get_goal_position()
-	_assert(third_player.check_run_won(), "Expected reaching the final goal to complete the game")
-	_assert(third_screen.visible, "Expected the final win screen to show")
-	_assert(not third_hand.visible, "Expected the card hand to hide on the final win screen")
-	_assert(third_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "You won", "Expected final win text")
-	_assert(third_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Restart game", "Expected final button to restart the game")
+	_assert(third_player.check_run_won(), "Expected reaching the third goal to complete the level")
+	_assert(main.find_child("Shop", true, false) != null, "Expected the shop to open after level 3 because the run now has ten levels")
 
-	third_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").pressed.emit()
+	_send_key(main, KEY_0)
+	await process_frame
+	var final_level := main.get_node("Level")
+	var final_map := final_level.get_node("Map") as GameMap
+	var final_player := final_level.get_node("Player") as GamePlayer
+	var final_screen := final_level.get_node("UI/GameOver") as GameOverUI
+	var final_hand := final_level.get_node("UI/Hand") as HandUI
+	_assert(final_map.playable_width == 11 and final_map.playable_height == 11, "Expected debug key 0 to load the tenth and final map")
+	final_player.grid_position = final_map.get_goal_position()
+	_assert(final_player.check_run_won(), "Expected reaching the final goal to complete the game")
+	_assert(final_screen.visible, "Expected the final win screen to show")
+	_assert(not final_hand.visible, "Expected the card hand to hide on the final win screen")
+	_assert(final_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "You won", "Expected final win text")
+	_assert(final_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Restart game", "Expected final button to restart the game")
+
+	final_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").pressed.emit()
 	await process_frame
 
 	var restarted_map := main.get_node("Level/Map") as GameMap

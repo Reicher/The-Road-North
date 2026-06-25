@@ -1,0 +1,111 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/level.tscn" id="1_level"]
+[ext_resource type="Resource" path="res://data/road_straight.tres" id="2_straight"]
+[ext_resource type="Resource" path="res://data/road_t_junction.tres" id="3_tjunction"]
+[ext_resource type="Resource" path="res://data/road_dead_end.tres" id="4_deadend"]
+[ext_resource type="Resource" path="res://data/road_bridge.tres" id="5_bridge"]
+
+[node name="Level" instance=ExtResource("1_level")]
+chapter_title = "Kapitel IV — Karlskoga"
+level_number = 10
+level_name = "Karlskoga Gate"
+
+[node name="Map" parent="." index="0"]
+playable_width = 11
+playable_height = 11
+fixed_features = [{
+"position": Vector2i(0, 4),
+"type": "river"
+}, {
+"position": Vector2i(1, 4),
+"type": "river"
+}, {
+"position": Vector2i(2, 4),
+"type": "bridge"
+}, {
+"position": Vector2i(3, 4),
+"type": "river"
+}, {
+"position": Vector2i(4, 4),
+"type": "river"
+}, {
+"position": Vector2i(5, 4),
+"type": "bridge"
+}, {
+"position": Vector2i(6, 4),
+"type": "river"
+}, {
+"position": Vector2i(7, 4),
+"type": "river"
+}, {
+"position": Vector2i(8, 4),
+"type": "bridge"
+}, {
+"position": Vector2i(9, 4),
+"type": "river"
+}, {
+"position": Vector2i(10, 4),
+"type": "river"
+}, {
+"position": Vector2i(2, 2),
+"type": "mountain"
+}, {
+"position": Vector2i(8, 2),
+"type": "mountain"
+}, {
+"position": Vector2i(3, 6),
+"type": "mountain"
+}, {
+"position": Vector2i(7, 6),
+"type": "mountain"
+}, {
+"position": Vector2i(1, 8),
+"type": "mountain"
+}, {
+"position": Vector2i(9, 8),
+"type": "mountain"
+}]
+
+[node name="Roads" parent="." index="1"]
+seed_start_and_goal = true
+initial_tiles = [{
+"definition": ExtResource("2_straight"),
+"position": Vector2i(5, 1),
+"rotation_steps": 0,
+"encounter": {
+"type": "enemy",
+"power": 12,
+"gold_min": 24,
+"gold_max": 32
+}
+}, {
+"definition": ExtResource("5_bridge"),
+"position": Vector2i(5, 4),
+"rotation_steps": 0
+}, {
+"definition": ExtResource("3_tjunction"),
+"position": Vector2i(5, 6),
+"rotation_steps": 0,
+"encounter": {
+"type": "graveyard"
+}
+}, {
+"definition": ExtResource("4_deadend"),
+"position": Vector2i(2, 8),
+"rotation_steps": 1,
+"encounter": {
+"type": "tavern"
+}
+}, {
+"definition": ExtResource("4_deadend"),
+"position": Vector2i(8, 8),
+"rotation_steps": 3,
+"encounter": {
+"type": "witch_hut"
+}
+}]
+
+[node name="DeckController" parent="." index="9"]
+hand_size = 4
+level = 10

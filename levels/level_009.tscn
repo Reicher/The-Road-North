@@ -1,0 +1,63 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/level.tscn" id="1_level"]
+[ext_resource type="Resource" path="res://data/road_straight.tres" id="2_straight"]
+[ext_resource type="Resource" path="res://data/road_t_junction.tres" id="3_tjunction"]
+[ext_resource type="Resource" path="res://data/road_dead_end.tres" id="4_deadend"]
+
+[node name="Level" instance=ExtResource("1_level")]
+chapter_title = "Kapitel III — Vägen hårdnar"
+level_number = 9
+level_name = "Raider's Road"
+
+[node name="Map" parent="." index="0"]
+playable_width = 9
+playable_height = 9
+fixed_features = [{
+"position": Vector2i(3, 2),
+"type": "mountain"
+}, {
+"position": Vector2i(5, 2),
+"type": "mountain"
+}, {
+"position": Vector2i(2, 4),
+"type": "mountain"
+}, {
+"position": Vector2i(6, 4),
+"type": "mountain"
+}, {
+"position": Vector2i(1, 6),
+"type": "mountain"
+}, {
+"position": Vector2i(7, 6),
+"type": "mountain"
+}]
+
+[node name="Roads" parent="." index="1"]
+seed_start_and_goal = true
+initial_tiles = [{
+"definition": ExtResource("2_straight"),
+"position": Vector2i(4, 4),
+"rotation_steps": 0,
+"encounter": {
+"type": "enemy",
+"power": 9,
+"gold_min": 18,
+"gold_max": 29
+}
+}, {
+"definition": ExtResource("3_tjunction"),
+"position": Vector2i(4, 6),
+"rotation_steps": 0
+}, {
+"definition": ExtResource("4_deadend"),
+"position": Vector2i(7, 7),
+"rotation_steps": 3,
+"encounter": {
+"type": "tavern"
+}
+}]
+
+[node name="DeckController" parent="." index="9"]
+hand_size = 4
+level = 9

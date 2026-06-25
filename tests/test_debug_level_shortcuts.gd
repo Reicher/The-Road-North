@@ -23,7 +23,12 @@ func run() -> void:
 
 	_send_key(main, KEY_4)
 	await process_frame
-	_assert(main.get_node("Level") == third_level, "Expected an unconfigured level key to leave the current level unchanged")
+	var fourth_level := main.get_node("Level")
+	_assert(fourth_level != third_level and (fourth_level.get_node("Map") as GameMap).playable_width == 7, "Expected key 4 to load level 4")
+
+	_send_key(main, KEY_0)
+	await process_frame
+	_assert((main.get_node("Level/Map") as GameMap).playable_width == 11, "Expected key 0 to load level 10")
 
 	var physical_key_event := InputEventKey.new()
 	physical_key_event.physical_keycode = KEY_2
