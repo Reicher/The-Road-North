@@ -144,13 +144,13 @@ func run() -> void:
 	var second_screen := second_level.get_node("UI/GameOver") as GameOverUI
 	_assert(second_map.playable_width == 7 and second_map.playable_height == 7, "Expected Next level to load the 7x7 map")
 	_assert(second_player.food == 4, "Expected food to carry into the next level without a new starting grant")
-	_assert(second_player.gold == 7, "Expected gold to carry into the next level")
+	_assert(second_player.gold == 12, "Expected shop entry bonus gold to carry into the next level")
 	_assert(second_player.health == 4 and second_player.max_health == 5, "Expected current and max health to carry into the next level")
 	_assert(second_player.base_power == 2 and second_player.get_total_power() == 6, "Expected base power and carried item stats to carry into the next level")
 	_assert((second_level.get_node("UI/Inventory") as InventoryUI).get_carried_items().size() == 2, "Expected backpack items to carry into the next level")
 	var second_stats := second_level.get_node("UI/PlayerStats") as PlayerStatsUI
-	_assert(second_stats._gain_amounts.is_empty(), "Expected progression restore not to show resource gain or loss amounts")
-	_assert(second_stats._pulse_strength.is_empty(), "Expected progression restore not to pulse stats at level start")
+	_assert(_feedback_values_are_zero(second_stats._gain_amounts), "Expected progression restore not to show resource gain or loss amounts")
+	_assert(_feedback_values_are_zero(second_stats._pulse_strength), "Expected progression restore not to pulse stats at level start")
 
 	second_player.food = 1
 	var second_deck := second_level.get_node("DeckController") as DeckController
@@ -175,7 +175,7 @@ func run() -> void:
 	second_player.set_health(0)
 	_assert(second_screen.visible, "Expected loss screen to show on the current level")
 	_assert(not (second_level.get_node("UI/Hand") as HandUI).visible, "Expected the card hand to hide on the loss screen")
-	_assert(second_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "You lose", "Expected loss text")
+	_assert(second_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "You lose — Death", "Expected loss text")
 	_assert(second_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Restart level", "Expected loss button to restart the current level")
 	second_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").pressed.emit()
 	await process_frame
@@ -190,19 +190,32 @@ func run() -> void:
 	_assert((second_level.get_node("UI/Inventory") as InventoryUI).get_carried_items().size() == 2, "Expected Restart level to restore the backpack held at level start")
 
 	second_player.grid_position = second_map.get_goal_position()
-	_assert(second_player.check_run_won(), "Expected reaching the final goal to complete the game")
-	_assert(second_screen.visible, "Expected the final win screen to show")
-	_assert(not second_hand.visible, "Expected the card hand to hide on the final win screen")
-	_assert(second_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "You won", "Expected final win text")
-	_assert(second_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Restart game", "Expected final button to restart the game")
+	_assert(second_player.check_run_won(), "Expected reaching the second goal to complete the level")
+	var second_shop := main.find_child("Shop", true, false) as Control
+	_assert(second_shop != null, "Expected the shop to open before the final level")
+	(second_shop.find_child("PlayNextButton", true, false) as Button).pressed.emit()
+	await process_frame
 
-	second_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").pressed.emit()
+	var third_level := main.get_node("Level")
+	var third_map := third_level.get_node("Map") as GameMap
+	var third_player := third_level.get_node("Player") as GamePlayer
+	var third_screen := third_level.get_node("UI/GameOver") as GameOverUI
+	var third_hand := third_level.get_node("UI/Hand") as HandUI
+	_assert(third_map.playable_width == 9 and third_map.playable_height == 9, "Expected the second shop to load the final map")
+	third_player.grid_position = third_map.get_goal_position()
+	_assert(third_player.check_run_won(), "Expected reaching the final goal to complete the game")
+	_assert(third_screen.visible, "Expected the final win screen to show")
+	_assert(not third_hand.visible, "Expected the card hand to hide on the final win screen")
+	_assert(third_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "You won", "Expected final win text")
+	_assert(third_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Restart game", "Expected final button to restart the game")
+
+	third_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").pressed.emit()
 	await process_frame
 
 	var restarted_map := main.get_node("Level/Map") as GameMap
 	var restarted_player := main.get_node("Level/Player") as GamePlayer
 	_assert(restarted_map.playable_width == 5 and restarted_map.playable_height == 5, "Expected Restart game to return to the first level")
-	_assert(restarted_player.gold == 0 and restarted_player.max_health == 4 and restarted_player.base_power == 1, "Expected Restart game to reset progression to initial values")
+	_assert(restarted_player.gold == 0 and restarted_player.max_health == 4 and restarted_player.base_power == 0, "Expected Restart game to reset progression to initial values")
 
 	main.queue_free()
 	await process_frame
@@ -214,6 +227,13 @@ func _assert(condition: bool, message: String) -> void:
 		return
 	push_error(message)
 	quit(1)
+
+
+func _feedback_values_are_zero(values: Dictionary) -> bool:
+	for value in values.values():
+		if absf(float(value)) > 0.001:
+			return false
+	return true
 
 
 func _all_cards_match(cards: Array[CardView], category: String, encounter_type: String) -> bool:

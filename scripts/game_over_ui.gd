@@ -56,7 +56,7 @@ func _on_game_over(reason: String) -> void:
 			title = "You lose — Death"
 		_:
 			title = "You lose"
-	_show_end_screen(title, "Restart game", "restart_game")
+	_show_end_screen(title, "Restart level", "restart_level")
 
 
 func _on_run_won() -> void:

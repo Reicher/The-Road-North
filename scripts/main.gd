@@ -101,6 +101,7 @@ func _load_level(level_index: int) -> void:
 	if not _level_start_progression.is_empty():
 		_apply_progression(_level_start_progression)
 	_configure_player_deck(_level_start_progression)
+	_sync_stats_without_feedback()
 	_level_start_progression = _capture_progression_with_extras(_level_start_progression)
 	_configure_level_end_screen()
 
@@ -255,6 +256,14 @@ func _apply_progression(progression: Dictionary) -> void:
 	_level_start_progression = applied
 
 
+func _sync_stats_without_feedback() -> void:
+	if _current_level == null:
+		return
+	var stats := _current_level.get_node_or_null("UI/PlayerStats") as PlayerStatsUI
+	if stats != null:
+		stats.sync_without_feedback()
+
+
 func _configure_player_deck(progression: Dictionary) -> void:
 	var deck_controller := _current_level.get_node_or_null("DeckController") as DeckController
 	if deck_controller == null:
@@ -285,6 +294,7 @@ func _open_shop() -> void:
 	progression.erase("active_power_bonus")
 	progression.erase("active_max_health_bonus")
 	progression.erase("removed_base_card_this_shop")
+	progression["gold"] = int(progression.get("gold", 0)) + 5
 	var deck_controller := _current_level.get_node_or_null("DeckController") as DeckController
 	var available_base_cards: Array = deck_controller.deck_components.get(DeckBuilder.DECK_SOURCE_BASE, []) if deck_controller != null else []
 	var next_level: Dictionary = LEVELS[_current_level_index + 1]

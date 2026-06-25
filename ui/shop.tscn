@@ -129,7 +129,7 @@ theme_override_constants/separation = 6
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.79, 0.31, 1)
 theme_override_font_sizes/font_size = 20
-text = "ITEMS - DRAG TO EMPTY SLOT"
+text = "ITEMS - TAP TO BUY"
 
 [node name="ItemRow" type="HBoxContainer" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2
@@ -141,7 +141,7 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.79, 0.31, 1)
 theme_override_font_sizes/font_size = 20
-text = "SURVIVAL"
+text = "FOOD AND LIFE"
 
 [node name="SurvivalRow" type="HBoxContainer" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2

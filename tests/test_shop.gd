@@ -38,22 +38,48 @@ func run() -> void:
 	var shop_scroll := shop.get_node("ShopScroll") as ScrollContainer
 	var shop_stack := shop.find_child("ShopStack", true, false) as VBoxContainer
 	var play_button := shop.find_child("PlayNextButton", true, false) as Button
-	var inventory_title := shop.find_child("InventoryTitle", true, false) as Label
+	var remove_button := shop.find_child("RemoveButton", true, false) as Button
+	var view_deck_button := shop.find_child("ViewDeckButton", true, false) as Button
+	var cards_title := shop.find_child("CardsTitle", true, false) as Label
+	var deck_section_title := shop.find_child("DeckTitle", true, false) as Label
+	var inventory_slots := shop._slot_row as HBoxContainer
+	var item_row := shop._item_row as HBoxContainer
+	var food_row := shop._food_offer_row as HBoxContainer
+	var life_row := shop._life_offer_row as HBoxContainer
 	var card_row := shop.find_child("CardOffers", true, false) as HBoxContainer
+	var deck_row := remove_button.get_parent() as HBoxContainer
 	var summary_panel := shop.find_child("SummaryPanel", true, false) as PanelContainer
-	var resource_summary := shop.find_child("ResourceSummary", true, false) as HBoxContainer
 	_assert(shop.size.is_equal_approx(get_root().get_visible_rect().size), "Expected shop root to fill the viewport")
 	_assert(shop_scroll.size.x > shop.size.x * 0.9 and shop_scroll.size.y > shop.size.y * 0.9, "Expected shop scroll area to use nearly the full screen")
 	_assert(shop_stack.size.x > shop_scroll.size.x * 0.9, "Expected shop controls to expand across the available width")
 	_assert(play_button.global_position.y > shop.size.y * 0.75, "Expected Play next map to use the lower part of a tall screen")
-	_assert(inventory_title.horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT, "Expected Inventory title to align with the right-aligned slots")
-	_assert(summary_panel != null and resource_summary.get_child_count() == 3, "Expected a styled summary panel with three icon-based player resources")
-	for chip in resource_summary.get_children():
-		_assert((chip.get_node("Icon") as TextureRect).texture != null, "Expected each player resource summary to use its HUD icon")
-	var items_index := _label_index(shop_stack, "ITEMS - DRAG TO EMPTY SLOT")
-	var survival_index := _label_index(shop_stack, "SURVIVAL")
-	_assert(items_index >= 0 and survival_index >= 0 and items_index < survival_index, "Expected purchasable items immediately after inventory and before survival")
+	_assert(remove_button.custom_minimum_size.y == 56.0 and view_deck_button.custom_minimum_size.y == 56.0, "Expected deck buttons to keep a fixed normal height")
+	_assert(remove_button.size_flags_vertical == Control.SIZE_SHRINK_CENTER and view_deck_button.size_flags_vertical == Control.SIZE_SHRINK_CENTER, "Expected deck buttons not to stretch vertically")
+	_assert(summary_panel != null, "Expected a styled summary panel")
+	_assert(inventory_slots.get_child_count() == InventoryUI.SLOT_COUNT, "Expected the inventory to render one visible stack per backpack slot")
+	_assert((inventory_slots.get_child(0) as Button).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected inventory entries to use inventory-sized slots")
+	_assert(((inventory_slots.get_child(0) as Button).get_node("PriceBadge") as Label).text.begins_with("+"), "Expected sellable equipment to show sale value inside the slot")
+	_assert(_nested_label_index(shop_stack, "Sellable equipment") >= 0, "Expected the compact sellable equipment row label")
+	_assert(_nested_label_index(shop_stack, "Item shop") >= 0, "Expected the compact item shop row label")
+	_assert(shop.find_child("SellBuySeparator", true, false) != null, "Expected a separator under sellable equipment")
+	_assert(item_row.get_child_count() == InventoryUI.SLOT_COUNT, "Expected buyable items to render in the same number of slots as the inventory")
+	_assert((item_row.get_child(0) as Button).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected buyable items to use the same slot size as the inventory")
+	_assert(((item_row.get_child(0) as Button).get_node("PriceBadge") as Label).text.ends_with("g"), "Expected buyable items to show purchase price inside the slot")
+	_assert(food_row.get_child_count() == 3, "Expected three food offers")
+	_assert(life_row.get_child_count() == 2, "Expected two life offers")
+	_assert((food_row.get_child(0) as Button).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected food offers to use inventory-sized slots")
+	_assert(((food_row.get_child(0) as Button).get_child(0) as Label).text == "Bread", "Expected food slot title to sit at the top")
+	_assert(((food_row.get_child(0) as Button).get_child(2) as Label).text == "+1", "Expected food amount to share the lower slot space")
+	_assert(((food_row.get_child(0) as Button).get_node("PriceBadge") as Label).text == "1g", "Expected food slots to show purchase price")
+	_assert((life_row.get_child(0) as Button).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected life offers to use inventory-sized slots")
+	_assert(((life_row.get_child(0) as Button).get_child(2) as Label).text == "+1", "Expected life slots to show only the amount")
+	var legacy_potion_row := shop.find_child("PotionsRow", true, false) as Control
+	_assert(legacy_potion_row != null and not legacy_potion_row.visible, "Expected potions to be hidden from the shop")
+	var bottom_spacer := shop.find_child("BottomSpacer", true, false) as Control
+	_assert(bottom_spacer != null and not bottom_spacer.visible, "Expected the bottom spacer not to create empty shop space")
 	_assert(shop.card_offers.size() == 3, "Expected shop to roll exactly three special card offers")
+	_assert(cards_title.get_parent() == card_row.get_parent(), "Expected the Cards title to stay grouped with the card offers")
+	_assert(deck_section_title.get_parent() == deck_row.get_parent(), "Expected the Deck title to stay grouped with the deck buttons")
 	_assert(_offer_types_are_unique(shop.card_offers), "Expected shop special-card offers not to contain duplicate card types")
 	_assert(_catalog_has_shop_only_specials(), "Expected the requested shop-only special cards to be purchasable")
 	_assert(_all_offers_are_cheaper_specials(shop.card_offers), "Expected every rolled card to come from the cheaper special-card catalog")
@@ -61,7 +87,7 @@ func run() -> void:
 	_assert(card_row.size.y >= shop.CARD_OFFER_SIZE.y, "Expected special cards to have the same visible size as cards in hand")
 	for offer_node in card_row.get_children():
 		var card := offer_node.get_node("Card") as CardView
-		_assert(card != null and card.size.is_equal_approx(Vector2(174.0, 250.0)), "Expected shop offers to use the in-game CardView at hand size")
+		_assert(card != null and card.size.is_equal_approx(shop.CARD_OFFER_SIZE), "Expected shop offers to use the compact shop CardView size")
 		_assert(card.category in [GameConstants.EVENT_CATEGORY, GameConstants.ROAD_CATEGORY], "Expected shop CardView to show special event or special road data")
 		_assert(card.card_base_texture_path == CardView.DEFAULT_CARD_BASE_TEXTURE_PATH, "Expected shop cards to use the same painted card design as gameplay")
 		_assert((offer_node.get_node("BuyButton") as Button).icon != null, "Expected special card prices to use the gold resource icon")
@@ -77,7 +103,7 @@ func run() -> void:
 	_assert(_overview_card_titles(deck_grid) == ["Straight Road", "Corner", "Four-Way Intersection", "Dead End", "Idea"], "Expected grouped base cards to keep the requested type order")
 	_assert(_overview_counts(deck_grid) == ["×2", "×1", "×1", "×2", "×1"], "Expected each visual card to show how many copies remain")
 	var straight_overview_card := deck_grid.get_child(0).get_node("Card") as CardView
-	_assert(straight_overview_card.size.is_equal_approx(CardView.BASE_CARD_SIZE), "Expected overview entries to use the card scene's original size")
+	_assert(straight_overview_card.custom_minimum_size.is_equal_approx(CardView.DISPLAY_CARD_SIZE), "Expected overview entries to reserve the same card size as shop offers")
 	straight_overview_card.pointer_released.emit(straight_overview_card, Vector2.ZERO)
 	var confirmation_shade := deck_overlay.find_child("ConfirmationShade", true, false) as Control
 	var confirmation_prompt := deck_overlay.find_child("Prompt", true, false) as Label
@@ -88,8 +114,6 @@ func run() -> void:
 
 	_assert(shop.buy_food() and shop.progression["food"] == 7, "Expected food click purchase to add food immediately")
 	_assert(shop.buy_heal() and shop.progression["health"] == 4, "Expected heal click purchase to clamp at max health")
-	_assert(shop.buy_power_potion() and shop.progression["pending_power_bonus"] == 1, "Expected power potion to apply to the next map only")
-	_assert(shop.buy_max_health_potion() and shop.progression["pending_max_health_bonus"] == 1, "Expected max HP potion to apply to the next map only")
 	shop.item_offers.clear()
 	shop.item_offers.append(ItemCatalog.get_item("Guiding Charm").merged({"price": 10, "sell_price": 5}, true))
 	shop.item_offers.append(ItemCatalog.get_item("Hatchet").merged({"price": 12, "sell_price": 6}, true))
@@ -136,7 +160,7 @@ func run() -> void:
 	root.add_child(deck)
 	deck.set_player_deck_modifiers(["road:Straight Road"], shop.progression["player_special_cards"])
 	deck.start_run()
-	_assert(deck.deck_components[DeckBuilder.DECK_SOURCE_BASE].size() == 31, "Expected a deck modifier to remove one BaseDeck card without changing the recipe")
+	_assert(deck.deck_components[DeckBuilder.DECK_SOURCE_BASE].size() == DeckBuilder.DEFAULT_DECK_RECIPES.base_card_count() - 1, "Expected a deck modifier to remove one BaseDeck card without changing the recipe")
 	_assert(deck.deck_components[DeckBuilder.DECK_SOURCE_PLAYER_SPECIAL].size() == 3, "Expected special cards to be mixed into each new RunDeck")
 	hand.set_cards([{
 		"title": "It was all a dream",
@@ -166,6 +190,18 @@ func _label_index(parent: Node, text: String) -> int:
 	for index in parent.get_child_count():
 		var label := parent.get_child(index) as Label
 		if label != null and label.text == text:
+			return index
+	return -1
+
+
+func _nested_label_index(parent: Node, text: String) -> int:
+	for index in parent.get_child_count():
+		var child := parent.get_child(index)
+		var label := child as Label
+		if label != null and label.text == text:
+			return index
+		var nested := _nested_label_index(child, text)
+		if nested >= 0:
 			return index
 	return -1
 
