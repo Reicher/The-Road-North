@@ -8,6 +8,7 @@ signal restart_game_requested
 @export var player_path: NodePath
 @export var hand_path: NodePath = NodePath("../Hand")
 @export var has_next_level := false
+@export var show_level_complete_prompt := true
 
 var _player: GamePlayer
 var _hand: Control
@@ -61,6 +62,8 @@ func _on_game_over(reason: String) -> void:
 
 func _on_run_won() -> void:
 	if has_next_level:
+		if not show_level_complete_prompt:
+			return
 		_show_end_screen("Level complete", "Open shop", "next_level")
 	else:
 		_show_end_screen("You won", "Restart game", "restart_game")

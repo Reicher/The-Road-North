@@ -42,6 +42,10 @@ var _transition_shade: ColorRect
 var _transition_label: Label
 var _transition_running := false
 
+const FOREST_TRANSITION_COLOR := Color(0.045, 0.10, 0.075, 1.0)
+const SHOP_TRANSITION_COLOR := Color.BLACK
+const SHOP_TRANSITION_HOLD := 1.4
+
 
 func _ready() -> void:
 	ItemCatalog.initialize()
@@ -126,6 +130,7 @@ func _configure_level_end_screen() -> void:
 	if end_screen == null:
 		return
 	end_screen.has_next_level = _current_level_index < LEVELS.size() - 1
+	end_screen.show_level_complete_prompt = false
 	if not end_screen.next_level_requested.is_connected(_on_next_level_requested):
 		end_screen.next_level_requested.connect(_on_next_level_requested)
 	if not end_screen.restart_level_requested.is_connected(_on_restart_level_requested):
@@ -407,50 +412,54 @@ func _open_shop_with_transition() -> void:
 	if _transition_running:
 		return
 	_transition_running = true
-	_begin_transition_cover("Roadside Camp")
+	_begin_transition_cover("Level complete", SHOP_TRANSITION_COLOR)
 	_open_shop()
 	_transition_running = false
-	_finish_transition_async()
+	_finish_transition_async(SHOP_TRANSITION_HOLD)
 
 
 func _open_shop_with_transition_async() -> void:
-	await _fade_transition_in("Roadside Camp")
+	await _fade_transition_in("Level complete", SHOP_TRANSITION_COLOR)
 	if not is_inside_tree():
 		return
 	_open_shop()
-	await get_tree().create_timer(0.10).timeout
+	await get_tree().create_timer(SHOP_TRANSITION_HOLD).timeout
 	await _fade_transition_out()
 	_transition_running = false
 
 
-func _begin_transition_cover(label_text: String) -> void:
+func _begin_transition_cover(label_text: String, shade_color := FOREST_TRANSITION_COLOR) -> void:
 	_ensure_transition_layer()
 	_transition_label.text = label_text
 	_transition_label.modulate.a = 1.0
 	_transition_label.scale = Vector2.ONE
 	_transition_shade.visible = true
-	_transition_shade.color.a = 0.94
+	_transition_shade.color = shade_color
 
 
-func _finish_transition_async() -> void:
+func _finish_transition_async(hold_duration := 0.0) -> void:
 	await get_tree().process_frame
 	if not is_inside_tree():
 		return
+	if hold_duration > 0.0:
+		await get_tree().create_timer(hold_duration).timeout
+		if not is_inside_tree():
+			return
 	await _fade_transition_out()
 
 
-func _fade_transition_in(label_text: String) -> void:
+func _fade_transition_in(label_text: String, shade_color := FOREST_TRANSITION_COLOR) -> void:
 	_ensure_transition_layer()
 	_transition_label.text = label_text
 	_transition_label.modulate.a = 0.0
 	_transition_label.scale = Vector2(0.98, 0.98)
 	_transition_shade.visible = true
-	_transition_shade.color.a = 0.0
+	_transition_shade.color = Color(shade_color, 0.0)
 	var tween := create_tween()
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_SINE)
 	tween.set_ease(Tween.EASE_IN_OUT)
-	tween.tween_property(_transition_shade, "color:a", 0.94, 0.30)
+	tween.tween_property(_transition_shade, "color:a", shade_color.a, 0.30)
 	tween.tween_property(_transition_label, "modulate:a", 1.0, 0.30)
 	tween.tween_property(_transition_label, "scale", Vector2.ONE, 0.30)
 	await tween.finished
