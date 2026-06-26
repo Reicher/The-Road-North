@@ -29,6 +29,10 @@ const SLOT_FILL := Color(1.0, 0.94, 0.78)
 const SLOT_HOVER_FILL := Color(1.0, 0.86, 0.56)
 const SLOT_PRESSED_FILL := Color(0.90, 0.72, 0.40)
 const SLOT_DISABLED_FILL := Color(0.86, 0.80, 0.66)
+const SHOP_WOOD_FILL := Color(0.17, 0.10, 0.055, 1.0)
+const SHELF_FILL := Color(0.24, 0.17, 0.105, 0.98)
+const SHELF_BORDER := Color(0.52, 0.36, 0.20, 1.0)
+const SHELF_TITLE := Color(0.96, 0.82, 0.53, 1.0)
 const CARD_OFFER_SIZE := Vector2(178.0, 256.0)
 const OFFER_ICON_SIZE := 42
 const STAT_ICON_PATHS := GameConstants.STAT_ICON_PATHS
@@ -364,8 +368,6 @@ func _configure_compact_section_layout() -> void:
 	_life_offer_row = HBoxContainer.new()
 	_add_compact_section_row(insert_index, "Sellable equipment", _slot_row)
 	insert_index += 1
-	_add_sell_buy_separator(insert_index)
-	insert_index += 1
 	_add_compact_section_row(insert_index, "Item shop", _item_row)
 	insert_index += 1
 	_add_compact_section_row(insert_index, "Food", _food_offer_row)
@@ -392,7 +394,7 @@ func _add_compact_section_row(index: int, title: String, content_row: HBoxContai
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 26)
-	label.add_theme_color_override("font_color", Color(1.0, 0.79, 0.31, 1.0))
+	label.add_theme_color_override("font_color", SHELF_TITLE)
 	label.text = title
 	content_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -403,18 +405,9 @@ func _add_compact_section_row(index: int, title: String, content_row: HBoxContai
 		old_parent.remove_child(content_row)
 	row.add_child(label)
 	row.add_child(content_row)
-	_shop_stack.add_child(row)
-	_shop_stack.move_child(row, index)
-
-
-func _add_sell_buy_separator(index: int) -> void:
-	var separator := HSeparator.new()
-	separator.name = "SellBuySeparator"
-	separator.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	separator.custom_minimum_size = Vector2(0.0, 8.0)
-	separator.add_theme_color_override("separator", Color(1.0, 0.79, 0.31, 0.55))
-	_shop_stack.add_child(separator)
-	_shop_stack.move_child(separator, index)
+	var shelf := _shelf_panel("%sShelf" % row.name, row)
+	_shop_stack.add_child(shelf)
+	_shop_stack.move_child(shelf, index)
 
 
 func _group_title_with_content(section_name: String, title_node_name: String, content: Control, separation: int) -> void:
@@ -434,10 +427,30 @@ func _group_title_with_content(section_name: String, title_node_name: String, co
 	content.get_parent().remove_child(content)
 	content.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	title.add_theme_color_override("font_color", SHELF_TITLE)
+	title.add_theme_font_size_override("font_size", 26)
 	section.add_child(title)
 	section.add_child(content)
-	_shop_stack.add_child(section)
-	_shop_stack.move_child(section, original_index)
+	var shelf := _shelf_panel("%sShelf" % section_name, section)
+	_shop_stack.add_child(shelf)
+	_shop_stack.move_child(shelf, original_index)
+
+
+func _shelf_panel(panel_name: String, content: Control) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.name = panel_name
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var style := UIStyle.rounded_box(self, SHELF_FILL, SHELF_BORDER, 3, 1)
+	style.content_margin_left = 8.0
+	style.content_margin_right = 8.0
+	style.content_margin_top = 2.0
+	style.content_margin_bottom = 2.0
+	# The heavier lower edge reads as the front lip of an old wooden shelf.
+	style.border_width_bottom = 4
+	panel.add_theme_stylebox_override("panel", style)
+	panel.add_child(content)
+	return panel
 
 
 func _hide_original_shop_sections() -> void:
@@ -457,6 +470,7 @@ func _hide_original_shop_sections() -> void:
 
 
 func _apply_styles() -> void:
+	($Background as ColorRect).color = SHOP_WOOD_FILL
 	_summary_panel.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, UIStyle.panel_fill(self), UIStyle.panel_border(self)))
 	_sell_zone.add_theme_stylebox_override("normal", UIStyle.elevated_box(self, Color(0.56, 0.22, 0.16), Color(0.94, 0.62, 0.30), 12, 3))
 	_sell_zone.visible = false

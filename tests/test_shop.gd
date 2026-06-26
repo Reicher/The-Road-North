@@ -52,6 +52,7 @@ func run() -> void:
 	_assert(shop.size.is_equal_approx(get_root().get_visible_rect().size), "Expected shop root to fill the viewport")
 	_assert(shop_scroll.size.x > shop.size.x * 0.9 and shop_scroll.size.y > shop.size.y * 0.9, "Expected shop scroll area to use nearly the full screen")
 	_assert(shop_stack.size.x > shop_scroll.size.x * 0.9, "Expected shop controls to expand across the available width")
+	_assert(shop._shop_margin.get_combined_minimum_size().y <= shop_scroll.size.y, "Expected the complete shop to fit the 720x1280 Android viewport without vertical scrolling")
 	_assert(play_button.global_position.y > shop.size.y * 0.75, "Expected Play next map to use the lower part of a tall screen")
 	_assert(remove_button.custom_minimum_size.y == 56.0 and view_deck_button.custom_minimum_size.y == 56.0, "Expected deck buttons to keep a fixed normal height")
 	_assert(remove_button.size_flags_vertical == Control.SIZE_SHRINK_CENTER and view_deck_button.size_flags_vertical == Control.SIZE_SHRINK_CENTER, "Expected deck buttons not to stretch vertically")
@@ -61,8 +62,11 @@ func run() -> void:
 	_assert(_price_text(inventory_slots, 0).begins_with("+"), "Expected sellable equipment to show sale value outside the slot")
 	_assert(_nested_label_index(shop_stack, "Sellable equipment") >= 0, "Expected the compact sellable equipment row label")
 	_assert(_nested_label_index(shop_stack, "Item shop") >= 0, "Expected the compact item shop row label")
+	for shelf_name in ["SellableRowShelf", "ItemRowShelf", "FoodRowShelf", "LifeRowShelf", "CardsSectionShelf", "DeckSectionShelf"]:
+		var shelf := shop.find_child(shelf_name, true, false) as PanelContainer
+		_assert(shelf != null and shelf.has_theme_stylebox_override("panel"), "Expected %s to be framed as a shelf" % shelf_name)
 	_assert(inventory_slots.get_parent().size_flags_vertical == Control.SIZE_EXPAND_FILL, "Expected compact shop rows to participate in even vertical distribution")
-	_assert(shop.find_child("SellBuySeparator", true, false) != null, "Expected a separator under sellable equipment")
+	_assert(shop.find_child("SellBuySeparator", true, false) == null, "Expected the sellable shelf edge to replace the separate divider")
 	_assert(item_row.get_child_count() == InventoryUI.SLOT_COUNT, "Expected buyable items to render in the same number of slots as the inventory")
 	_assert(_slot_button(item_row, 0).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected buyable items to use the same slot size as the inventory")
 	_assert(_price_text(item_row, 0).is_valid_int(), "Expected buyable items to show purchase price outside the slot")
