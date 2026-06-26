@@ -144,6 +144,18 @@ func flash_tile(grid_position: Vector2i) -> void:
 	_visuals.flash_cell(self, grid_position)
 
 
+func select_tile(grid_position: Vector2i) -> void:
+	if not _resolve_visuals():
+		return
+	_visuals.select_cell(self, grid_position)
+
+
+func clear_selected_tile() -> void:
+	if not _resolve_visuals():
+		return
+	_visuals.clear_selected_cell()
+
+
 func set_cell_trees_visible(grid_position: Vector2i, trees_visible: bool) -> void:
 	if not _resolve_visuals():
 		return

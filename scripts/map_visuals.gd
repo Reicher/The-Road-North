@@ -6,6 +6,7 @@ const FOREST_PADDING_TILES := 4
 const GROUND_LIGHT_COLOR := Color(0.69, 0.76, 0.57)
 const PLAYABLE_GRID_COLOR := Color(0.30, 0.38, 0.26, 0.28)
 const PLAYABLE_BORDER_COLOR := Color(0.30, 0.38, 0.26, 0.62)
+const SELECTION_COLOR := Color(1.0, 0.86, 0.28, 0.96)
 const ModelAssets = preload("res://scripts/model_assets.gd")
 const TREE_SLOTS := [
 	Vector2(-0.38, -0.36),
@@ -46,6 +47,7 @@ var _border_node: Node3D
 var _cells_root: Node3D
 var _forest_root: Node3D
 var _tap_highlights: Dictionary = {}
+var _selection_highlight: Node3D
 
 
 func rebuild_all(map: GameMap) -> void:
@@ -146,6 +148,36 @@ func flash_cell(map: GameMap, grid_position: Vector2i, duration := 0.22) -> void
 		if is_instance_valid(highlight):
 			highlight.queue_free()
 	)
+
+
+func select_cell(map: GameMap, grid_position: Vector2i) -> void:
+	clear_selected_cell()
+	if map == null or not map.is_inside_playable_area(grid_position):
+		return
+	_selection_highlight = Node3D.new()
+	_selection_highlight.name = "TileSelection"
+	_selection_highlight.position = map.grid_to_world(grid_position)
+	add_child(_selection_highlight)
+
+	var outer_size := map.tile_size * 0.92
+	var line_width := maxf(4.0, map.tile_size * 0.055)
+	var line_height := maxf(0.04, map.tile_size * 0.025)
+	var half_span := (outer_size - line_width) * 0.5
+	var y := map.tile_size * 0.075
+	for entry in [
+		["North", Vector3(outer_size, line_height, line_width), Vector3(0.0, y, -half_span)],
+		["South", Vector3(outer_size, line_height, line_width), Vector3(0.0, y, half_span)],
+		["West", Vector3(line_width, line_height, outer_size), Vector3(-half_span, y, 0.0)],
+		["East", Vector3(line_width, line_height, outer_size), Vector3(half_span, y, 0.0)],
+	]:
+		var edge := _add_box(_selection_highlight, "Selection%s" % entry[0], entry[1], entry[2], SELECTION_COLOR)
+		edge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+func clear_selected_cell() -> void:
+	if _selection_highlight != null and is_instance_valid(_selection_highlight):
+		_selection_highlight.queue_free()
+	_selection_highlight = null
 
 
 func _add_border_forest_cell(map: GameMap, grid_position: Vector2i) -> void:

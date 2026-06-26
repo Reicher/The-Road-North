@@ -1,0 +1,29 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/movement_selection_ui.gd" id="1_ui"]
+[ext_resource type="Script" path="res://scripts/placement_action_button.gd" id="2_action"]
+
+[node name="MovementSelection" type="CanvasLayer"]
+layer = 19
+script = ExtResource("1_ui")
+
+[node name="Label" type="Label" parent="."]
+visible = false
+custom_minimum_size = Vector2(300, 48)
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.94, 0.72, 1)
+theme_override_colors/font_outline_color = Color(0.08, 0.055, 0.035, 0.96)
+theme_override_constants/outline_size = 7
+theme_override_font_sizes/font_size = 28
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "Straight Road"
+
+[node name="ConfirmButton" type="Button" parent="."]
+visible = false
+custom_minimum_size = Vector2(56, 56)
+offset_right = 56.0
+offset_bottom = 56.0
+focus_mode = 0
+script = ExtResource("2_action")
+action = 1

@@ -37,7 +37,11 @@ var food := 0
 var gold := 0
 var health := 0
 var max_health := 3
-var input_enabled := true
+var input_enabled := true:
+	set(value):
+		input_enabled = value
+		if not input_enabled:
+			clear_tile_selection()
 
 var _map: GameMap
 var _inventory: InventoryUI
@@ -51,6 +55,8 @@ var _game_over := false
 var _run_won := false
 var _visual_root: Node3D
 var _combat_overlay: Control
+var _movement_selection: MovementSelectionUI
+var _selected_tile := Vector2i(-1, -1)
 var _inventory_max_health_bonus := 0
 var _combat_roll_queue: Array[Vector2i] = []
 var _combat_rng := RandomNumberGenerator.new()
@@ -62,6 +68,7 @@ func _ready() -> void:
 	_loot_ui = get_node_or_null(loot_ui_path) as LootUI
 	_rewards = get_node_or_null(rewards_path) as PlayerRewards
 	_combat_overlay = get_node_or_null("CombatPopupLayer/CombatPopup") as Control
+	_movement_selection = get_node_or_null("MovementSelection") as MovementSelectionUI
 	_combat_rng.randomize()
 	if _rewards == null:
 		push_warning("Player needs a Rewards child at rewards_path.")
@@ -90,6 +97,8 @@ func _ready() -> void:
 		health += _inventory_max_health_bonus
 	if not _map.tile_pressed.is_connected(_on_tile_pressed):
 		_map.tile_pressed.connect(_on_tile_pressed)
+	if _movement_selection != null and not _movement_selection.confirmed.is_connected(confirm_selected_move):
+		_movement_selection.confirmed.connect(confirm_selected_move)
 
 	_rebuild_visuals()
 	refresh_enemy_risk_colors()
@@ -340,7 +349,89 @@ func _rebuild_visuals() -> void:
 func _on_tile_pressed(target_position: Vector2i) -> void:
 	if not input_enabled:
 		return
-	move_to(target_position)
+	select_tile(target_position)
+
+
+func select_tile(target_position: Vector2i) -> void:
+	if _map == null or not _map.is_inside_playable_area(target_position):
+		clear_tile_selection()
+		return
+	_selected_tile = target_position
+	_map.select_tile(target_position)
+	if _movement_selection != null:
+		_movement_selection.show_selection(
+			_get_tile_display_name(target_position),
+			target_position,
+			_map,
+			_is_selectable_movement_destination(target_position)
+		)
+
+
+func confirm_selected_move() -> bool:
+	if _selected_tile.x < 0 or not _is_selectable_movement_destination(_selected_tile):
+		return false
+	var target := _selected_tile
+	clear_tile_selection()
+	return move_to(target)
+
+
+func clear_tile_selection() -> void:
+	_selected_tile = Vector2i(-1, -1)
+	if _map != null:
+		_map.clear_selected_tile()
+	if _movement_selection != null:
+		_movement_selection.hide_selection()
+
+
+func get_selected_tile() -> Vector2i:
+	return _selected_tile
+
+
+func _is_selectable_movement_destination(target_position: Vector2i) -> bool:
+	if target_position == grid_position:
+		return can_move_to(target_position)
+	var has_road := _map.get_tile(target_position) != null
+	var is_bridge := str(_map.get_fixed_feature(target_position).get("type", "")) == GameMap.FEATURE_BRIDGE
+	return (has_road or is_bridge) and can_move_to(target_position)
+
+
+func _get_tile_display_name(target_position: Vector2i) -> String:
+	var tile_data: Variant = _map.get_tile(target_position)
+	if tile_data is Dictionary:
+		var definition: Resource = tile_data.get("definition")
+		var tile_name := str(definition.get("display_name")) if definition != null else "Road"
+		var encounter_name := _get_encounter_display_name(_map.get_encounter(target_position))
+		return tile_name if encounter_name.is_empty() else "%s - %s" % [tile_name, encounter_name]
+	var feature_type := str(_map.get_fixed_feature(target_position).get("type", ""))
+	match feature_type:
+		GameMap.FEATURE_MOUNTAIN:
+			return "Mountain"
+		GameMap.FEATURE_RIVER:
+			return "River"
+		GameMap.FEATURE_BRIDGE:
+			return "Bridge"
+	return "Forest"
+
+
+func _get_encounter_display_name(encounter: Dictionary) -> String:
+	match str(encounter.get("type", "")):
+		GameMap.ENCOUNTER_ENEMY:
+			return "Enemy"
+		GameMap.ENCOUNTER_BERRY_BUSH:
+			return "Berry Bush"
+		GameMap.ENCOUNTER_CACHE:
+			return "Cache"
+		GameMap.ENCOUNTER_CAMPFIRE:
+			return "Campfire"
+		GameMap.ENCOUNTER_TAVERN:
+			return "Tavern"
+		GameMap.ENCOUNTER_WITCH_HUT:
+			return "Witch's Hut"
+		GameMap.ENCOUNTER_SHRINE:
+			return "Shrine"
+		GameMap.ENCOUNTER_GRAVEYARD:
+			return "Graveyard"
+	return ""
 
 
 func _hop_in_place() -> void:

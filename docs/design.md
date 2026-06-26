@@ -51,14 +51,18 @@ Touch only. In placement mode: single finger = placement, two fingers = camera.
 
 ## Movement
 
-Tap any reachable connected tile to move there along the shortest path. Rules:
+Tap any map tile to select it. The selected tile gets a clear outline and a
+label naming its terrain, road, and encounter where applicable. A reachable
+connected road tile also shows a green confirm button; pressing that button is
+the only way to begin movement to the selected tile along the shortest path.
+Rules:
 - Movement is orthogonal, one tile at a time, and costs 1 food per tile
 - Both tiles in every step must connect toward each other (bidirectional)
 - Enemies, loot, and other encounters do not affect path selection
 - Backtracking is allowed if roads and food exist
-- Tapping a new reachable tile during movement replaces the current destination after the active tile hop
-- The tapped destination flashes briefly
-- Tapping the tile occupied by the player makes the pawn jump once without spending food
+- Selecting and confirming a new reachable tile during movement replaces the current destination after the active tile hop
+- The confirmed destination flashes briefly
+- Selecting and confirming the tile occupied by the player makes the pawn jump once without spending food
 - Movement uses a tweened hop animation; destination input remains enabled during normal movement
 
 Starting stats: 10 food, 4 health, 0 gold, 0 base power, a Walking Stick (+1 power).
