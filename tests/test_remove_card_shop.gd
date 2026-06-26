@@ -62,6 +62,13 @@ func run() -> void:
 	_assert(scroll_hint.visible, "Expected overflowing mobile deck views to show a swipe hint")
 	var scroll := overlay.find_child("Scroll", true, false) as ScrollContainer
 	var scrollbar := scroll.get_v_scroll_bar()
+	var before_wheel_scroll := scroll.scroll_vertical
+	var wheel_event := InputEventMouseButton.new()
+	wheel_event.button_index = MOUSE_BUTTON_WHEEL_DOWN
+	wheel_event.pressed = true
+	scroll.gui_input.emit(wheel_event)
+	await process_frame
+	_assert(scroll.scroll_vertical > before_wheel_scroll, "Expected mouse wheel to scroll the deck overlay on desktop")
 	scroll.scroll_vertical = int(scrollbar.max_value - scrollbar.page)
 	await process_frame
 	await process_frame

@@ -383,16 +383,19 @@ func _add_compact_section_row(index: int, title: String, content_row: HBoxContai
 	var row := HBoxContainer.new()
 	row.name = "%sRow" % title.split(" ")[0].replace("(", "")
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	row.add_theme_constant_override("separation", 10)
 	var label := Label.new()
 	label.custom_minimum_size = Vector2(190.0, 0.0)
 	label.size_flags_horizontal = Control.SIZE_FILL
+	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 26)
 	label.add_theme_color_override("font_color", Color(1.0, 0.79, 0.31, 1.0))
 	label.text = title
 	content_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	content_row.alignment = BoxContainer.ALIGNMENT_END
 	content_row.add_theme_constant_override("separation", 4)
 	var old_parent := content_row.get_parent()
@@ -424,11 +427,13 @@ func _group_title_with_content(section_name: String, title_node_name: String, co
 	var section := VBoxContainer.new()
 	section.name = section_name
 	section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	section.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	section.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	section.alignment = BoxContainer.ALIGNMENT_CENTER
 	section.add_theme_constant_override("separation", separation)
 	title.get_parent().remove_child(title)
 	content.get_parent().remove_child(content)
 	content.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	section.add_child(title)
 	section.add_child(content)
 	_shop_stack.add_child(section)
@@ -512,8 +517,9 @@ func _refresh_inventory_slots() -> void:
 		slot.slot_gui_input.connect(_on_slot_gui_input)
 		if not item.is_empty():
 			slot.pressed.connect(_confirm_sell_inventory_slot.bind(index))
-			_add_slot_badge(slot, "+%dg" % (_sell_price(item) * _inventory_gold_multiplier()))
-		_slot_row.add_child(slot)
+			_slot_row.add_child(_priced_slot(slot, "+%d" % (_sell_price(item) * _inventory_gold_multiplier())))
+		else:
+			_slot_row.add_child(_priced_slot(slot, ""))
 
 
 func _refresh_survival_offers() -> void:
@@ -523,14 +529,15 @@ func _refresh_survival_offers() -> void:
 	_clear_children(_life_offer_row)
 	for offer in FOOD_OFFERS:
 		var food_offer := offer.duplicate(true)
-		_food_offer_row.add_child(_shop_action_slot(
+		var food_button := _shop_action_slot(
 			str(food_offer["name"]),
 			int(food_offer["price"]),
 			"food",
 			int(food_offer["amount"]),
 			"",
 			_confirm_buy_food.bind(food_offer)
-		))
+		)
+		_food_offer_row.add_child(_priced_slot(food_button, "%d" % int(food_offer["price"])))
 	for offer in HEAL_OFFERS:
 		var heal_offer := offer.duplicate(true)
 		var slot_button := _shop_action_slot(
@@ -542,7 +549,7 @@ func _refresh_survival_offers() -> void:
 			_confirm_buy_heal.bind(heal_offer)
 		)
 		slot_button.disabled = slot_button.disabled or int(progression.get("health", 0)) >= int(progression.get("max_health", 1))
-		_life_offer_row.add_child(slot_button)
+		_life_offer_row.add_child(_priced_slot(slot_button, "%d" % int(heal_offer["price"])))
 
 
 func _refresh_offers() -> void:
@@ -558,8 +565,7 @@ func _refresh_offers() -> void:
 			ItemIconLibrary.update_size_badge(button, offer)
 			button.disabled = index in _purchased_item_offers or not _has_empty_inventory_slot() or int(progression.get("gold", 0)) < int(offer["price"])
 			button.pressed.connect(_confirm_buy_item_offer.bind(index))
-			_add_slot_badge(button, "%dg" % int(offer["price"]))
-			_item_row.add_child(button)
+			_item_row.add_child(_priced_slot(button, "%d" % int(offer["price"])))
 		else:
 			var empty := ITEM_SLOT_SCENE.instantiate() as ItemSlot
 			empty.slot_size = SLOT_SIZE
@@ -567,7 +573,7 @@ func _refresh_offers() -> void:
 			_apply_slot_style(empty)
 			empty.disabled = true
 			empty.text = "-"
-			_item_row.add_child(empty)
+			_item_row.add_child(_priced_slot(empty, ""))
 	_clear_children(_card_row)
 	for index in card_offers.size():
 		var offer := card_offers[index]
@@ -992,8 +998,46 @@ func _shop_action_slot(title: String, price: int, icon_name: String, amount: int
 	button.tooltip_text = tooltip
 	_apply_slot_style(button)
 	_add_slot_content(button, title, icon_name, amount)
-	_add_slot_badge(button, "%dg" % price)
 	return button
+
+
+func _priced_slot(slot_button: Button, price_text: String) -> VBoxContainer:
+	var stack := VBoxContainer.new()
+	stack.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	stack.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 2)
+	stack.add_child(slot_button)
+	stack.add_child(_price_chip(price_text))
+	return stack
+
+
+func _price_chip(price_text: String) -> HBoxContainer:
+	var chip := HBoxContainer.new()
+	chip.name = "PriceChip"
+	chip.custom_minimum_size = Vector2(SLOT_SIZE.x, 30.0)
+	chip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	chip.alignment = BoxContainer.ALIGNMENT_CENTER
+	chip.add_theme_constant_override("separation", 4)
+	if price_text.is_empty():
+		var spacer := Control.new()
+		spacer.custom_minimum_size = Vector2(SLOT_SIZE.x, 30.0)
+		chip.add_child(spacer)
+		return chip
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(28.0, 28.0)
+	icon.texture = _load_stat_icon("gold")
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var label := Label.new()
+	label.name = "PriceLabel"
+	label.add_theme_font_size_override("font_size", 24)
+	label.add_theme_color_override("font_color", Color(1.0, 0.86, 0.48, 1.0))
+	label.text = price_text
+	chip.add_child(icon)
+	chip.add_child(label)
+	return chip
 
 
 func _add_slot_content(slot_button: Button, title: String, icon_name: String, amount: int) -> void:
@@ -1043,26 +1087,6 @@ func _add_slot_content(slot_button: Button, title: String, icon_name: String, am
 	amount_label.add_theme_color_override("font_color", Color(0.20, 0.14, 0.09, 1.0))
 	amount_label.text = "+%d" % amount
 	slot_button.add_child(amount_label)
-
-
-func _add_slot_badge(slot_button: Button, text: String) -> void:
-	var badge := Label.new()
-	badge.name = "PriceBadge"
-	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	badge.anchor_left = 0.0
-	badge.anchor_right = 1.0
-	badge.anchor_top = 1.0
-	badge.anchor_bottom = 1.0
-	badge.offset_left = 4.0
-	badge.offset_right = -4.0
-	badge.offset_top = -24.0
-	badge.offset_bottom = -3.0
-	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	badge.add_theme_font_size_override("font_size", 16)
-	badge.add_theme_color_override("font_color", Color(0.20, 0.14, 0.09, 1.0))
-	badge.text = text
-	slot_button.add_child(badge)
 
 
 func _configure_fixed_deck_button(button: Button) -> void:

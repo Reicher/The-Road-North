@@ -57,22 +57,23 @@ func run() -> void:
 	_assert(remove_button.size_flags_vertical == Control.SIZE_SHRINK_CENTER and view_deck_button.size_flags_vertical == Control.SIZE_SHRINK_CENTER, "Expected deck buttons not to stretch vertically")
 	_assert(summary_panel != null, "Expected a styled summary panel")
 	_assert(inventory_slots.get_child_count() == InventoryUI.SLOT_COUNT, "Expected the inventory to render one visible stack per backpack slot")
-	_assert((inventory_slots.get_child(0) as Button).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected inventory entries to use inventory-sized slots")
-	_assert(((inventory_slots.get_child(0) as Button).get_node("PriceBadge") as Label).text.begins_with("+"), "Expected sellable equipment to show sale value inside the slot")
+	_assert(_slot_button(inventory_slots, 0).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected inventory entries to use inventory-sized slots")
+	_assert(_price_text(inventory_slots, 0).begins_with("+"), "Expected sellable equipment to show sale value outside the slot")
 	_assert(_nested_label_index(shop_stack, "Sellable equipment") >= 0, "Expected the compact sellable equipment row label")
 	_assert(_nested_label_index(shop_stack, "Item shop") >= 0, "Expected the compact item shop row label")
+	_assert(inventory_slots.get_parent().size_flags_vertical == Control.SIZE_EXPAND_FILL, "Expected compact shop rows to participate in even vertical distribution")
 	_assert(shop.find_child("SellBuySeparator", true, false) != null, "Expected a separator under sellable equipment")
 	_assert(item_row.get_child_count() == InventoryUI.SLOT_COUNT, "Expected buyable items to render in the same number of slots as the inventory")
-	_assert((item_row.get_child(0) as Button).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected buyable items to use the same slot size as the inventory")
-	_assert(((item_row.get_child(0) as Button).get_node("PriceBadge") as Label).text.ends_with("g"), "Expected buyable items to show purchase price inside the slot")
+	_assert(_slot_button(item_row, 0).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected buyable items to use the same slot size as the inventory")
+	_assert(_price_text(item_row, 0).is_valid_int(), "Expected buyable items to show purchase price outside the slot")
 	_assert(food_row.get_child_count() == 3, "Expected three food offers")
 	_assert(life_row.get_child_count() == 2, "Expected two life offers")
-	_assert((food_row.get_child(0) as Button).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected food offers to use inventory-sized slots")
-	_assert(((food_row.get_child(0) as Button).get_child(0) as Label).text == "Bread", "Expected food slot title to sit at the top")
-	_assert(((food_row.get_child(0) as Button).get_child(2) as Label).text == "+1", "Expected food amount to share the lower slot space")
-	_assert(((food_row.get_child(0) as Button).get_node("PriceBadge") as Label).text == "1g", "Expected food slots to show purchase price")
-	_assert((life_row.get_child(0) as Button).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected life offers to use inventory-sized slots")
-	_assert(((life_row.get_child(0) as Button).get_child(2) as Label).text == "+1", "Expected life slots to show only the amount")
+	_assert(_slot_button(food_row, 0).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected food offers to use inventory-sized slots")
+	_assert((_slot_button(food_row, 0).get_child(0) as Label).text == "Bread", "Expected food slot title to sit at the top")
+	_assert((_slot_button(food_row, 0).get_child(2) as Label).text == "+1", "Expected food amount to share the lower slot space")
+	_assert(_price_text(food_row, 0) == "1", "Expected food slots to show purchase price outside the slot")
+	_assert(_slot_button(life_row, 0).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected life offers to use inventory-sized slots")
+	_assert((_slot_button(life_row, 0).get_child(2) as Label).text == "+1", "Expected life slots to show only the amount")
 	var legacy_potion_row := shop.find_child("PotionsRow", true, false) as Control
 	_assert(legacy_potion_row != null and not legacy_potion_row.visible, "Expected potions to be hidden from the shop")
 	var bottom_spacer := shop.find_child("BottomSpacer", true, false) as Control
@@ -80,6 +81,8 @@ func run() -> void:
 	_assert(shop.card_offers.size() == 3, "Expected shop to roll exactly three special card offers")
 	_assert(cards_title.get_parent() == card_row.get_parent(), "Expected the Cards title to stay grouped with the card offers")
 	_assert(deck_section_title.get_parent() == deck_row.get_parent(), "Expected the Deck title to stay grouped with the deck buttons")
+	_assert(cards_title.get_parent().size_flags_vertical == Control.SIZE_EXPAND_FILL, "Expected Cards section to keep its group while sharing vertical space")
+	_assert(deck_section_title.get_parent().size_flags_vertical == Control.SIZE_EXPAND_FILL, "Expected Deck section to keep its group while sharing vertical space")
 	_assert(_offer_types_are_unique(shop.card_offers), "Expected shop special-card offers not to contain duplicate card types")
 	_assert(_catalog_has_shop_only_specials(), "Expected the requested shop-only special cards to be purchasable")
 	_assert(_all_offers_are_cheaper_specials(shop.card_offers), "Expected every rolled card to come from the cheaper special-card catalog")
@@ -213,6 +216,16 @@ func _nested_label_index(parent: Node, text: String) -> int:
 		if nested >= 0:
 			return index
 	return -1
+
+
+func _slot_button(row: HBoxContainer, index: int) -> Button:
+	return (row.get_child(index).get_child(0) as Button)
+
+
+func _price_text(row: HBoxContainer, index: int) -> String:
+	var chip := row.get_child(index).get_child(1) as HBoxContainer
+	var label := chip.get_node_or_null("PriceLabel") as Label
+	return label.text if label != null else ""
 
 
 func _overview_card_titles(parent: Node) -> Array[String]:

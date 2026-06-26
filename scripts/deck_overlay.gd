@@ -37,6 +37,9 @@ func _ready() -> void:
 		_close_button.pressed.connect(_on_close_pressed)
 	_confirm_button.pressed.connect(_on_confirm_pressed)
 	_cancel_button.pressed.connect(hide_confirmation)
+	gui_input.connect(_on_overlay_gui_input)
+	_scroll.gui_input.connect(_on_overlay_gui_input)
+	_grid.gui_input.connect(_on_overlay_gui_input)
 	_scroll.get_v_scroll_bar().value_changed.connect(func(_value: float) -> void: _update_scroll_hint())
 	_scroll.resized.connect(_update_scroll_hint)
 	_grid.resized.connect(_update_scroll_hint)
@@ -77,6 +80,7 @@ func add_card(card_data: Dictionary, _count: int, disabled_state: bool, callback
 	card.configure(card_data)
 	card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	var touch_button := card.get_node("TouchButton") as Button
+	touch_button.gui_input.connect(_on_overlay_gui_input)
 	touch_button.disabled = disabled_state
 	touch_button.set_meta("deck_overlay_disabled", disabled_state)
 	if callback.is_valid():
@@ -149,3 +153,16 @@ func _on_confirm_pressed() -> void:
 func _on_close_pressed() -> void:
 	hide_overlay()
 	close_requested.emit()
+
+
+func _on_overlay_gui_input(event: InputEvent) -> void:
+	if not visible or _scroll == null:
+		return
+	if event is InputEventMouseButton and event.pressed:
+		var mouse_event := event as InputEventMouseButton
+		if mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_scroll.scroll_vertical += 72
+			accept_event()
+		elif mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_scroll.scroll_vertical -= 72
+			accept_event()
