@@ -113,6 +113,7 @@ func _tween_visual_alpha(tween: Tween, node: Node, duration: float) -> void:
 
 func _add_power_display(power: int, risk_level: String) -> void:
 	var label := Label3D.new()
+	label.font = preload("res://assets/fonts/AlegreyaSans-ExtraBold.ttf")
 	label.name = "PowerLabel"
 	label.text = str(power)
 	label.font_size = PlayerStatsUI.STAT_VALUE_FONT_SIZE

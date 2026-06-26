@@ -18,6 +18,7 @@ mouse_filter = 2
 
 [node name="Value" type="Label" parent="."]
 layout_mode = 2
+theme_type_variation = &"StatLabel"
 size_flags_vertical = 1
 theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
 theme_override_colors/font_outline_color = Color(1, 0.96, 0.84, 0.72)
@@ -32,6 +33,7 @@ vertical_alignment = 1
 [node name="Gain" type="Label" parent="."]
 visible = false
 layout_mode = 2
+theme_type_variation = &"StatLabel"
 size_flags_vertical = 1
 theme_override_colors/font_outline_color = Color(1, 0.96, 0.84, 0.72)
 theme_override_colors/font_shadow_color = Color(0.34, 0.23, 0.14, 0.28)

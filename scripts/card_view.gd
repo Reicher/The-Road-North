@@ -218,6 +218,11 @@ func _bind_scene_nodes() -> void:
 	_category_label = get_node("Category") as Label
 	_detail_label = get_node("Detail") as Label
 	_touch_button = get_node("TouchButton") as Button
+	for label in [_title_label, _category_label, _detail_label]:
+		var font := label.get_theme_font("font") as FontFile
+		font.multichannel_signed_distance_field = true
+		font.msdf_pixel_range = 8
+		font.msdf_size = 64
 	_title_label.add_theme_color_override("font_color", UIStyle.card_text(self))
 	_category_label.add_theme_color_override("font_color", UIStyle.card_muted_text(self))
 	_detail_label.add_theme_color_override("font_color", UIStyle.card_text(self))

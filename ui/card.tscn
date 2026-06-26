@@ -1,20 +1,8 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/card_view.gd" id="1_h3x6f"]
-
-[sub_resource type="SystemFont" id="SystemFont_title"]
-font_names = PackedStringArray("Avenir Next Condensed", "Trebuchet MS", "Verdana")
-font_weight = 700
-multichannel_signed_distance_field = true
-msdf_pixel_range = 8
-msdf_size = 64
-
-[sub_resource type="SystemFont" id="SystemFont_label"]
-font_names = PackedStringArray("Avenir Next", "Trebuchet MS", "Verdana")
-font_weight = 600
-multichannel_signed_distance_field = true
-msdf_pixel_range = 8
-msdf_size = 64
+[ext_resource type="FontFile" path="res://assets/fonts/AlegreyaSans-Bold.ttf" id="2_title"]
+[ext_resource type="FontFile" path="res://assets/fonts/AlegreyaSans-Medium.ttf" id="3_label"]
 
 [node name="Card" type="Control"]
 custom_minimum_size = Vector2(174, 250)
@@ -37,7 +25,7 @@ grow_horizontal = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
 theme_override_constants/line_spacing = -3
-theme_override_fonts/font = SubResource("SystemFont_title")
+theme_override_fonts/font = ExtResource("2_title")
 theme_override_font_sizes/font_size = 19
 text = "Card"
 horizontal_alignment = 1
@@ -57,7 +45,7 @@ grow_horizontal = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.45, 0.32, 0.2, 1)
 theme_override_constants/line_spacing = -2
-theme_override_fonts/font = SubResource("SystemFont_label")
+theme_override_fonts/font = ExtResource("3_label")
 theme_override_font_sizes/font_size = 14
 text = "Road"
 horizontal_alignment = 1
@@ -75,7 +63,7 @@ grow_horizontal = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
 theme_override_constants/line_spacing = -2
-theme_override_fonts/font = SubResource("SystemFont_label")
+theme_override_fonts/font = ExtResource("3_label")
 theme_override_font_sizes/font_size = 16
 horizontal_alignment = 1
 vertical_alignment = 1

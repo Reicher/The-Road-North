@@ -1,11 +1,15 @@
-[gd_resource type="Theme" load_steps=11 format=3]
+[gd_resource type="Theme" load_steps=14 format=3]
 
-[sub_resource type="SystemFont" id="SystemFont_default"]
-font_names = PackedStringArray("Avenir Next", "Trebuchet MS", "Verdana")
+[ext_resource type="FontFile" path="res://assets/fonts/AlegreyaSans-Medium.ttf" id="1_medium"]
+[ext_resource type="FontFile" path="res://assets/fonts/AlegreyaSans-Bold.ttf" id="2_bold"]
+[ext_resource type="FontFile" path="res://assets/fonts/AlegreyaSans-ExtraBold.ttf" id="3_extra_bold"]
+[ext_resource type="FontFile" path="res://assets/fonts/Alegreya.ttf" id="4_serif"]
 
-[sub_resource type="SystemFont" id="SystemFont_button"]
-font_names = PackedStringArray("Avenir Next Condensed", "Trebuchet MS", "Verdana")
-font_weight = 700
+[sub_resource type="FontVariation" id="FontVariation_title"]
+base_font = ExtResource("4_serif")
+variation_opentype = {
+"wght": 700.0
+}
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.96, 0.88, 0.68, 0.98)
@@ -132,7 +136,7 @@ shadow_size = 6
 shadow_offset = Vector2(0, 4)
 
 [resource]
-default_font = SubResource("SystemFont_default")
+default_font = ExtResource("1_medium")
 default_font_size = 18
 Button/colors/font_color = Color(0.176, 0.118, 0.059, 1)
 Button/colors/font_disabled_color = Color(0.631, 0.714, 0.655, 1)
@@ -140,7 +144,7 @@ Button/colors/font_focus_color = Color(0.176, 0.118, 0.059, 1)
 Button/colors/font_hover_color = Color(0.176, 0.118, 0.059, 1)
 Button/colors/font_hover_pressed_color = Color(0.12, 0.075, 0.035, 1)
 Button/colors/font_pressed_color = Color(0.12, 0.075, 0.035, 1)
-Button/fonts/font = SubResource("SystemFont_button")
+Button/fonts/font = ExtResource("2_bold")
 Button/font_sizes/font_size = 18
 Button/styles/disabled = SubResource("StyleBoxFlat_button_disabled")
 Button/styles/focus = SubResource("StyleBoxEmpty_button_focus")
@@ -168,3 +172,7 @@ LineEdit/colors/font_color = Color(0.20, 0.14, 0.09, 1)
 LineEdit/styles/normal = SubResource("StyleBoxFlat_line_edit")
 PanelContainer/styles/panel = SubResource("StyleBoxFlat_panel")
 PopupPanel/styles/panel = SubResource("StyleBoxFlat_tooltip")
+StatLabel/base_type = &"Label"
+StatLabel/fonts/font = ExtResource("3_extra_bold")
+TitleLabel/base_type = &"Label"
+TitleLabel/fonts/font = SubResource("FontVariation_title")

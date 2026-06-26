@@ -65,6 +65,7 @@ shadow_enabled = true
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="LevelName" type="Label" parent="UI"]
+theme_type_variation = &"TitleLabel"
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0

@@ -48,6 +48,7 @@ theme_override_constants/separation = 10
 alignment = 1
 
 [node name="Title" type="Label" parent="Panel/Margin/Stack"]
+theme_type_variation = &"TitleLabel"
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Encounter"

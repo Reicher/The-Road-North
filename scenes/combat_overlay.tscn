@@ -84,6 +84,7 @@ stretch_mode = 5
 mouse_filter = 2
 
 [node name="Value" type="Label" parent="Panel/Margin/Stack/Calculation/Fighters/Player/Power"]
+theme_type_variation = &"StatLabel"
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "1"
@@ -123,6 +124,7 @@ grow_vertical = 2
 script = ExtResource("2_dice")
 
 [node name="VS" type="Label" parent="Panel/Margin/Stack/Calculation/Fighters"]
+theme_type_variation = &"StatLabel"
 custom_minimum_size = Vector2(32, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 27
@@ -155,6 +157,7 @@ stretch_mode = 5
 mouse_filter = 2
 
 [node name="Value" type="Label" parent="Panel/Margin/Stack/Calculation/Fighters/Enemy/Power"]
+theme_type_variation = &"StatLabel"
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "2"
@@ -176,6 +179,7 @@ custom_minimum_size = Vector2(0, 66)
 layout_mode = 2
 
 [node name="PlayerSum" type="Label" parent="Panel/Margin/Stack/Totals"]
+theme_type_variation = &"StatLabel"
 layout_mode = 1
 anchor_left = 0.0
 anchor_top = 1.0
@@ -192,6 +196,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Result" type="Label" parent="Panel/Margin/Stack/Totals"]
+theme_type_variation = &"StatLabel"
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -226,6 +231,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="EnemySum" type="Label" parent="Panel/Margin/Stack/Totals"]
+theme_type_variation = &"StatLabel"
 layout_mode = 1
 anchors_preset = 13
 anchor_left = 1.0
@@ -281,6 +287,7 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Title" type="Label" parent="TitleBanner"]
+theme_type_variation = &"TitleLabel"
 layout_mode = 2
 theme_override_font_sizes/font_size = 30
 text = "COMBAT"
