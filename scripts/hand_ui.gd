@@ -2,6 +2,7 @@ class_name HandUI
 extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
+const TouchFeedback = preload("res://scripts/touch_feedback.gd")
 
 signal card_focused(card: CardView)
 signal card_unfocused
@@ -244,6 +245,7 @@ func _on_card_pointer_released(card: CardView, canvas_position: Vector2) -> void
 func _start_card_drag(card: CardView, canvas_position: Vector2) -> void:
 	_dragged_card = card
 	_drag_activated = false
+	TouchFeedback.release_control(card)
 	add_to_group("ui_item_drag_active")
 	clear_focus()
 	_show_drag_ghost(card, canvas_position)

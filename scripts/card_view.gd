@@ -2,6 +2,7 @@ class_name CardView
 extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
+const TouchFeedback = preload("res://scripts/touch_feedback.gd")
 const CARD_DEFINITION_SCRIPT = preload("res://scripts/card_definition.gd")
 const DEFAULT_CARD_BASE_TEXTURE_PATH := "res://assets/images/cards/card_base.png"
 const FALLBACK_EVENT_ART_TEXTURE_PATH := "res://assets/images/cards/card_art_event_fallback.png"
@@ -282,8 +283,10 @@ func _handle_pointer_input(event: InputEvent, source: Control) -> void:
 			if _active_pointer_id != NO_ACTIVE_POINTER:
 				return
 			_active_pointer_id = MOUSE_POINTER
+			TouchFeedback.press_control(self)
 			pointer_pressed.emit(self, canvas_position)
 		elif _active_pointer_id == MOUSE_POINTER:
+			TouchFeedback.release_control(self)
 			pointer_released.emit(self, canvas_position)
 			_active_pointer_id = NO_ACTIVE_POINTER
 		source.accept_event()
@@ -295,8 +298,10 @@ func _handle_pointer_input(event: InputEvent, source: Control) -> void:
 			if _active_pointer_id != NO_ACTIVE_POINTER:
 				return
 			_active_pointer_id = event.index
+			TouchFeedback.press_control(self)
 			pointer_pressed.emit(self, event.position)
 		elif _active_pointer_id == event.index:
+			TouchFeedback.release_control(self)
 			pointer_released.emit(self, event.position)
 			_active_pointer_id = NO_ACTIVE_POINTER
 		source.accept_event()

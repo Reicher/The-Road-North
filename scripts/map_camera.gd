@@ -1,6 +1,7 @@
 extends Camera3D
 
 signal start_zoom_started
+signal start_zoom_finished
 
 @export var map_path: NodePath
 @export var player_path: NodePath
@@ -26,6 +27,7 @@ var _start_zoom_tween: Tween
 var _move_focus_tween: Tween
 var _following_player := false
 var _start_zoom_announced := false
+var _start_zoom_finished := false
 
 
 func _ready() -> void:
@@ -241,6 +243,7 @@ func _play_start_zoom_sequence() -> void:
 		_clamp_target()
 		_apply_camera_transform()
 	, 0.0, 1.0, start_zoom_duration)
+	_start_zoom_tween.tween_callback(_announce_start_zoom_finished)
 
 
 func _on_player_move_started(_target_position: Vector2i) -> void:
@@ -249,6 +252,7 @@ func _on_player_move_started(_target_position: Vector2i) -> void:
 		_start_zoom_tween.kill()
 		_start_zoom_tween = null
 		_announce_start_zoom()
+		_announce_start_zoom_finished()
 	if _move_focus_tween != null:
 		_move_focus_tween.kill()
 		_move_focus_tween = null
@@ -260,6 +264,13 @@ func _announce_start_zoom() -> void:
 		return
 	_start_zoom_announced = true
 	start_zoom_started.emit()
+
+
+func _announce_start_zoom_finished() -> void:
+	if _start_zoom_finished:
+		return
+	_start_zoom_finished = true
+	start_zoom_finished.emit()
 
 
 func _on_player_moved(grid_position: Vector2i) -> void:

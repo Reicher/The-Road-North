@@ -16,6 +16,7 @@ const LEVELS: Array[Dictionary] = [
 ]
 const SHOP_SCENE := preload("res://ui/shop.tscn")
 const START_SCREEN_SCENE := preload("res://ui/start_screen.tscn")
+const TouchFeedback = preload("res://scripts/touch_feedback.gd")
 
 const DEBUG_OVERLAY_SCENE := preload("res://ui/debug_overlay.tscn")
 const DEBUG_LABEL_TEXT := "Debug"
@@ -36,12 +37,17 @@ var _debug_label: Label
 var _shop: Control
 var _shop_layer: CanvasLayer
 var _start_screen: StartScreen
+var _transition_layer: CanvasLayer
+var _transition_shade: ColorRect
+var _transition_label: Label
+var _transition_running := false
 
 
 func _ready() -> void:
 	ItemCatalog.initialize()
 	assert(not LEVELS.is_empty(), "At least one level must be configured")
 	_ensure_debug_overlay()
+	_ensure_transition_layer()
 	_show_start_screen()
 
 
@@ -129,6 +135,8 @@ func _configure_level_end_screen() -> void:
 	var player := _current_level.get_node_or_null("Player") as GamePlayer
 	if player != null and not player.run_won.is_connected(_on_level_won):
 		player.run_won.connect(_on_level_won)
+	if _current_level.has_signal("goal_arrival_finished") and not _current_level.is_connected("goal_arrival_finished", Callable(self, "_on_goal_arrival_finished")):
+		_current_level.connect("goal_arrival_finished", Callable(self, "_on_goal_arrival_finished"))
 
 
 func _ensure_debug_overlay() -> void:
@@ -137,6 +145,38 @@ func _ensure_debug_overlay() -> void:
 	_debug_layer = DEBUG_OVERLAY_SCENE.instantiate() as CanvasLayer
 	add_child(_debug_layer)
 	_debug_label = _debug_layer.get_node("DebugLabel") as Label
+
+
+func _ensure_transition_layer() -> void:
+	if _transition_layer != null:
+		return
+	_transition_layer = CanvasLayer.new()
+	_transition_layer.name = "TransitionLayer"
+	_transition_layer.layer = 100
+	add_child(_transition_layer)
+
+	_transition_shade = ColorRect.new()
+	_transition_shade.name = "ForestFade"
+	_transition_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_transition_shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	_transition_shade.color = Color(0.045, 0.10, 0.075, 0.0)
+	_transition_shade.visible = false
+	_transition_layer.add_child(_transition_shade)
+
+	_transition_label = Label.new()
+	_transition_label.name = "TransitionLabel"
+	_transition_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_transition_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_transition_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_transition_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_transition_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_transition_label.add_theme_color_override("font_color", Color(0.96, 0.88, 0.68, 1.0))
+	_transition_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.82))
+	_transition_label.add_theme_constant_override("shadow_offset_x", 3)
+	_transition_label.add_theme_constant_override("shadow_offset_y", 5)
+	_transition_label.add_theme_font_size_override("font_size", 34)
+	_transition_label.modulate.a = 0.0
+	_transition_shade.add_child(_transition_label)
 
 
 func _set_debug_mode_enabled(enabled: bool) -> void:
@@ -163,7 +203,7 @@ func _dismiss_start_screen() -> void:
 
 func _start_new_game() -> void:
 	_level_start_progression.clear()
-	_load_level(0)
+	_transition_to_level(0, _level_transition_text(0))
 
 
 func _complete_current_level() -> void:
@@ -201,17 +241,22 @@ func _on_next_level_requested() -> void:
 
 
 func _on_level_won() -> void:
-	_open_shop()
+	pass
+
+
+func _on_goal_arrival_finished() -> void:
+	if _current_level_index < LEVELS.size() - 1:
+		_open_shop_with_transition()
 
 
 func _on_restart_level_requested() -> void:
-	_load_level(_current_level_index)
+	_transition_to_level(_current_level_index, _level_transition_text(_current_level_index))
 
 
 func _on_restart_game_requested() -> void:
 	_close_shop()
 	_level_start_progression.clear()
-	_load_level(0)
+	_transition_to_level(0, _level_transition_text(0))
 
 
 func _capture_progression() -> Dictionary:
@@ -315,6 +360,7 @@ func _open_shop() -> void:
 	add_child(_shop_layer)
 	_shop_layer.add_child(_shop)
 	_shop.setup(progression, str(next_level.get("name", "Level %d" % (_current_level_index + 2))), map_size, available_base_cards)
+	TouchFeedback.apply_to_tree(_shop)
 	_shop.play_next_requested.connect(_on_shop_play_next_requested)
 	var level_ui := _current_level.get_node_or_null("UI") as CanvasLayer
 	if level_ui != null:
@@ -324,7 +370,7 @@ func _open_shop() -> void:
 func _on_shop_play_next_requested(progression: Dictionary) -> void:
 	_level_start_progression = progression.duplicate(true)
 	_close_shop()
-	_load_level(_current_level_index + 1)
+	_transition_to_level(_current_level_index + 1, _level_transition_text(_current_level_index + 1))
 
 
 func _close_shop() -> void:
@@ -335,3 +381,99 @@ func _close_shop() -> void:
 	if _shop_layer != null:
 		_shop_layer.queue_free()
 		_shop_layer = null
+
+
+func _transition_to_level(level_index: int, label_text: String) -> void:
+	if _transition_running:
+		return
+	_transition_running = true
+	_begin_transition_cover(label_text)
+	_load_level(level_index)
+	_transition_running = false
+	_finish_transition_async()
+
+
+func _transition_to_level_async(level_index: int, label_text: String) -> void:
+	await _fade_transition_in(label_text)
+	if not is_inside_tree():
+		return
+	_load_level(level_index)
+	await get_tree().create_timer(0.12).timeout
+	await _fade_transition_out()
+	_transition_running = false
+
+
+func _open_shop_with_transition() -> void:
+	if _transition_running:
+		return
+	_transition_running = true
+	_begin_transition_cover("Roadside Camp")
+	_open_shop()
+	_transition_running = false
+	_finish_transition_async()
+
+
+func _open_shop_with_transition_async() -> void:
+	await _fade_transition_in("Roadside Camp")
+	if not is_inside_tree():
+		return
+	_open_shop()
+	await get_tree().create_timer(0.10).timeout
+	await _fade_transition_out()
+	_transition_running = false
+
+
+func _begin_transition_cover(label_text: String) -> void:
+	_ensure_transition_layer()
+	_transition_label.text = label_text
+	_transition_label.modulate.a = 1.0
+	_transition_label.scale = Vector2.ONE
+	_transition_shade.visible = true
+	_transition_shade.color.a = 0.94
+
+
+func _finish_transition_async() -> void:
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	await _fade_transition_out()
+
+
+func _fade_transition_in(label_text: String) -> void:
+	_ensure_transition_layer()
+	_transition_label.text = label_text
+	_transition_label.modulate.a = 0.0
+	_transition_label.scale = Vector2(0.98, 0.98)
+	_transition_shade.visible = true
+	_transition_shade.color.a = 0.0
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_SINE)
+	tween.set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(_transition_shade, "color:a", 0.94, 0.30)
+	tween.tween_property(_transition_label, "modulate:a", 1.0, 0.30)
+	tween.tween_property(_transition_label, "scale", Vector2.ONE, 0.30)
+	await tween.finished
+	await get_tree().create_timer(0.18).timeout
+
+
+func _fade_transition_out() -> void:
+	_ensure_transition_layer()
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_SINE)
+	tween.set_ease(Tween.EASE_IN_OUT)
+	tween.tween_property(_transition_shade, "color:a", 0.0, 0.34)
+	tween.tween_property(_transition_label, "modulate:a", 0.0, 0.20)
+	await tween.finished
+	_transition_shade.visible = false
+
+
+func _level_transition_text(level_index: int) -> String:
+	var clamped_index := clampi(level_index, 0, LEVELS.size() - 1)
+	var level_data := LEVELS[clamped_index]
+	return "%s\n%dx%d map" % [
+		str(level_data.get("name", "Level %d" % (clamped_index + 1))),
+		int(level_data.get("map_size", 5)),
+		int(level_data.get("map_size", 5)),
+	]
