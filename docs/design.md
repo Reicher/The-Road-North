@@ -228,8 +228,10 @@ Enemy power-number color communicates risk before combat by comparing player pow
 
 **Items:** Every item has a `stats` dictionary, calculated `item_score`, dynamic
 `rarity`, and `size`. Supported stats are Max Health, Power, Sight, and Max Hand
-Size; more stat keys may be added later. `item_score` is the sum of stats plus a
-score for special effects. Items with special effects are always at least Rare.
+Size; more stat keys may be added later. Stats may be positive or negative, so
+some items can trade one stat down for a stronger bonus elsewhere. `item_score`
+is the sum of stats plus a score for special effects. Items with special effects
+are always at least Rare.
 
 At game startup, all items are sorted by `item_score` and divided into Common
 (50%), Uncommon (30%), Rare (15%), and Epic (5%) rank percentiles. Small catalog
@@ -239,12 +241,18 @@ Every item is available from level 1; cache loot is not level-specific.
 
 **Inventory:** 3-slot backpack, starts with Walking Stick. Every carried item is
 active and contributes its stats. The backpack may contain at most one `large`
-item, while `small` items have no size-specific limit. Weapons are large;
-Binoculars, Goldsmith's Scale, and Guiding Charm are small; Field Medic's Bag is
-large equipment. Item icons show `▲` for large and `•` for small.
+item, while `small` items have no size-specific limit. Heavier weapons are
+large, while Dagger and Hatchet are small weapons. Binoculars, Goldsmith's
+Scale, Guiding Charm, Watchman's Lantern, and Traveler's Pack are small; Field
+Medic's Bag is large equipment. Item icons show `▲` for large and `•` for small.
 
-Weapons: Walking Stick +1, Dagger +2, Hatchet +3, Machete +4, Sword +5, Mace +6,
-Spear +7, Sword & Shield +8, Great Axe +9. Utility effects: Binoculars +1 Sight,
+Items: Walking Stick +1 Power, Short Blade +1 Power, Bent Spear +2 Power/-1
+Sight, Old Sword +2 Power/-1 Sight, Dagger +2 Power, Hatchet +3 Power, Hunter's
+Knife +1 Power/+1 Sight, Heavy Club +4 Power/-1 Sight, Scout's Spear +3 Power/+1
+Max Hand Size, Cursed Blade +7 Power/-1 Max Hand Size, Watchman's Lantern +2
+Sight/-1 Power, Traveler's Pack +1 Max Health/+1 Max Hand Size/-1 Power, Machete
++4 Power, Sword +5 Power, Mace +6 Power, Spear +7 Power, Sword & Shield +8
+Power/+1 Max Health, Great Axe +9 Power. Utility effects: Binoculars +1 Sight,
 Goldsmith's Scale doubles gold gained, Field Medic's Bag +2 Max Health, and
 Guiding Charm +1 Max Hand Size.
 

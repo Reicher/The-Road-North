@@ -144,7 +144,7 @@ No generic effect engine or separate active/equipped state. Every carried item a
 
 ## ItemCatalog
 
-Static `RefCounted` and single source of truth for weapons and utility items. Each item has `stats`, calculated `item_score`, startup-assigned `rarity`, and `size`. Cache loot first rolls Common/Uncommon/Rare/Epic at 50/30/15/5, then chooses uniformly from that group. Loot is not level-specific. Inventory supports Power, Sight, Max Health, and Max Hand Size stats plus explicit special effects such as the gold multiplier.
+Static `RefCounted` and single source of truth for weapons and utility items. Each item has `stats`, calculated `item_score`, startup-assigned `rarity`, and `size`; stats may be negative for tradeoff items. Cache loot first rolls Common/Uncommon/Rare/Epic at 50/30/15/5, then chooses uniformly from that group. Loot is not level-specific. Inventory supports Power, Sight, Max Health, and Max Hand Size stats plus explicit special effects such as the gold multiplier. Dagger and Hatchet are small weapons; heavier weapons and Field Medic's Bag are large.
 
 ---
 

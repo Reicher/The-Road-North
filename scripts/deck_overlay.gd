@@ -4,8 +4,9 @@ extends PanelContainer
 const UIStyle = preload("res://scripts/ui_style.gd")
 const CARD_SCENE := preload("res://ui/card.tscn")
 
-const OVERVIEW_CARD_SIZE := CardView.DISPLAY_CARD_SIZE
-const OVERVIEW_ENTRY_HEIGHT := 262.0
+const OVERVIEW_CARD_SIZE := Vector2(156.0, 224.0)
+const OVERVIEW_ENTRY_HEIGHT := 224.0
+const FOCUSED_CARD_SCALE := Vector2(1.08, 1.08)
 
 signal close_requested
 
@@ -19,6 +20,7 @@ var _confirmation_label: Label
 var _confirm_button: Button
 var _cancel_button: Button
 var _confirmation_callback := Callable()
+var _focused_card: CardView
 
 
 func _ready() -> void:
@@ -37,6 +39,7 @@ func _ready() -> void:
 	_cancel_button.pressed.connect(hide_confirmation)
 	_scroll.get_v_scroll_bar().value_changed.connect(func(_value: float) -> void: _update_scroll_hint())
 	_scroll.resized.connect(_update_scroll_hint)
+	_grid.resized.connect(_update_scroll_hint)
 	visible = false
 	add_theme_stylebox_override("panel", UIStyle.elevated_box(self, UIStyle.panel_fill(self), UIStyle.panel_border(self)))
 
@@ -54,23 +57,18 @@ func hide_overlay() -> void:
 
 
 func clear_cards() -> void:
+	_focused_card = null
 	for child in _grid.get_children():
 		_grid.remove_child(child)
 		child.queue_free()
 	_update_scroll_hint.call_deferred()
 
 
-func add_card(card_data: Dictionary, count: int, disabled_state: bool, callback: Callable = Callable()) -> CardView:
+func add_card(card_data: Dictionary, _count: int, disabled_state: bool, callback: Callable = Callable()) -> CardView:
 	var entry := VBoxContainer.new()
 	entry.custom_minimum_size = Vector2(OVERVIEW_CARD_SIZE.x, OVERVIEW_ENTRY_HEIGHT)
 	entry.alignment = BoxContainer.ALIGNMENT_CENTER
 	entry.add_theme_constant_override("separation", 8)
-	var count_label := Label.new()
-	count_label.name = "Count"
-	count_label.text = "×%d" % count
-	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	count_label.add_theme_color_override("font_color", UIStyle.text(self))
-	count_label.add_theme_font_size_override("font_size", 24)
 	var card := CARD_SCENE.instantiate() as CardView
 	card.name = "Card"
 	card.custom_minimum_size = OVERVIEW_CARD_SIZE
@@ -84,11 +82,11 @@ func add_card(card_data: Dictionary, count: int, disabled_state: bool, callback:
 	if callback.is_valid():
 		card.pointer_released.connect(func(_card: CardView, _position: Vector2) -> void:
 			if not touch_button.disabled:
+				_focus_card(card)
 				callback.call()
 		)
 	if disabled_state and callback.is_valid():
 		card.modulate = Color(0.62, 0.62, 0.62, 0.78)
-	entry.add_child(count_label)
 	entry.add_child(card)
 	_grid.add_child(entry)
 	_update_scroll_hint.call_deferred()
@@ -128,6 +126,17 @@ func _set_card_interactions_locked(locked: bool) -> void:
 	for entry in _grid.get_children():
 		var touch_button := entry.get_node("Card/TouchButton") as Button
 		touch_button.disabled = locked or bool(touch_button.get_meta("deck_overlay_disabled", false))
+
+
+func _focus_card(card: CardView) -> void:
+	if _focused_card != null and is_instance_valid(_focused_card):
+		_focused_card.set_focused(false)
+		_focused_card.scale = Vector2.ONE
+		_focused_card.z_index = 0
+	_focused_card = card
+	card.set_focused(true)
+	card.scale = FOCUSED_CARD_SCALE
+	card.z_index = 20
 
 
 func _on_confirm_pressed() -> void:

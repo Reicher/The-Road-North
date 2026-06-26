@@ -116,10 +116,13 @@ func _initialize() -> void:
 	_assert(overlay.visible, "Expected direct inventory closing to use the soft closing animation")
 	_assert(not tooltip.visible, "Expected closing inventory to hide the tooltip")
 
-	_assert(not inventory.add_item(ItemCatalog.get_item("Dagger")), "Expected a second large item to be rejected")
+	_assert(not inventory.add_item(ItemCatalog.get_item("Machete")), "Expected a second large item to be rejected")
+	_assert(inventory.add_item(ItemCatalog.get_item("Dagger")), "Expected adding a small weapon to succeed")
+	_assert(inventory.get_power_bonus() == 3, "Expected small weapons to contribute while carried with a large item")
+	inventory.replace_item_at_slot(1, {})
 	_assert(inventory.add_item(ItemCatalog.get_item("Binoculars")), "Expected adding a small test item to succeed")
 	_assert(inventory.get_sight_bonus() == 1, "Expected every carried small item to be active")
-	_assert(stats_signal_result["count"] == 1, "Expected adding items to notify stat listeners")
+	_assert(stats_signal_result["count"] == 3, "Expected adding and removing items to notify stat listeners")
 	inventory.set_inventory_open(true)
 	inventory._layout_inventory()
 	var first_slot_after_add := slots.get_child(0) as Button

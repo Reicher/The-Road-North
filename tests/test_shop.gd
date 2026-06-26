@@ -98,19 +98,28 @@ func run() -> void:
 	var deck_grid := deck_overlay.find_child("Grid", true, false) as GridContainer
 	_assert(deck_title.text == "REMOVE CARD", "Expected the removal overlay to use a clear, polished title")
 	_assert(deck_title.get_theme_color("font_color").is_equal_approx(Color(0.2, 0.14, 0.09, 1)), "Expected the deck title to contrast with the light panel")
-	_assert(deck_grid.columns == 3, "Expected the deck overview to show three full-size cards per row")
-	_assert(deck_grid.get_child_count() == 5, "Expected the deck overview to show one visual card per unique card type")
-	_assert(_overview_card_titles(deck_grid) == ["Straight Road", "Corner", "Four-Way Intersection", "Dead End", "Idea"], "Expected grouped base cards to keep the requested type order")
-	_assert(_overview_counts(deck_grid) == ["×2", "×1", "×1", "×2", "×1"], "Expected each visual card to show how many copies remain")
+	_assert(deck_grid.columns == 4, "Expected the deck overview to show more than three cards per row")
+	_assert(deck_grid.get_child_count() == 7, "Expected the deck overview to show one visual card per card copy")
+	_assert(_overview_card_titles(deck_grid) == ["Straight Road", "Straight Road", "Corner", "Four-Way Intersection", "Dead End", "Dead End", "Idea"], "Expected individual base cards to keep the requested type order")
 	var straight_overview_card := deck_grid.get_child(0).get_node("Card") as CardView
-	_assert(straight_overview_card.custom_minimum_size.is_equal_approx(CardView.DISPLAY_CARD_SIZE), "Expected overview entries to reserve the same card size as shop offers")
+	_assert(straight_overview_card.custom_minimum_size.x < CardView.DISPLAY_CARD_SIZE.x, "Expected overview cards to be compact enough for four-card rows")
 	straight_overview_card.pointer_released.emit(straight_overview_card, Vector2.ZERO)
 	var confirmation_shade := deck_overlay.find_child("ConfirmationShade", true, false) as Control
 	var confirmation_prompt := deck_overlay.find_child("Prompt", true, false) as Label
+	_assert(straight_overview_card.focused and straight_overview_card.scale.x > 1.0, "Expected tapping a removable deck card to focus it before confirming")
 	_assert(confirmation_shade.visible and confirmation_prompt.text == "Remove Straight Road from the deck for 12g?", "Expected tapping a removable card to ask for confirmation with its price")
 	_assert(shop.progression.get("player_removed_base_cards", []).is_empty(), "Expected tapping a card not to remove it before confirmation")
 	(deck_overlay.find_child("ConfirmButton", true, false) as Button).pressed.emit()
 	_assert(shop.progression["player_removed_base_cards"] == ["road:Straight Road"], "Expected confirming the popup to remove the selected card")
+
+	shop.call("_confirm_buy_food", {"name": "Bread", "amount": 1, "price": 1})
+	var shop_confirmation := shop.find_child("ShopConfirmation", true, false) as Control
+	var shop_confirmation_prompt := shop_confirmation.find_child("Prompt", true, false) as Label
+	_assert(shop_confirmation.visible, "Expected buy and sell actions to use the readable shop confirmation overlay")
+	_assert(shop_confirmation_prompt.get_theme_font_size("font_size") >= 27, "Expected the shop confirmation prompt to use large readable text")
+	_assert(shop_confirmation_prompt.text == "Buy Bread: +1 food for 1g?", "Expected shop confirmation to show the purchase details")
+	(shop_confirmation.find_child("CancelButton", true, false) as Button).pressed.emit()
+	_assert(not shop_confirmation.visible, "Expected cancel to close the shop confirmation overlay")
 
 	_assert(shop.buy_food() and shop.progression["food"] == 7, "Expected food click purchase to add food immediately")
 	_assert(shop.buy_heal() and shop.progression["health"] == 4, "Expected heal click purchase to clamp at max health")
@@ -210,13 +219,6 @@ func _overview_card_titles(parent: Node) -> Array[String]:
 	var texts: Array[String] = []
 	for child in parent.get_children():
 		texts.append((child.get_node("Card/Title") as Label).text)
-	return texts
-
-
-func _overview_counts(parent: Node) -> Array[String]:
-	var texts: Array[String] = []
-	for child in parent.get_children():
-		texts.append((child.get_node("Count") as Label).text)
 	return texts
 
 

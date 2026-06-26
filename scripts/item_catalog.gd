@@ -29,13 +29,22 @@ const RARITY_WEIGHTS := {
 # Static source data. item_score and rarity are deliberately assigned at startup.
 const ITEM_DEFINITIONS: Array[Dictionary] = [
 	{"name": "Walking Stick", "stats": {STAT_POWER: 1}, "size": SIZE_LARGE},
-	{"name": "Dagger", "stats": {STAT_POWER: 2}, "size": SIZE_LARGE},
-	{"name": "Hatchet", "stats": {STAT_POWER: 3}, "size": SIZE_LARGE},
+	{"name": "Short Blade", "stats": {STAT_POWER: 1}, "size": SIZE_SMALL},
+	{"name": "Bent Spear", "stats": {STAT_POWER: 2, STAT_SIGHT: -1}, "size": SIZE_LARGE},
+	{"name": "Old Sword", "stats": {STAT_POWER: 2, STAT_SIGHT: -1}, "size": SIZE_LARGE},
+	{"name": "Dagger", "stats": {STAT_POWER: 2}, "size": SIZE_SMALL},
+	{"name": "Hatchet", "stats": {STAT_POWER: 3}, "size": SIZE_SMALL},
+	{"name": "Hunter's Knife", "stats": {STAT_POWER: 1, STAT_SIGHT: 1}, "size": SIZE_SMALL},
+	{"name": "Heavy Club", "stats": {STAT_POWER: 4, STAT_SIGHT: -1}, "size": SIZE_LARGE},
+	{"name": "Scout's Spear", "stats": {STAT_POWER: 3, STAT_MAX_HAND_SIZE: 1}, "size": SIZE_LARGE},
+	{"name": "Cursed Blade", "stats": {STAT_POWER: 7, STAT_MAX_HAND_SIZE: -1}, "size": SIZE_LARGE},
+	{"name": "Watchman's Lantern", "stats": {STAT_SIGHT: 2, STAT_POWER: -1}, "size": SIZE_SMALL},
+	{"name": "Traveler's Pack", "stats": {STAT_MAX_HEALTH: 1, STAT_MAX_HAND_SIZE: 1, STAT_POWER: -1}, "size": SIZE_SMALL},
 	{"name": "Machete", "stats": {STAT_POWER: 4}, "size": SIZE_LARGE},
 	{"name": "Sword", "stats": {STAT_POWER: 5}, "size": SIZE_LARGE},
 	{"name": "Mace", "stats": {STAT_POWER: 6}, "size": SIZE_LARGE},
 	{"name": "Spear", "stats": {STAT_POWER: 7}, "size": SIZE_LARGE},
-	{"name": "Sword & Shield", "stats": {STAT_POWER: 8}, "size": SIZE_LARGE},
+	{"name": "Sword & Shield", "stats": {STAT_POWER: 8, STAT_MAX_HEALTH: 1}, "size": SIZE_LARGE},
 	{"name": "Great Axe", "stats": {STAT_POWER: 9}, "size": SIZE_LARGE},
 	{"name": "Binoculars", "stats": {STAT_SIGHT: 1}, "size": SIZE_SMALL},
 	{
@@ -195,7 +204,7 @@ static func size_symbol(item: Dictionary) -> String:
 
 
 static func _default_size_for_name(item_name: String) -> String:
-	if item_name in ["Walking Stick", "Dagger", "Hatchet", "Machete", "Sword", "Mace", "Spear", "Sword & Shield", "Great Axe", "Field Medic's Bag"]:
+	if item_name in ["Walking Stick", "Bent Spear", "Old Sword", "Heavy Club", "Scout's Spear", "Cursed Blade", "Machete", "Sword", "Mace", "Spear", "Sword & Shield", "Great Axe", "Field Medic's Bag"]:
 		return SIZE_LARGE
 	return SIZE_SMALL
 

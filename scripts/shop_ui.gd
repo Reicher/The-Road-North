@@ -73,7 +73,7 @@ const SPECIAL_CARD_CATALOG: Array[Dictionary] = [
 		"event_type": GameConstants.EVENT_LOST_BELONGINGS,
 		"encounter": {
 			"type": GameConstants.ENCOUNTER_CACHE,
-			"loot": [{"kind": "item", "item": {"name": "Dagger", "effect": "+2 Power", "stats": {"power": 2}, "item_score": 2, "rarity": "Common", "size": "large"}}],
+			"loot": [{"kind": "item", "item": {"name": "Dagger", "effect": "+2 Power", "stats": {"power": 2}, "item_score": 2, "rarity": "Common", "size": "small"}}],
 		},
 		"price": 12,
 	},
@@ -123,7 +123,11 @@ var _drag_index := -1
 var _drag_item: Dictionary = {}
 var _purchased_item_offers: Array[int] = []
 var _purchased_card_offers: Array[int] = []
-var _confirmation: ConfirmationDialog
+var _confirmation_shade: Control
+var _confirmation_panel: PanelContainer
+var _confirmation_prompt: Label
+var _confirmation_confirm_button: Button
+var _confirmation_cancel_button: Button
 var _confirmation_callback: Callable
 
 
@@ -628,17 +632,17 @@ static func make_catalog_offer(catalog_card: Dictionary, rng: RandomNumberGenera
 func _show_deck_overlay(removal_mode: bool) -> void:
 	_deck_overlay.clear_cards()
 	var title_text := "REMOVE CARD" if removal_mode else "DECK OVERVIEW"
-	var groups := _grouped_removable_cards() if removal_mode else _grouped_overview_cards()
-	for group in groups:
-		var card: Dictionary = group["card"]
-		var index := int(group["index"])
+	var entries := _removable_card_entries() if removal_mode else _overview_card_entries()
+	for entry in entries:
+		var card: Dictionary = entry["card"]
+		var index := int(entry["index"])
 		var text := _card_display_name(card)
-		var source := str(group["source"])
+		var source := str(entry["source"])
 		var disabled_state := not removal_mode or bool(progression.get("removed_base_card_this_shop", false))
 		if source == "base":
 			disabled_state = disabled_state or not _can_remove_card(card)
 		var callback := _confirm_card_removal.bind(source, index, text) if removal_mode else Callable()
-		_deck_overlay.add_card(card, int(group["count"]), disabled_state, callback)
+		_deck_overlay.add_card(card, 1, disabled_state, callback)
 	_deck_overlay.show_overlay(title_text)
 
 
@@ -647,42 +651,26 @@ func _confirm_card_removal(source: String, card_index: int, card_name: String) -
 	_deck_overlay.show_removal_confirmation(card_name, _removal_price(), callback)
 
 
-func _grouped_base_cards() -> Array[Dictionary]:
-	var groups: Array[Dictionary] = []
-	var group_by_signature := {}
+func _base_card_entries() -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
 	for index in _sorted_base_card_indices():
 		var card := base_cards[index]
-		var signature := GameConstants.card_signature(card)
-		if group_by_signature.has(signature):
-			var group_index := int(group_by_signature[signature])
-			groups[group_index]["count"] = int(groups[group_index]["count"]) + 1
-		else:
-			group_by_signature[signature] = groups.size()
-			groups.append({"card": card, "count": 1, "index": index, "source": "base"})
-	return groups
+		entries.append({"card": card, "index": index, "source": "base"})
+	return entries
 
 
-func _grouped_removable_cards() -> Array[Dictionary]:
-	var groups := _grouped_base_cards()
-	var group_by_signature := {}
-	for index in groups.size():
-		group_by_signature[GameConstants.card_signature(groups[index]["card"])] = index
+func _removable_card_entries() -> Array[Dictionary]:
+	var entries := _base_card_entries()
 	var special_cards: Array = progression.get("player_special_cards", [])
 	for card_index in special_cards.size():
 		var raw_card = special_cards[card_index]
 		var card := raw_card as Dictionary
-		var signature := GameConstants.card_signature(card)
-		if group_by_signature.has(signature):
-			var group_index := int(group_by_signature[signature])
-			groups[group_index]["count"] = int(groups[group_index]["count"]) + 1
-		else:
-			group_by_signature[signature] = groups.size()
-			groups.append({"card": card, "count": 1, "index": card_index, "source": "special"})
-	return groups
+		entries.append({"card": card, "index": card_index, "source": "special"})
+	return entries
 
 
-func _grouped_overview_cards() -> Array[Dictionary]:
-	return _grouped_removable_cards()
+func _overview_card_entries() -> Array[Dictionary]:
+	return _removable_card_entries()
 
 
 func _card_display_name(card: Dictionary) -> String:
@@ -788,20 +776,97 @@ func _confirm_buy_heal(offer: Dictionary) -> void:
 
 
 func _show_confirmation(prompt: String, callback: Callable) -> void:
-	if _confirmation == null:
-		_confirmation = ConfirmationDialog.new()
-		_confirmation.name = "ShopConfirmation"
-		add_child(_confirmation)
-		_confirmation.confirmed.connect(_on_confirmation_confirmed)
-	_confirmation.dialog_text = prompt
+	_ensure_shop_confirmation()
+	_confirmation_prompt.text = prompt
 	_confirmation_callback = callback
-	_confirmation.popup_centered()
+	_confirmation_shade.visible = true
 
 
 func _on_confirmation_confirmed() -> void:
 	if _confirmation_callback.is_valid():
 		_confirmation_callback.call()
+	_hide_shop_confirmation()
+
+
+func _hide_shop_confirmation() -> void:
 	_confirmation_callback = Callable()
+	if _confirmation_shade != null:
+		_confirmation_shade.visible = false
+
+
+func _ensure_shop_confirmation() -> void:
+	if _confirmation_shade != null:
+		return
+	_confirmation_shade = Control.new()
+	_confirmation_shade.name = "ShopConfirmation"
+	_confirmation_shade.visible = false
+	_confirmation_shade.z_index = 200
+	_confirmation_shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	_confirmation_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_confirmation_shade)
+
+	var shade := ColorRect.new()
+	shade.name = "Shade"
+	shade.color = Color(0.08, 0.07, 0.05, 0.74)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_confirmation_shade.add_child(shade)
+
+	var center := CenterContainer.new()
+	center.name = "Center"
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_confirmation_shade.add_child(center)
+
+	_confirmation_panel = PanelContainer.new()
+	_confirmation_panel.name = "Panel"
+	_confirmation_panel.custom_minimum_size = Vector2(460.0, 0.0)
+	_confirmation_panel.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, UIStyle.panel_fill(self), UIStyle.panel_border(self), 12, 3))
+	center.add_child(_confirmation_panel)
+
+	var margin := MarginContainer.new()
+	margin.name = "Margin"
+	margin.add_theme_constant_override("margin_left", 24)
+	margin.add_theme_constant_override("margin_top", 22)
+	margin.add_theme_constant_override("margin_right", 24)
+	margin.add_theme_constant_override("margin_bottom", 22)
+	_confirmation_panel.add_child(margin)
+
+	var stack := VBoxContainer.new()
+	stack.name = "Stack"
+	stack.add_theme_constant_override("separation", 18)
+	margin.add_child(stack)
+
+	_confirmation_prompt = Label.new()
+	_confirmation_prompt.name = "Prompt"
+	_confirmation_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_confirmation_prompt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_confirmation_prompt.add_theme_color_override("font_color", UIStyle.text(self))
+	_confirmation_prompt.add_theme_font_size_override("font_size", 27)
+	stack.add_child(_confirmation_prompt)
+
+	var buttons := HBoxContainer.new()
+	buttons.name = "Buttons"
+	buttons.add_theme_constant_override("separation", 12)
+	stack.add_child(buttons)
+
+	_confirmation_cancel_button = Button.new()
+	_confirmation_cancel_button.name = "CancelButton"
+	_confirmation_cancel_button.custom_minimum_size = Vector2(0.0, 58.0)
+	_confirmation_cancel_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_confirmation_cancel_button.text = "Cancel"
+	_confirmation_cancel_button.add_theme_font_size_override("font_size", 24)
+	_confirmation_cancel_button.pressed.connect(_hide_shop_confirmation)
+	buttons.add_child(_confirmation_cancel_button)
+
+	_confirmation_confirm_button = Button.new()
+	_confirmation_confirm_button.name = "ConfirmButton"
+	_confirmation_confirm_button.custom_minimum_size = Vector2(0.0, 58.0)
+	_confirmation_confirm_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_confirmation_confirm_button.text = "Confirm"
+	_confirmation_confirm_button.add_theme_font_size_override("font_size", 24)
+	_confirmation_confirm_button.pressed.connect(_on_confirmation_confirmed)
+	buttons.add_child(_confirmation_confirm_button)
 
 
 func _start_drag(kind: String, index: int, item: Dictionary, position: Vector2) -> void:

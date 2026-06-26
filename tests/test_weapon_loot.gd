@@ -20,7 +20,7 @@ func _initialize() -> void:
 func _test_item_catalog_schema_and_scoring() -> void:
 	var expected_names := ["Walking Stick", "Dagger", "Hatchet", "Machete", "Sword", "Mace", "Spear", "Sword & Shield", "Great Axe"]
 	var items := ItemCatalog.all_items()
-	_assert(items.size() == 13, "Expected all nine weapons and four utility items in one catalog")
+	_assert(items.size() == 22, "Expected the expanded weapon and utility item catalog")
 	for item in items:
 		_assert(item.has("stats") and item.has("item_score") and item.has("rarity") and item.has("size"), "Expected every item to expose the new item fields")
 		_assert(ItemCatalog.calculate_item_score(item) == int(item["item_score"]), "Expected item_score to be calculated from stats and special effects")
@@ -29,10 +29,18 @@ func _test_item_catalog_schema_and_scoring() -> void:
 	for index in expected_names.size():
 		var weapon := ItemCatalog.get_item(expected_names[index])
 		_assert(ItemCatalog.get_stat(weapon, ItemCatalog.STAT_POWER) == index + 1, "Expected weapon power in the stats dictionary")
-		_assert(weapon["size"] == ItemCatalog.SIZE_LARGE, "Expected carried weapons to use the single large-item slot")
+		if str(weapon["name"]) in ["Dagger", "Hatchet"]:
+			_assert(weapon["size"] == ItemCatalog.SIZE_SMALL, "Expected Dagger and Hatchet to fit as small weapons")
+		else:
+			_assert(weapon["size"] == ItemCatalog.SIZE_LARGE, "Expected heavier weapons to use the single large-item slot")
+	_assert(ItemCatalog.get_stat(ItemCatalog.get_item("Sword & Shield"), ItemCatalog.STAT_MAX_HEALTH) == 1, "Expected Sword & Shield to add health as well as power")
+	_assert(ItemCatalog.get_stat(ItemCatalog.get_item("Cursed Blade"), ItemCatalog.STAT_MAX_HAND_SIZE) < 0, "Expected some items to trade one stat down for a stronger bonus")
 	_assert(ItemCatalog.get_item("Binoculars")["size"] == ItemCatalog.SIZE_SMALL, "Expected Binoculars to be a small tool")
 	_assert(ItemCatalog.get_item("Guiding Charm")["size"] == ItemCatalog.SIZE_SMALL, "Expected Guiding Charm to be a small passive item")
 	_assert(ItemCatalog.get_item("Field Medic's Bag")["size"] == ItemCatalog.SIZE_LARGE, "Expected Field Medic's Bag to be large equipment")
+	_assert(ItemCatalog.items_for_rarity(ItemCatalog.RARITY_COMMON).filter(func(item: Dictionary) -> bool:
+		return ItemCatalog.get_stat(item, ItemCatalog.STAT_POWER) > 0
+	).size() >= 6, "Expected most weapon finds to be common-tier options")
 
 
 func _test_dynamic_rarity_groups() -> void:
@@ -90,7 +98,7 @@ func _test_shop_enforces_the_large_item_limit() -> void:
 		"gold": 100,
 		"inventory": [ItemCatalog.get_item("Walking Stick"), {}, {}],
 	}
-	shop.item_offers.append(ItemCatalog.get_item("Hatchet").merged({"price": 1}, true))
+	shop.item_offers.append(ItemCatalog.get_item("Machete").merged({"price": 1}, true))
 	_assert(not shop.buy_item_to_slot(0, 1), "Expected the shop to reject a second large item")
 	shop.progression["inventory"][0] = {}
 	_assert(shop.buy_item_to_slot(0, 1), "Expected a large item to fit after the carried large item is removed")

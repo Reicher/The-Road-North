@@ -46,9 +46,9 @@ horizontal_scroll_mode = 0
 [node name="Grid" type="GridContainer" parent="Margin/Stack/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/h_separation = 48
-theme_override_constants/v_separation = 32
-columns = 3
+theme_override_constants/h_separation = -8
+theme_override_constants/v_separation = 18
+columns = 4
 
 [node name="ScrollHint" type="Label" parent="Margin/Stack"]
 visible = false
