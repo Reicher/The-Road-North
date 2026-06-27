@@ -19,12 +19,20 @@ const EVENT_ART_TEXTURES := {
 	GameConstants.EVENT_RESTART_LEVEL: "res://assets/images/cards/card_art_event_restart_level.png",
 }
 const ROAD_ART_TEXTURES := {
-	"Straight Road": "res://assets/images/cards/card_art_road_straight.png",
-	"Corner": "res://assets/images/cards/card_art_road_corner.png",
-	"T-Junction": "res://assets/images/cards/card_art_road_t_junction.png",
-	"Four-Way Intersection": "res://assets/images/cards/card_art_road_four_way.png",
-	"Dead End": "res://assets/images/cards/card_art_road_dead_end.png",
-	"Bridge": "res://assets/images/cards/card_art_road_bridge.png",
+	"Straight Road": "res://assets/images/cards/card_art_road_straight_v2.png",
+	"Corner": "res://assets/images/cards/card_art_road_corner_v2.png",
+	"T-Junction": "res://assets/images/cards/card_art_road_t_junction_v2.png",
+	"Four-Way Intersection": "res://assets/images/cards/card_art_road_four_way_v2.png",
+	"Dead End": "res://assets/images/cards/card_art_road_dead_end_v2.png",
+	"Bridge": "res://assets/images/cards/card_art_road_bridge_v2.png",
+}
+const ROAD_ART_BASE_ROTATIONS := {
+	"Straight Road": 1,
+	"Corner": 2,
+	"T-Junction": 2,
+	"Four-Way Intersection": 0,
+	"Dead End": 2,
+	"Bridge": 1,
 }
 const ENCOUNTER_MARKER_TEXTURES := {
 	GameMap.ENCOUNTER_ENEMY: "res://assets/images/cards/card_marker_enemy.png",
@@ -114,6 +122,7 @@ static func clear_texture_cache() -> void:
 
 const TITLE_RECT := Rect2(14.0, 12.0, 122.0, 52.0)
 const ART_RECT := Rect2(18.0, 72.0, 114.0, 62.0)
+const ROAD_ART_RECT := Rect2(18.0, 67.0, 114.0, 114.0)
 const NO_DETAIL_ART_RECT := Rect2(18.0, 94.0, 114.0, 62.0)
 const DETAIL_RECT := Rect2(14.0, 141.0, 122.0, 38.0)
 const CATEGORY_RECT := Rect2(22.0, 186.0, 106.0, 22.0)
@@ -349,7 +358,10 @@ func _card_header_text() -> String:
 func _draw_card_art_texture(art_rect: Rect2) -> void:
 	var art_texture := _card_art_texture()
 	if art_texture != null:
-		draw_texture_rect(art_texture, art_rect, false)
+		if category == GameConstants.ROAD_CATEGORY:
+			_draw_rotated_road_art(art_texture, art_rect)
+		else:
+			draw_texture_rect(art_texture, art_rect, false)
 
 	if category == GameConstants.EVENT_CATEGORY:
 		return
@@ -383,9 +395,21 @@ func _status_icon_y(art_rect: Rect2, icon_size: Vector2) -> float:
 
 
 func get_card_art_rect() -> Rect2:
+	if category == GameConstants.ROAD_CATEGORY:
+		return _scaled_rect(ROAD_ART_RECT)
 	if _compact_detail_text().is_empty():
 		return _scaled_rect(NO_DETAIL_ART_RECT)
 	return _scaled_rect(ART_RECT)
+
+
+func _draw_rotated_road_art(texture: Texture2D, art_rect: Rect2) -> void:
+	var display_name := str(tile_definition.get("display_name"))
+	var source_rotation := int(ROAD_ART_BASE_ROTATIONS.get(display_name, 0))
+	var angle := float(posmod(rotation_steps - source_rotation, 4)) * PI * 0.5
+	var center := art_rect.get_center()
+	draw_set_transform(center, angle)
+	draw_texture_rect(texture, Rect2(-art_rect.size * 0.5, art_rect.size), false)
+	draw_set_transform(Vector2.ZERO, 0.0)
 
 
 func _card_art_texture() -> Texture2D:

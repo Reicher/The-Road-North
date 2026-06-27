@@ -104,7 +104,7 @@ func _initialize() -> void:
 	for card in hand.cards:
 		var road_art := card.call("_card_art_texture") as Texture2D
 		_assert(road_art != null, "Expected every normal road type to have dedicated card art")
-		_assert(road_art.get_size() == Vector2(132.0, 72.0), "Expected road art to use the shared centered card-art canvas")
+		_assert(road_art.get_size() == Vector2(466.0, 466.0), "Expected road art to use the new square tile canvas")
 		var opaque_bounds := _opaque_bounds(road_art.get_image())
 		_assert(opaque_bounds == Rect2(Vector2.ZERO, road_art.get_size()), "Expected %s road art to fill the shared card-art canvas; got %s" % [card.title, opaque_bounds])
 	_assert(title_label.offset_bottom < focused_card.get_card_art_rect().position.y, "Expected two-line card titles to stay above the card art")
@@ -213,7 +213,7 @@ func _initialize() -> void:
 	_assert((special_road_card.get_node("Title") as Label).text == "Dead End", "Expected permanent encounter roads to show only the road type")
 	_assert((special_road_card.get_node("Category") as Label).text == "ROAD + SPECIAL", "Expected permanent encounter roads to identify their special encounter category")
 	_assert((special_road_card.get_node("Detail") as Label).text == "", "Expected permanent encounter roads to leave the detail text empty")
-	_assert(special_road_card.get_card_art_rect() == special_road_card._scaled_rect(CardView.NO_DETAIL_ART_RECT), "Expected permanent encounter roads to use normal road card art placement")
+	_assert(special_road_card.get_card_art_rect() == special_road_card._scaled_rect(CardView.ROAD_ART_RECT), "Expected permanent encounter roads to use square road card art placement")
 	_assert(special_road_card._resolved_card_tint_color() == Color(0.88, 0.84, 0.96, CardView.CARD_TINT_ALPHA), "Expected permanent encounter roads to use the special road tint")
 	special_road_card.queue_free()
 

@@ -165,7 +165,7 @@ func _make_road_cards(count: int, rng: RandomNumberGenerator, config: Dictionary
 			continue
 		var card_count: int = counts[subtype]
 		for _index in card_count:
-			cards.append(_make_road_card(definitions[subtype]))
+			cards.append(_make_road_card(definitions[subtype], rng))
 	var level := int(config.get("level", 1))
 	var map_size := int(config.get("map_size", 1))
 	var special_roads: Dictionary = config.get("special_roads", {})
@@ -179,9 +179,11 @@ func _make_road_cards(count: int, rng: RandomNumberGenerator, config: Dictionary
 func _make_one_of_each_road(config: Dictionary) -> Array[Dictionary]:
 	var definitions: Dictionary = config.get("road_definitions", {})
 	var cards: Array[Dictionary] = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1
 	for subtype in ROAD_SUBTYPES:
 		if definitions.has(subtype):
-			cards.append(_make_road_card(definitions[subtype]))
+			cards.append(_make_road_card(definitions[subtype], rng))
 	return cards
 
 
@@ -237,11 +239,13 @@ func _make_event_cards(count: int, rng: RandomNumberGenerator, config: Dictionar
 	return cards
 
 
-func _make_road_card(tile_definition_resource: Resource) -> Dictionary:
+func _make_road_card(tile_definition_resource: Resource, rng: RandomNumberGenerator) -> Dictionary:
 	var definition = CARD_DEFINITION_SCRIPT.new()
 	definition.category = GameConstants.ROAD_CATEGORY
 	definition.tile_definition = tile_definition_resource
-	return definition.to_card_data()
+	var card := definition.to_card_data()
+	card["rotation_steps"] = rng.randi_range(0, 3)
+	return card
 
 
 func _make_event_card(title: String, detail: String, event_type: String) -> Dictionary:

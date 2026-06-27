@@ -646,6 +646,7 @@ static func make_catalog_offer(catalog_card: Dictionary, rng: RandomNumberGenera
 	var encounter: Dictionary = offer.get("encounter", {})
 	if str(encounter.get("type", "")) in GameConstants.PERMANENT_ENCOUNTER_TYPES:
 		offer["tile_definition"] = SPECIAL_ROAD_DEFINITIONS[rng.randi_range(0, SPECIAL_ROAD_DEFINITIONS.size() - 1)]
+		offer["rotation_steps"] = rng.randi_range(0, 3)
 	return offer
 
 

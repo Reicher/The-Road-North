@@ -18,6 +18,16 @@ func _init() -> void:
 	deck.level = 3
 	deck.shuffle_seed = 31415
 	deck.start_run()
+	var randomized_road_rotations := 0
+	for card in deck.starting_deck:
+		if card.get("category", "") != GameConstants.ROAD_CATEGORY:
+			continue
+		_assert(card.has("rotation_steps"), "Expected every generated road card to have a starting rotation")
+		var starting_rotation := int(card.get("rotation_steps", -1))
+		_assert(starting_rotation >= 0 and starting_rotation <= 3, "Expected road starting rotation to be normalized")
+		if starting_rotation != 0:
+			randomized_road_rotations += 1
+	_assert(randomized_road_rotations > 0, "Expected generated road cards not to all use the default rotation")
 	var level_locks := 0
 	for card in deck.deck_components[GameConstants.DECK_SOURCE_LEVEL]:
 		if bool(card.get("rotation_locked", false)):
