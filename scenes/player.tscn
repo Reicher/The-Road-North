@@ -1,14 +1,18 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_x4v0h"]
 [ext_resource type="Script" path="res://scripts/player_rewards.gd" id="2_bbaf7"]
 [ext_resource type="PackedScene" path="res://scenes/combat_overlay.tscn" id="3_combat"]
 [ext_resource type="PackedScene" path="res://ui/movement_selection.tscn" id="4_selection"]
+[ext_resource type="Script" path="res://scripts/route_preview.gd" id="5_route"]
 
 [node name="Player" type="Node3D"]
 script = ExtResource("1_x4v0h")
 
 [node name="Visuals" type="Node3D" parent="."]
+
+[node name="RoutePreview" type="MeshInstance3D" parent="."]
+script = ExtResource("5_route")
 
 [node name="Rewards" type="Node" parent="."]
 script = ExtResource("2_bbaf7")

@@ -56,6 +56,7 @@ var _run_won := false
 var _visual_root: Node3D
 var _combat_overlay: Control
 var _movement_selection: MovementSelectionUI
+var _route_preview: Node
 var _selected_tile := Vector2i(-1, -1)
 var _inventory_max_health_bonus := 0
 var _combat_roll_queue: Array[Vector2i] = []
@@ -69,6 +70,7 @@ func _ready() -> void:
 	_rewards = get_node_or_null(rewards_path) as PlayerRewards
 	_combat_overlay = get_node_or_null("CombatPopupLayer/CombatPopup") as Control
 	_movement_selection = get_node_or_null("MovementSelection") as MovementSelectionUI
+	_route_preview = get_node_or_null("RoutePreview")
 	_combat_rng.randomize()
 	if _rewards == null:
 		push_warning("Player needs a Rewards child at rewards_path.")
@@ -121,6 +123,7 @@ func move_to(target_position: Vector2i) -> bool:
 		return false
 	_map.flash_tile(target_position)
 	_route_destination = target_position
+	_show_route_to(target_position)
 	if _moving:
 		return true
 
@@ -156,6 +159,7 @@ func _follow_route_immediately(input_enabled_before_move: bool) -> void:
 		_spend_movement_food()
 		position = RoadPath.get_world_anchor(_map, next_position)
 		grid_position = next_position
+		_refresh_active_route_preview()
 		refresh_enemy_risk_colors()
 		if check_run_won():
 			_moving = false
@@ -167,6 +171,7 @@ func _follow_route_immediately(input_enabled_before_move: bool) -> void:
 		if _encounter_pauses_route(reached_encounter):
 			break
 	_moving = false
+	_finish_route_preview_if_reached()
 	moved.emit(grid_position)
 
 
@@ -195,6 +200,7 @@ func _follow_route(input_enabled_before_move: bool) -> void:
 			position = RoadPath.get_world_anchor(_map, next_position)
 
 		grid_position = next_position
+		_refresh_active_route_preview()
 		refresh_enemy_risk_colors()
 		if check_run_won():
 			_moving = false
@@ -207,6 +213,7 @@ func _follow_route(input_enabled_before_move: bool) -> void:
 			break
 
 	_moving = false
+	_finish_route_preview_if_reached()
 	moved.emit(grid_position)
 
 
@@ -365,6 +372,10 @@ func select_tile(target_position: Vector2i) -> void:
 	_selected_tile = target_position
 	_map.select_tile(target_position)
 	var can_confirm := _is_selectable_movement_destination(target_position)
+	if can_confirm:
+		_show_route_to(target_position)
+	elif not _moving:
+		_hide_route_preview()
 	if _movement_selection != null:
 		_movement_selection.show_selection(
 			_get_tile_display_name(target_position),
@@ -388,6 +399,8 @@ func clear_tile_selection() -> void:
 		_map.clear_selected_tile()
 	if _movement_selection != null:
 		_movement_selection.hide_selection()
+	if not _moving:
+		_hide_route_preview()
 
 
 func get_selected_tile() -> Vector2i:
@@ -477,6 +490,8 @@ func _apply_hop_progress(start_world_position: Vector3, target_world_position: V
 
 func _apply_hop_at_position(world_position: Vector3, travel_direction: Vector3, progress: float) -> void:
 	position = world_position
+	if _route_preview != null:
+		_route_preview.follow_world_position(position)
 	if _visual_root == null or _map == null:
 		return
 
@@ -671,6 +686,34 @@ func continue_route_after_encounter() -> bool:
 	else:
 		_follow_route(input_enabled)
 	return true
+
+
+func _show_route_to(target_position: Vector2i) -> void:
+	if _route_preview == null or _map == null:
+		return
+	var route := _map.find_shortest_path(grid_position, target_position)
+	if route.size() < 2:
+		_hide_route_preview()
+		return
+	_route_preview.show_route(RoadPath.build_route_path(_map, route), _map.tile_size)
+	_route_preview.follow_world_position(position)
+
+
+func _refresh_active_route_preview() -> void:
+	if _moving and grid_position != _route_destination:
+		_show_route_to(_route_destination)
+	else:
+		_finish_route_preview_if_reached()
+
+
+func _finish_route_preview_if_reached() -> void:
+	if grid_position == _route_destination:
+		_hide_route_preview()
+
+
+func _hide_route_preview() -> void:
+	if _route_preview != null:
+		_route_preview.hide_route()
 
 
 func _encounter_pauses_route(encounter: Dictionary) -> bool:
