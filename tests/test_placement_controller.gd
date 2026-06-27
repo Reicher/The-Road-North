@@ -74,15 +74,16 @@ func _initialize() -> void:
 
 	var straight_card = hand.cards[0]
 	var hand_rest_position: Vector2 = hand.position
-	_assert(placement.get_sight() == 2, "Expected placement to start with Sight 2")
+	_assert(placement.get_sight() == 1, "Expected placement to start with Sight 1")
 	_assert(placement.begin_placement(straight_card), "Expected road card to enter placement mode")
 	var sight_fog := placement.get_node("SightFog")
 	_assert(sight_fog.visible, "Expected fog-of-war to appear during placement")
-	_assert(sight_fog.get("fogged_positions").size() == 72, "Expected only cells outside Sight 2 to be fogged")
+	_assert(sight_fog.get("fogged_positions").size() == 75, "Expected all six in-map cells in the Sight 1 square to remain clear")
 	var fullscreen_mask := sight_fog.get_node("FullscreenMask") as MeshInstance3D
 	var mask_material := (fullscreen_mask.mesh as QuadMesh).material as ShaderMaterial
-	_assert(is_equal_approx(mask_material.get_shader_parameter("fog_color").a, 0.75), "Expected the fullscreen fog mask to darken content outside Sight by 75 percent")
+	_assert(is_equal_approx(mask_material.get_shader_parameter("fog_color").a, 0.84), "Expected the fullscreen fog mask to darken content outside Sight by 84 percent")
 	_assert(mask_material.shader.code.contains("inside_map && distance_from_player <= sight"), "Expected only playable cells within Sight to bypass fog-of-war")
+	_assert(placement.is_in_sight(Vector2i(3, 7)), "Expected a diagonally adjacent tile to be within Sight 1")
 	_assert(placement.is_placing(), "Expected placement mode to become active")
 	_assert(not player.input_enabled, "Expected movement input to pause during placement")
 	_assert(hand.get_focused_card() == null, "Expected placement mode to clear the focused card")
@@ -203,9 +204,9 @@ func _initialize() -> void:
 	var binocular_inventory := InventoryUI.new()
 	binocular_inventory.items[1] = ItemCatalog.get_item("Binoculars")
 	placement.set("_inventory", binocular_inventory)
-	_assert(placement.get_sight() == 3, "Expected Binoculars to grant +1 Sight")
+	_assert(placement.get_sight() == 2, "Expected Binoculars to grant +1 Sight")
 	_assert(placement.begin_placement(corner_card), "Expected placement with Binoculars to start")
-	_assert(sight_fog.get("fogged_positions").size() == 65, "Expected Binoculars to expand the normal area to Sight 3")
+	_assert(sight_fog.get("fogged_positions").size() == 66, "Expected Binoculars to expand the clear square to Sight 2")
 	placement.cancel_placement()
 	binocular_inventory.free()
 

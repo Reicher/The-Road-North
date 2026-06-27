@@ -101,7 +101,7 @@ func _test_destroy_tile_event() -> void:
 	_assert(not placement.has_valid_preview(), "Expected goal tile target to be invalid")
 
 	_drag_preview(placement, Vector2i(4, 0), Vector2i(3, 7))
-	_assert(placement.has_valid_preview(), "Expected a Manhattan-distance-two tile to be within Sight 2")
+	_assert(placement.has_valid_preview(), "Expected a diagonally adjacent tile to be within Sight 1")
 	_assert(_get_hint(placement).is_empty(), "Expected a target within Sight to hide the helper text")
 	var target_preview = placement.get("_target_preview")
 	_assert(target_preview != null and target_preview.preview_color == PlacementController.VALID_COLOR, "Expected the selected target within Sight to show green")

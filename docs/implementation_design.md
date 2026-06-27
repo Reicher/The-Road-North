@@ -107,7 +107,10 @@ Modes: road placement, destroy targeting, rotate targeting, encounter targeting.
 
 Flow: card dragged above hand → mode starts → preview follows drag → release shows controls → drag preview to move it → rotate/confirm/cancel. Double-tap rotates. Queries Map for validity; does not modify state until confirmation.
 
-Sight = base (2) + inventory bonus (Binoculars). Placement and directed event modes dim cells outside Sight with fog-of-war. Only the active preview shows green/red — no advance hints.
+Sight = base (1) + inventory bonus (Binoculars), measured as square/Chebyshev
+distance so diagonals are included. Placement and directed event modes dim cells
+outside Sight with fog-of-war. Only the active preview shows green/red — no
+advance hints.
 
 ---
 

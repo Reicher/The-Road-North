@@ -16,7 +16,7 @@ static func create_tree(
 	tree.name = "Tree"
 	tree.position = offset
 	tree.rotation_degrees.y = rotation_y
-	var slender_width := width_factor * 0.82
+	var slender_width := width_factor * 0.72
 	tree.scale = Vector3(slender_width, 1.0, slender_width) * scale_factor
 
 	_add_cylinder(tree, "Trunk", tile_size * 0.026, tile_size * 0.25, Vector3(0.0, tile_size * 0.125, 0.0), VisualPalette.WOOD_DARK, 5)
@@ -34,7 +34,7 @@ static func add_mountain(parent: Node3D, tile_size: float, variant := 0) -> Node
 	var mountain := Node3D.new()
 	mountain.name = "Mountain"
 	parent.add_child(mountain)
-	var rock := VisualPalette.STONE.darkened(0.10)
+	var rock := VisualPalette.STONE.darkened(0.06)
 	var main_peak := _add_cone(mountain, "MainPeak", tile_size * 0.44, tile_size * 0.68, Vector3(-tile_size * 0.06, tile_size * 0.34, 0.0), rock, 7)
 	main_peak.material_override = VisualPalette.make_rock_material(rock)
 	var side_peak := _add_cone(mountain, "SidePeak", tile_size * 0.30, tile_size * 0.46, Vector3(tile_size * 0.24, tile_size * 0.23, tile_size * 0.12), VisualPalette.STONE, 7)

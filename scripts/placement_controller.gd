@@ -15,7 +15,7 @@ const MODE_ROAD_PLACEMENT := "road_placement"
 const MODE_DESTROY_TARGETING := "destroy_targeting"
 const MODE_ROTATE_TARGETING := "rotate_targeting"
 const MODE_ENCOUNTER_TARGETING := "encounter_targeting"
-const SIGHT_FOG_COLOR := Color(0.008, 0.012, 0.016, 0.75)
+const SIGHT_FOG_COLOR := Color(0.006, 0.009, 0.012, 0.84)
 const SIGHT_MASK_SHADER := """
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, depth_test_disabled, fog_disabled;
@@ -30,7 +30,8 @@ uniform vec4 fog_color : source_color;
 const float EDGE_SOFTNESS = 0.20;
 
 float grid_distance(vec2 a, vec2 b) {
-	return abs(a.x - b.x) + abs(a.y - b.y);
+	vec2 delta = abs(a - b);
+	return max(delta.x, delta.y);
 }
 
 float distance_to_cell(vec2 point, vec2 cell) {
@@ -115,7 +116,7 @@ class SightFog extends Node3D:
 		for y in map.playable_height:
 			for x in map.playable_width:
 				var grid_position := Vector2i(x, y)
-				if _manhattan_distance(origin, grid_position) <= sight:
+				if _grid_distance(origin, grid_position) <= sight:
 					continue
 				fogged_positions.append(grid_position)
 		_mask_material.set_shader_parameter("player_grid", Vector2(origin))
@@ -149,9 +150,9 @@ class SightFog extends Node3D:
 		add_child(_mask)
 
 
-	func _manhattan_distance(from: Vector2i, to: Vector2i) -> int:
+	func _grid_distance(from: Vector2i, to: Vector2i) -> int:
 		var delta := to - from
-		return absi(delta.x) + absi(delta.y)
+		return maxi(absi(delta.x), absi(delta.y))
 
 
 @export var map_path: NodePath
@@ -162,7 +163,7 @@ class SightFog extends Node3D:
 @export var deck_controller_path: NodePath
 @export var tile_scene: PackedScene = preload("res://scenes/tile.tscn")
 @export var controls_scene: PackedScene = preload("res://ui/placement_controls.tscn")
-@export_range(1, 8, 1) var base_sight := 2
+@export_range(1, 8, 1) var base_sight := 1
 
 var active_card: CardView
 var active_definition: Resource
@@ -490,7 +491,7 @@ func get_sight() -> int:
 
 func is_in_sight(grid_position: Vector2i) -> bool:
 	var delta := grid_position - _player.grid_position
-	return absi(delta.x) + absi(delta.y) <= get_sight()
+	return maxi(absi(delta.x), absi(delta.y)) <= get_sight()
 
 
 func _confirm_destroy_target() -> bool:

@@ -171,7 +171,9 @@ Placement mode:
 - Preview follows drag, snaps to tiles; green = valid, red = invalid
 - After release: drag preview to move it, buttons for rotate/confirm/cancel
 - Double-tap preview to rotate; confirm only active when valid
-- Must be on an empty tile within Sight. The player starts with Sight 2.
+- Must be on an empty tile within Sight. Sight uses square range, so diagonals
+  count as the same distance as orthogonal tiles. The player starts with Sight
+  1 and can therefore place on any of the eight surrounding tiles.
 
 During road placement and directed event targeting, cells within Sight are shown
 normally and all cells outside Sight are dimmed with fog-of-war. The overlay is

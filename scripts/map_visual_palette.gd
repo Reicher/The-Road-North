@@ -1,17 +1,17 @@
 class_name MapVisualPalette
 extends RefCounted
 
-const GRASS := Color(0.46, 0.56, 0.36)
-const GRASS_DARK := Color(0.31, 0.42, 0.28)
-const ROAD := Color(0.32, 0.235, 0.17)
-const ROAD_EDGE := Color(0.27, 0.21, 0.16)
-const WOOD_DARK := Color(0.25, 0.13, 0.06)
-const WOOD := Color(0.48, 0.28, 0.12)
-const STONE := Color(0.34, 0.36, 0.34)
-const STONE_LIGHT := Color(0.58, 0.61, 0.57)
+const GRASS := Color(0.52, 0.63, 0.41)
+const GRASS_DARK := Color(0.36, 0.48, 0.32)
+const ROAD := Color(0.39, 0.30, 0.22)
+const ROAD_EDGE := Color(0.33, 0.26, 0.20)
+const WOOD_DARK := Color(0.30, 0.17, 0.09)
+const WOOD := Color(0.54, 0.33, 0.16)
+const STONE := Color(0.42, 0.44, 0.41)
+const STONE_LIGHT := Color(0.65, 0.68, 0.63)
 const WATER := Color(0.12, 0.34, 0.49)
 const WATER_CURRENT := Color(0.62, 0.84, 0.86)
-const FOLIAGE := Color(0.11, 0.31, 0.16)
+const FOLIAGE := Color(0.16, 0.39, 0.21)
 const BERRY := Color(0.67, 0.10, 0.18)
 const ENEMY := Color(0.78, 0.12, 0.10)
 const PLAYER := Color(0.38, 0.72, 0.86)
@@ -90,7 +90,7 @@ float grain(vec2 point) { return fract(sin(dot(point, vec2(12.9898, 78.233))) * 
 void fragment() {
 	float broad = grain(floor(map_position.xz * 0.055));
 	float fine = grain(floor(map_position.xz * 0.16));
-	float variation = mix(0.91, 1.06, broad * 0.65 + fine * 0.35);
+	float variation = mix(0.90, 1.10, broad * 0.58 + fine * 0.42);
 	ALBEDO = base_color.rgb * variation;
 	ROUGHNESS = 1.0;
 }
@@ -219,8 +219,8 @@ void fragment() {
 	float hard_branch = step(0.46, branch_tiers) * step(0.30, twig_slashes);
 	float deep_needles = step(0.78, fract(normalized_height * 5.0 - angle * 2.15));
 	float texture_value = hard_branch * 0.34 - deep_needles * 0.22;
-	vec3 dark_needles = base_color.rgb * 0.62;
-	vec3 bright_needles = base_color.rgb * 1.18;
+	vec3 dark_needles = base_color.rgb * 0.72;
+	vec3 bright_needles = base_color.rgb * 1.22;
 	ALBEDO = mix(dark_needles, bright_needles, clamp(0.34 + texture_value, 0.0, 1.0));
 	ALBEDO *= 1.0 + wind_light * 0.012;
 	ROUGHNESS = 0.94;

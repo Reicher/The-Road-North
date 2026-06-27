@@ -3,7 +3,7 @@ extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
 
-const HUD_FILL := Color(0.12, 0.27, 0.23, 0.98)
+const HUD_FILL := Color(0.16, 0.34, 0.29, 0.98)
 const HUD_BORDER := Color(0.58, 0.43, 0.23, 0.9)
 
 @export var margin := 0.0

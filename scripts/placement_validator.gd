@@ -150,13 +150,13 @@ func is_valid_encounter_target(grid_position: Vector2i, event_type: String) -> b
 
 func _is_in_sight(grid_position: Vector2i) -> bool:
 	var delta: Vector2i = grid_position - _player.grid_position
-	var distance: int = absi(delta.x) + absi(delta.y)
+	var distance: int = maxi(absi(delta.x), absi(delta.y))
 	return distance > 0 and distance <= _sight_func.call()
 
 
 func _is_too_far_away(grid_position: Vector2i) -> bool:
 	var delta: Vector2i = grid_position - _player.grid_position
-	return absi(delta.x) + absi(delta.y) > _sight_func.call()
+	return maxi(absi(delta.x), absi(delta.y)) > _sight_func.call()
 
 
 func _road_leads_off_map(grid_position: Vector2i, connections: Dictionary) -> bool:
