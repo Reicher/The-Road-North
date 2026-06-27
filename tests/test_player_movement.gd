@@ -160,9 +160,25 @@ func _initialize() -> void:
 	path_player.move_duration = 0.0
 	root.add_child(path_player)
 	path_player._ready()
+	path_map.update_encounter_data(Vector2i(0, 1), {"type": GameConstants.ENCOUNTER_GRAVEYARD})
 	_assert(path_player.move_to(Vector2i(1, 0)), "Expected a non-adjacent connected destination to start movement")
+	_assert(path_player.grid_position == Vector2i(0, 1), "Expected a blocking encounter to pause the active route")
+	_assert(path_player.get("_route_destination") == Vector2i(1, 0), "Expected a paused route to retain its confirmed destination")
+	_assert(path_player.continue_route_after_encounter(), "Expected closing an encounter to resume the active route")
 	_assert(path_player.grid_position == Vector2i(1, 0), "Expected automatic movement to reach the selected destination")
 	_assert(path_player.food == 7, "Expected automatic movement to spend one food per path step")
+
+	path_map.clear_encounter(Vector2i(0, 1))
+	path_map.update_encounter_data(Vector2i(0, 1), {
+		"type": GameMap.ENCOUNTER_BERRY_BUSH,
+		"loot": [{"kind": "food", "amount": 2}],
+	})
+	path_player.grid_position = Vector2i(0, 2)
+	path_player.position = RoadPath.get_world_anchor(path_map, path_player.grid_position)
+	path_player.food = 10
+	_assert(path_player.move_to(Vector2i(1, 0)), "Expected movement through a resource encounter to start")
+	_assert(path_player.grid_position == Vector2i(1, 0), "Expected a resource encounter without a dialog to continue the route immediately")
+	_assert(path_player.food == 9, "Expected route movement and encountered food to resolve in sequence")
 	_assert(path_map.get_node("MapVisuals").get("_tap_highlights").has(Vector2i(1, 0)), "Expected the selected destination tile to flash")
 	var food_before_jump: int = path_player.food
 	_assert(path_player.move_to(path_player.grid_position), "Expected tapping the occupied tile to trigger a jump")

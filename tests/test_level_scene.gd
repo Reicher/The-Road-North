@@ -198,10 +198,7 @@ func run() -> void:
 	var second_visuals := second_map.get_node("MapVisuals")
 	var river := second_visuals.get_node_or_null("Cells/Cell_3_3/River")
 	var bridge := second_visuals.get_node_or_null("Cells/Cell_2_3/Bridge")
-	_assert(river != null and river.get_node_or_null("Water") != null and river.get_node_or_null("ShallowNorth") != null and river.get_node_or_null("CurrentA") != null and river.get_node_or_null("CurrentD") != null, "Expected rivers to use layered water with visible current marks")
-	var current_start_x := (river.get_node("CurrentA") as Node3D).position.x
-	river.call("_process", 0.5)
-	_assert(not is_equal_approx((river.get_node("CurrentA") as Node3D).position.x, current_start_x), "Expected river current marks to visibly flow at every zoom level")
+	_assert(river != null and river.get_node_or_null("Water") != null and river.get_node_or_null("BankNorth") != null and river.get_node_or_null("BankSouth") != null, "Expected rivers to use a shader-driven water surface with readable banks")
 	_assert(bridge != null and bridge.get_node_or_null("Plank0") != null and bridge.get_node_or_null("Plank6") != null and bridge.get_node_or_null("Rail1") != null, "Expected bridges to use a readable plank-built model")
 	_assert(not second_map.can_place_tile(Vector2i(3, 3), {}), "Expected river fixed features to block road placement")
 	_assert(not second_map.can_place_tile(Vector2i(2, 3), {}), "Expected bridge fixed features to already provide a road crossing")

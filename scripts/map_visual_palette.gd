@@ -22,6 +22,7 @@ static var _ground_shader: Shader
 static var _road_shader: Shader
 static var _water_shader: Shader
 static var _foliage_wind_shader: Shader
+static var _rock_shader: Shader
 
 
 static func make_material(color: Color, unshaded := false) -> StandardMaterial3D:
@@ -49,13 +50,14 @@ static func make_road_material(color: Color) -> ShaderMaterial:
 	return material
 
 
-static func make_water_material(color: Color, flow_direction := Vector2.RIGHT) -> ShaderMaterial:
+static func make_water_material(color: Color, flow_direction := Vector2.RIGHT, river_half_width := 18.0) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = _get_water_shader()
 	material.set_shader_parameter("deep_color", color.darkened(0.12))
 	material.set_shader_parameter("surface_color", color.lightened(0.12))
 	material.set_shader_parameter("foam_color", WATER_CURRENT)
 	material.set_shader_parameter("flow_direction", flow_direction.normalized())
+	material.set_shader_parameter("river_half_width", river_half_width)
 	return material
 
 
@@ -65,6 +67,13 @@ static func make_foliage_wind_material(color: Color, crown_height: float, wind_s
 	material.set_shader_parameter("base_color", color)
 	material.set_shader_parameter("crown_height", crown_height)
 	material.set_shader_parameter("wind_strength", wind_strength)
+	return material
+
+
+static func make_rock_material(color: Color) -> ShaderMaterial:
+	var material := ShaderMaterial.new()
+	material.shader = _get_rock_shader()
+	material.set_shader_parameter("base_color", color)
 	return material
 
 
@@ -94,7 +103,7 @@ static func _get_road_shader() -> Shader:
 		_road_shader = Shader.new()
 		_road_shader.code = """
 shader_type spatial;
-render_mode unshaded, cull_disabled;
+render_mode cull_disabled;
 uniform vec4 base_color : source_color;
 varying vec3 map_position;
 void vertex() { map_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
@@ -120,7 +129,9 @@ uniform vec4 deep_color : source_color;
 uniform vec4 surface_color : source_color;
 uniform vec4 foam_color : source_color;
 uniform vec2 flow_direction = vec2(1.0, 0.0);
+uniform float river_half_width = 18.0;
 varying vec3 map_position;
+varying float bank_distance;
 
 float hash21(vec2 point) {
 	point = fract(point * vec2(123.34, 456.21));
@@ -141,6 +152,7 @@ float value_noise(vec2 point) {
 
 void vertex() {
 	map_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	bank_distance = abs(VERTEX.z) / river_half_width;
 }
 
 void fragment() {
@@ -148,18 +160,24 @@ void fragment() {
 	vec2 across = vec2(-flow.y, flow.x);
 	float along = dot(map_position.xz, flow);
 	float cross_position = dot(map_position.xz, across);
-	vec2 flowing_position = vec2(along * 0.030 - TIME * 0.34, cross_position * 0.052);
-	float slow_warp = value_noise(flowing_position * 0.72 + vec2(TIME * 0.025, -TIME * 0.018));
-	float side_warp = value_noise(flowing_position * 1.63 + vec2(17.2, -8.4) - vec2(TIME * 0.06, 0.0));
-	float broken_ripples = sin(along * 0.102 - TIME * 0.91 + slow_warp * 5.2 + side_warp * 2.1) * 0.5 + 0.5;
-	float crossing_wave = value_noise(vec2(along * 0.041 - TIME * 0.21, cross_position * 0.083 + TIME * 0.035) + slow_warp);
-	float surface_mix = slow_warp * 0.38 + crossing_wave * 0.34 + broken_ripples * 0.28;
-	float foam_breakup = value_noise(flowing_position * 2.25 + vec2(31.7, 9.1));
-	float current_line = smoothstep(0.82, 0.97, broken_ripples) * smoothstep(0.48, 0.76, foam_breakup);
-	vec3 water_color = mix(deep_color.rgb, surface_color.rgb, surface_mix);
-	ALBEDO = mix(water_color, foam_color.rgb, current_line * 0.46);
-	ROUGHNESS = 0.58;
-	SPECULAR = 0.32;
+	vec2 ripple_position = vec2(along * 0.145 - TIME * 0.62, cross_position * 0.19);
+	float breakup = value_noise(ripple_position * 0.58 + vec2(13.1, -7.4));
+	float ripple_a = sin(along * 0.22 - TIME * 1.15 + cross_position * 0.055 + breakup * 2.4);
+	float ripple_b = sin(along * 0.31 - TIME * 0.84 - cross_position * 0.09 + breakup * 1.7);
+	float fine_ripples = ripple_a * 0.075 + ripple_b * 0.050;
+	float ripple_lines = smoothstep(0.76, 0.96, ripple_a) * smoothstep(0.30, 0.72, breakup);
+	ripple_lines += smoothstep(0.84, 0.98, ripple_b) * smoothstep(0.62, 0.88, 1.0 - breakup);
+	ripple_lines = clamp(ripple_lines, 0.0, 1.0);
+	float bank = smoothstep(0.68, 1.0, bank_distance);
+	float irregular_bank = clamp(bank + (breakup - 0.5) * 0.16, 0.0, 1.0);
+	vec3 water_color = mix(deep_color.rgb * 0.88, surface_color.rgb, 0.38 + fine_ripples);
+	water_color = mix(water_color, surface_color.rgb * 1.16, irregular_bank * 0.62);
+	water_color = mix(water_color, foam_color.rgb, ripple_lines * 0.28);
+	float edge_ripple = smoothstep(0.70, 0.82, bank_distance) * (1.0 - smoothstep(0.94, 1.0, bank_distance));
+	edge_ripple *= smoothstep(0.35, 0.86, breakup + ripple_a * 0.12);
+	ALBEDO = mix(water_color, foam_color.rgb, edge_ripple * 0.42);
+	ROUGHNESS = 0.66;
+	SPECULAR = 0.26;
 }
 """
 	return _water_shader
@@ -176,6 +194,7 @@ uniform vec4 base_color : source_color;
 uniform float crown_height = 32.0;
 uniform float wind_strength = 1.0;
 varying float wind_light;
+varying vec3 crown_position;
 
 void vertex() {
 	vec3 world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -189,11 +208,52 @@ void vertex() {
 	vec3 world_offset = wind_direction * gust * crown_height * 0.095 * wind_strength * height_factor;
 	VERTEX += (inverse(MODEL_MATRIX) * vec4(world_offset, 0.0)).xyz;
 	wind_light = breeze * height_factor;
+	crown_position = VERTEX;
 }
 
 void fragment() {
-	ALBEDO = base_color.rgb * (1.0 + wind_light * 0.018);
+	float normalized_height = clamp((crown_position.y + crown_height * 0.5) / crown_height, 0.0, 1.0);
+	float angle = atan(crown_position.z, crown_position.x);
+	float branch_tiers = fract(normalized_height * 8.0 + sin(angle * 3.5) * 0.16);
+	float twig_slashes = fract(normalized_height * 13.0 + angle * 1.55);
+	float hard_branch = step(0.46, branch_tiers) * step(0.30, twig_slashes);
+	float deep_needles = step(0.78, fract(normalized_height * 5.0 - angle * 2.15));
+	float texture_value = hard_branch * 0.34 - deep_needles * 0.22;
+	vec3 dark_needles = base_color.rgb * 0.62;
+	vec3 bright_needles = base_color.rgb * 1.18;
+	ALBEDO = mix(dark_needles, bright_needles, clamp(0.34 + texture_value, 0.0, 1.0));
+	ALBEDO *= 1.0 + wind_light * 0.012;
 	ROUGHNESS = 0.94;
 }
 """
 	return _foliage_wind_shader
+
+
+static func _get_rock_shader() -> Shader:
+	if _rock_shader == null:
+		_rock_shader = Shader.new()
+		_rock_shader.code = """
+shader_type spatial;
+render_mode cull_disabled;
+
+uniform vec4 base_color : source_color;
+varying vec3 map_position;
+
+float grain(vec3 point) {
+	return fract(sin(dot(point, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+}
+
+void vertex() {
+	map_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
+void fragment() {
+	float broad = grain(floor(map_position * 0.055));
+	float detail = grain(floor(map_position * 0.145));
+	float strata = sin(map_position.y * 0.16 + broad * 2.2) * 0.5 + 0.5;
+	float variation = mix(0.82, 1.10, broad * 0.52 + detail * 0.30 + strata * 0.18);
+	ALBEDO = base_color.rgb * variation;
+	ROUGHNESS = 0.96;
+}
+"""
+	return _rock_shader

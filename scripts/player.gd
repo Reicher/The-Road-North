@@ -76,6 +76,8 @@ func _ready() -> void:
 	_rewards.setup(self, _inventory, _loot_ui, _map)
 	if _inventory != null and not _inventory.stats_changed.is_connected(_on_inventory_stats_changed):
 		_inventory.stats_changed.connect(_on_inventory_stats_changed)
+	if _loot_ui != null and not _loot_ui.closed.is_connected(continue_route_after_encounter):
+		_loot_ui.closed.connect(continue_route_after_encounter)
 	_ensure_visuals()
 
 	if _map == null:
@@ -159,10 +161,10 @@ func _follow_route_immediately(input_enabled_before_move: bool) -> void:
 			_moving = false
 			moved.emit(grid_position)
 			return
-		var reached_encounter := not _map.get_encounter(grid_position).is_empty()
+		var reached_encounter := _map.get_encounter(grid_position)
 		_resolve_reward_encounter_at(grid_position)
 		_check_game_over()
-		if reached_encounter:
+		if _encounter_pauses_route(reached_encounter):
 			break
 	_moving = false
 	moved.emit(grid_position)
@@ -198,10 +200,10 @@ func _follow_route(input_enabled_before_move: bool) -> void:
 			_moving = false
 			moved.emit(grid_position)
 			return
-		var reached_encounter := not _map.get_encounter(grid_position).is_empty()
+		var reached_encounter := _map.get_encounter(grid_position)
 		_resolve_reward_encounter_at(grid_position)
 		_check_game_over()
-		if reached_encounter:
+		if _encounter_pauses_route(reached_encounter):
 			break
 
 	_moving = false
@@ -578,6 +580,7 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previou
 			if check_run_won():
 				return
 			_check_game_over()
+			continue_route_after_encounter()
 			return
 		if enemy_score > player_score:
 			set_health(maxi(0, health - 1), false)
@@ -614,6 +617,7 @@ func _retreat_from_enemy(origin_position: Vector2i, previous_input_enabled: bool
 		position = origin_world_position
 	grid_position = origin_position
 	_moving = false
+	_route_destination = grid_position
 	_finish_combat(previous_input_enabled)
 	move_failed.emit(grid_position)
 	_check_game_over()
@@ -645,6 +649,31 @@ func _finish_combat(previous_input_enabled: bool) -> void:
 	refresh_enemy_risk_colors()
 	input_enabled = previous_input_enabled
 	_combat_running = false
+
+
+func continue_route_after_encounter() -> bool:
+	if _moving or _combat_running or _game_over or _run_won:
+		return false
+	if grid_position == _route_destination or food <= 0:
+		return false
+	if _map.find_shortest_path(grid_position, _route_destination).size() < 2:
+		return false
+	_moving = true
+	_move_target = _route_destination
+	move_started.emit(_route_destination)
+	if move_duration <= 0.0:
+		_follow_route_immediately(input_enabled)
+	else:
+		_follow_route(input_enabled)
+	return true
+
+
+func _encounter_pauses_route(encounter: Dictionary) -> bool:
+	if encounter.is_empty():
+		return false
+	if str(encounter.get("type", "")) in GameConstants.REUSABLE_ENCOUNTER_TYPES:
+		return true
+	return _loot_ui != null and _loot_ui.is_open()
 
 
 func _spend_movement_food() -> void:

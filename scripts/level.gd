@@ -332,6 +332,7 @@ func _on_permanent_encounter_reached(_grid_position: Vector2i, encounter: Dictio
 func _on_encounter_closed() -> void:
 	if not _is_terminal_state():
 		_set_player_input_enabled(true)
+		_player.continue_route_after_encounter()
 
 
 func _on_game_over(_reason: String) -> void:

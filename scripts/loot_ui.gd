@@ -1,6 +1,8 @@
 class_name LootUI
 extends Control
 
+signal closed
+
 const UIStyle = preload("res://scripts/ui_style.gd")
 const ItemIconLibrary = preload("res://scripts/item_icon_library.gd")
 const ITEM_SLOT_SCENE := preload("res://ui/item_slot.tscn")
@@ -81,6 +83,7 @@ func open_loot(new_loot: Array) -> void:
 
 
 func close_loot() -> void:
+	var was_visible := visible
 	loot.clear()
 	_reset_full_inventory_flash()
 	_cancel_drag()
@@ -91,6 +94,8 @@ func close_loot() -> void:
 	if _inventory != null:
 		_inventory.set_outside_close_enabled(true)
 	_refresh_loot()
+	if was_visible:
+		closed.emit()
 
 
 func is_open() -> bool:

@@ -2,7 +2,6 @@ class_name MapEnvironmentAssets
 extends RefCounted
 
 const VisualPalette = preload("res://scripts/map_visual_palette.gd")
-const RiverVisualScript = preload("res://scripts/river_visual.gd")
 
 
 static func create_tree(
@@ -36,29 +35,26 @@ static func add_mountain(parent: Node3D, tile_size: float, variant := 0) -> Node
 	mountain.name = "Mountain"
 	parent.add_child(mountain)
 	var rock := VisualPalette.STONE.darkened(0.10)
-	_add_cone(mountain, "MainPeak", tile_size * 0.44, tile_size * 0.68, Vector3(-tile_size * 0.06, tile_size * 0.34, 0.0), rock, 7)
-	_add_cone(mountain, "SidePeak", tile_size * 0.30, tile_size * 0.46, Vector3(tile_size * 0.24, tile_size * 0.23, tile_size * 0.12), VisualPalette.STONE, 7)
-	_add_cone(mountain, "SnowCap", tile_size * 0.15, tile_size * 0.20, Vector3(-tile_size * 0.06, tile_size * 0.69, 0.0), VisualPalette.STONE_LIGHT, 7)
+	var main_peak := _add_cone(mountain, "MainPeak", tile_size * 0.44, tile_size * 0.68, Vector3(-tile_size * 0.06, tile_size * 0.34, 0.0), rock, 7)
+	main_peak.material_override = VisualPalette.make_rock_material(rock)
+	var side_peak := _add_cone(mountain, "SidePeak", tile_size * 0.30, tile_size * 0.46, Vector3(tile_size * 0.24, tile_size * 0.23, tile_size * 0.12), VisualPalette.STONE, 7)
+	side_peak.material_override = VisualPalette.make_rock_material(VisualPalette.STONE)
+	_add_cone(mountain, "SnowCap", tile_size * 0.14, tile_size * 0.20, Vector3(-tile_size * 0.06, tile_size * 0.58, 0.0), VisualPalette.STONE_LIGHT, 7)
 	mountain.rotation_degrees.y = float(posmod(variant * 47, 360))
 	return mountain
 
 
 static func add_river(parent: Node3D, tile_size: float, rotation_steps: int) -> Node3D:
-	var river := RiverVisualScript.new()
+	var river := Node3D.new()
 	river.name = "River"
-	river.tile_size = tile_size
 	river.rotation.y = PI * 0.5 if posmod(rotation_steps, 2) == 1 else 0.0
 	parent.add_child(river)
 	var water := _add_box(river, "Water", Vector3(tile_size * 1.05, tile_size * 0.035, tile_size * 0.38), Vector3(0.0, 0.025, 0.0), VisualPalette.WATER)
 	var local_flow := Vector2.RIGHT
 	var world_flow := Vector2(-local_flow.y, -local_flow.x) if posmod(rotation_steps, 2) == 1 else local_flow
-	water.material_override = VisualPalette.make_water_material(VisualPalette.WATER, world_flow)
-	_add_box(river, "ShallowNorth", Vector3(tile_size * 1.05, 0.012, tile_size * 0.055), Vector3(0.0, 0.052, -tile_size * 0.155), VisualPalette.WATER.lightened(0.10))
-	_add_box(river, "ShallowSouth", Vector3(tile_size * 1.05, 0.012, tile_size * 0.055), Vector3(0.0, 0.052, tile_size * 0.155), VisualPalette.WATER.darkened(0.08))
-	_add_current_mark(river, "CurrentA", tile_size, Vector3(-0.32, 0.052, -0.09), 0.24, -8.0)
-	_add_current_mark(river, "CurrentB", tile_size, Vector3(-0.05, 0.053, 0.08), 0.20, 9.0)
-	_add_current_mark(river, "CurrentC", tile_size, Vector3(0.20, 0.052, -0.055), 0.18, -6.0)
-	_add_current_mark(river, "CurrentD", tile_size, Vector3(0.40, 0.053, 0.075), 0.12, 7.0)
+	_add_box(river, "BankNorth", Vector3(tile_size * 1.06, tile_size * 0.025, tile_size * 0.085), Vector3(0.0, 0.005, -tile_size * 0.205), VisualPalette.GRASS_DARK.lightened(0.06))
+	_add_box(river, "BankSouth", Vector3(tile_size * 1.06, tile_size * 0.025, tile_size * 0.085), Vector3(0.0, 0.005, tile_size * 0.205), VisualPalette.GRASS_DARK.darkened(0.03))
+	water.material_override = VisualPalette.make_water_material(VisualPalette.WATER, world_flow, tile_size * 0.19)
 	return river
 
 
@@ -86,19 +82,6 @@ static func _add_box(parent: Node3D, node_name: String, size: Vector3, position:
 	instance.material_override = VisualPalette.make_material(color)
 	parent.add_child(instance)
 	return instance
-
-
-static func _add_current_mark(river: Node3D, node_name: String, tile_size: float, normalized_position: Vector3, length_ratio: float, rotation_degrees: float) -> void:
-	var mark := _add_box(
-		river,
-		node_name,
-		Vector3(tile_size * length_ratio, 0.02, tile_size * 0.070),
-		Vector3(normalized_position.x * tile_size, 0.10, normalized_position.z * tile_size),
-		VisualPalette.WATER_CURRENT
-	)
-	mark.rotation.y = deg_to_rad(rotation_degrees)
-	mark.material_override = VisualPalette.make_material(VisualPalette.WATER_CURRENT, true)
-	mark.set_meta("flow_start_x", mark.position.x)
 
 
 static func _add_cylinder(parent: Node3D, node_name: String, radius: float, height: float, position: Vector3, color: Color, segments: int) -> MeshInstance3D:
