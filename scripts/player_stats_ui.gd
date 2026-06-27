@@ -1,9 +1,9 @@
 class_name PlayerStatsUI
 extends HBoxContainer
 
-const STAT_ICON_SIZE := 42.0
-const STAT_VALUE_FONT_SIZE := 30
-const STAT_ROW_HEIGHT := 54.0
+const STAT_ICON_SIZE := 44.0
+const STAT_VALUE_FONT_SIZE := 34
+const STAT_ROW_HEIGHT := 58.0
 const ICON_PATHS := GameConstants.STAT_ICON_PATHS
 
 @export var player_path: NodePath
@@ -102,10 +102,10 @@ func _configure_row_layout() -> void:
 func _get_row_width(stat_name: String) -> float:
 	match stat_name:
 		"deck":
-			return 118.0
+			return 126.0
 		"health":
-			return 106.0
-	return 92.0
+			return 114.0
+	return 96.0
 
 
 func _layout_stats() -> void:

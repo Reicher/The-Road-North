@@ -202,6 +202,7 @@ func _reveal_player_and_ui() -> void:
 		player_tween.set_ease(Tween.EASE_OUT)
 		player_tween.tween_property(_player, "scale", Vector3.ONE, 0.22)
 		await player_tween.finished
+		await _player.play_spawn_hop()
 	if not is_inside_tree():
 		return
 	var ui_tween := create_tween()

@@ -10,7 +10,7 @@ signal start_zoom_finished
 @export var zoom_in_visible_tile_width := 4.0
 @export_range(0.0, 10.0, 0.1) var start_zoom_hold_duration := 2.0
 @export_range(0.0, 5.0, 0.05) var start_zoom_duration := 0.85
-@export_range(0.0, 2.0, 0.01) var move_focus_duration := 0.18
+@export_range(0.0, 2.0, 0.01) var move_focus_duration := 0.50
 @export var zoom_step := 0.10
 @export var mouse_pan_threshold := 4.0
 @export_range(20.0, 80.0, 1.0) var camera_angle_degrees := 55.0
@@ -26,6 +26,7 @@ var _target_xz := Vector2.ZERO
 var _start_zoom_tween: Tween
 var _move_focus_tween: Tween
 var _following_player := false
+var _movement_active := false
 var _start_zoom_announced := false
 var _start_zoom_finished := false
 
@@ -247,7 +248,8 @@ func _play_start_zoom_sequence() -> void:
 
 
 func _on_player_move_started(_target_position: Vector2i) -> void:
-	_following_player = true
+	_movement_active = true
+	_following_player = false
 	if _start_zoom_tween != null:
 		_start_zoom_tween.kill()
 		_start_zoom_tween = null
@@ -256,7 +258,7 @@ func _on_player_move_started(_target_position: Vector2i) -> void:
 	if _move_focus_tween != null:
 		_move_focus_tween.kill()
 		_move_focus_tween = null
-	_follow_player_position()
+	_begin_smooth_player_follow()
 
 
 func _announce_start_zoom() -> void:
@@ -274,8 +276,35 @@ func _announce_start_zoom_finished() -> void:
 
 
 func _on_player_moved(grid_position: Vector2i) -> void:
+	_movement_active = false
 	_following_player = false
 	_focus_on_grid_position(grid_position)
+
+
+func _begin_smooth_player_follow() -> void:
+	if _map == null or _player == null:
+		return
+	if move_focus_duration <= 0.0:
+		_following_player = true
+		_follow_player_position()
+		return
+
+	var start_xz := _target_xz
+	_move_focus_tween = create_tween()
+	_move_focus_tween.set_trans(Tween.TRANS_SINE)
+	_move_focus_tween.set_ease(Tween.EASE_IN_OUT)
+	_move_focus_tween.tween_method(func(value: float) -> void:
+		var player_target := _get_clamped_target_for_world_position(_player.global_position)
+		_target_xz = start_xz.lerp(player_target, value)
+		_clamp_target()
+		_apply_camera_transform()
+	, 0.0, 1.0, move_focus_duration)
+	_move_focus_tween.tween_callback(func() -> void:
+		_move_focus_tween = null
+		if _movement_active:
+			_following_player = true
+			_follow_player_position()
+	)
 
 
 func _follow_player_position() -> void:
@@ -371,6 +400,9 @@ func _get_map_viewport_size() -> Vector2:
 func _get_reserved_bottom_height() -> float:
 	if _reserved_bottom_control == null:
 		return 0.0
+	if _reserved_bottom_control.has_method("get_card_top_screen_y"):
+		var card_top := float(_reserved_bottom_control.call("get_card_top_screen_y"))
+		return maxf(0.0, get_viewport().get_visible_rect().size.y - card_top)
 	return maxf(0.0, _reserved_bottom_control.size.y)
 
 

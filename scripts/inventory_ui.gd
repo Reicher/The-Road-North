@@ -52,6 +52,7 @@ var _slot_row: HBoxContainer
 var _tooltip: PanelContainer
 var _tooltip_name: Label
 var _tooltip_effect: Label
+var _item_details_popup
 var _drag_ghost: TextureRect
 var _ready_completed := false
 var _tooltip_slot_index := -1
@@ -87,6 +88,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _close_on_outside_press(event: InputEvent) -> void:
 	if not is_open() or not _outside_close_enabled:
 		return
+	if _item_details_popup != null and _item_details_popup.visible:
+		return
 
 	var canvas_position := Vector2.INF
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
@@ -102,6 +105,12 @@ func _close_on_outside_press(event: InputEvent) -> void:
 
 func is_open() -> bool:
 	return _inventory_open
+
+
+func get_hud_extension_right() -> float:
+	if _reveal == null or _backpack_button == null:
+		return 0.0
+	return _reveal.position.x + _reveal.size.x + left_margin
 
 
 func get_power_bonus() -> int:
@@ -199,6 +208,13 @@ func get_inventory_frame_global_rect() -> Rect2:
 	return Rect2()
 
 
+func show_item_details(item: Dictionary) -> void:
+	if item.is_empty() or _item_details_popup == null:
+		return
+	_hide_tooltip()
+	_item_details_popup.show_item(item)
+
+
 func add_item(item: Dictionary) -> bool:
 	var normalized_item := ItemCatalog.normalize_item(item)
 	if not can_carry_item(normalized_item):
@@ -278,6 +294,7 @@ func set_inventory_open(open: bool, animate := true) -> void:
 	var previous_open := _inventory_open
 	var transition_start_rect := _get_open_frame_rect() if previous_open else _get_closed_frame_rect()
 	_inventory_open = open
+	_frame.add_theme_stylebox_override("panel", _inventory_frame_stylebox(open or previous_open))
 	_layout_inventory()
 	if open:
 		_overlay.visible = true
@@ -316,6 +333,7 @@ func set_inventory_open(open: bool, animate := true) -> void:
 					_set_frame_rect(_get_closed_frame_rect())
 					_reveal.size.x = 0.0
 					_overlay.scale = Vector2.ONE
+					_frame.add_theme_stylebox_override("panel", _inventory_frame_stylebox(false))
 			)
 		else:
 			_overlay.visible = false
@@ -323,8 +341,11 @@ func set_inventory_open(open: bool, animate := true) -> void:
 			_reveal.size.x = 0.0
 			_overlay.scale = Vector2.ONE
 			_overlay.modulate.a = 1.0
+			_frame.add_theme_stylebox_override("panel", _inventory_frame_stylebox(false))
 	if not open:
 		_hide_tooltip()
+		if _item_details_popup != null:
+			_item_details_popup.hide_popup()
 
 
 func set_outside_close_enabled(enabled: bool) -> void:
@@ -341,6 +362,7 @@ func _bind_scene_nodes() -> void:
 	_tooltip = get_node("ItemTooltip") as PanelContainer
 	_tooltip_name = get_node("ItemTooltip/ContentMargin/Text/ItemName") as Label
 	_tooltip_effect = get_node("ItemTooltip/ContentMargin/Text/ItemEffect") as Label
+	_item_details_popup = get_node("ItemDetailsPopup")
 	_drag_ghost = get_node("DragGhost") as TextureRect
 
 	_backpack_button.custom_minimum_size = button_size
@@ -371,15 +393,22 @@ func _transparent_stylebox() -> StyleBoxFlat:
 	return stylebox
 
 
-func _inventory_frame_stylebox() -> StyleBoxFlat:
+func _inventory_frame_stylebox(open := _inventory_open) -> StyleBoxFlat:
 	var stylebox := StyleBoxFlat.new()
-	stylebox.bg_color = UIStyle.panel_fill(self)
-	stylebox.border_color = Color(0, 0, 0, 0)
-	stylebox.set_border_width_all(0)
+	stylebox.bg_color = Color.TRANSPARENT
+	stylebox.border_color = Color.TRANSPARENT
+	stylebox.border_width_left = 0
+	stylebox.border_width_top = 0
+	stylebox.border_width_right = 0
+	stylebox.border_width_bottom = 0
 	stylebox.corner_radius_top_left = 0
 	stylebox.corner_radius_top_right = 0
-	stylebox.corner_radius_bottom_left = 14
+	stylebox.corner_radius_bottom_left = 0
 	stylebox.corner_radius_bottom_right = 14
+	stylebox.content_margin_left = 0.0
+	stylebox.content_margin_top = 0.0
+	stylebox.content_margin_right = 0.0
+	stylebox.content_margin_bottom = 0.0
 	return stylebox
 
 
@@ -527,29 +556,10 @@ func _event_canvas_position(event: InputEvent, source_button: Button) -> Vector2
 
 func _on_item_pressed(slot_index: int, slot_button: Button) -> void:
 	if slot_index < 0 or slot_index >= SLOT_COUNT:
-		_hide_tooltip()
 		return
 	if items[slot_index].is_empty():
-		_hide_tooltip()
 		return
-	if _tooltip.visible and _tooltip_slot_index == slot_index:
-		_hide_tooltip()
-		return
-
-	var item := items[slot_index]
-	_tooltip_slot_index = slot_index
-	_tooltip_name.text = str(item.get("name", "Item"))
-	_tooltip_effect.text = "%s\n%s · %s" % [str(item.get("effect", "")), str(item.get("rarity", "Common")), str(item.get("size", "small")).capitalize()]
-	_tooltip.visible = true
-	_tooltip.size = _tooltip.get_combined_minimum_size()
-
-	var slot_position := slot_button.get_global_rect().position
-	var tooltip_size := _tooltip.get_combined_minimum_size()
-	var viewport_size := _get_layout_size()
-	var target_position := Vector2(slot_position.x, slot_position.y + slot_button.size.y + 6.0)
-	target_position.x = clampf(target_position.x, 8.0, maxf(8.0, viewport_size.x - tooltip_size.x - 8.0))
-	target_position.y = clampf(target_position.y, 8.0, maxf(8.0, viewport_size.y - tooltip_size.y - 8.0))
-	_tooltip.position = target_position
+	show_item_details(items[slot_index])
 
 
 func _hide_tooltip() -> void:
@@ -620,10 +630,16 @@ func _get_layout_size() -> Vector2:
 func _get_closed_frame_rect() -> Rect2:
 	if _backpack_button == null:
 		return Rect2()
+	# PanelContainer keeps a 20 px minimum width. Tuck that collapsed strip
+	# behind the backpack so its visible right edge still starts at the seam.
+	var seam_overlap := 20.0
 	return Rect2(
-		_backpack_button.position - Vector2(0.0, frame_top_padding),
 		Vector2(
-			_backpack_button.size.x,
+			_backpack_button.position.x + _backpack_button.size.x - seam_overlap,
+			_backpack_button.position.y - frame_top_padding
+		),
+		Vector2(
+			seam_overlap,
 			_backpack_button.size.y + frame_top_padding + frame_bottom_padding
 		)
 	)
@@ -633,10 +649,10 @@ func _get_open_frame_rect() -> Rect2:
 	if _backpack_button == null or _overlay == null:
 		return _get_closed_frame_rect()
 	var closed_rect := _get_closed_frame_rect()
-	var left := minf(_reveal.position.x, _backpack_button.position.x)
-	var top := minf(_reveal.position.y, closed_rect.position.y)
-	var right := maxf(_reveal.position.x + _overlay.size.x, _backpack_button.position.x + _backpack_button.size.x)
-	var bottom := maxf(_reveal.position.y + _overlay.size.y, closed_rect.end.y)
+	var left := closed_rect.position.x
+	var top := closed_rect.position.y
+	var right := _reveal.position.x + _overlay.size.x
+	var bottom := closed_rect.end.y
 	return Rect2(Vector2(left, top), Vector2(right - left, bottom - top))
 
 

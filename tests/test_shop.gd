@@ -70,6 +70,14 @@ func run() -> void:
 	_assert(item_row.get_child_count() == InventoryUI.SLOT_COUNT, "Expected buyable items to render in the same number of slots as the inventory")
 	_assert(_slot_button(item_row, 0).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected buyable items to use the same slot size as the inventory")
 	_assert(_price_text(item_row, 0).is_valid_int(), "Expected buyable items to show purchase price outside the slot")
+	shop._show_sell_item_popup(0)
+	var item_popup := shop.get_node("ItemDetailsPopup") as Control
+	var item_action := item_popup.get_node("Center/Panel/Margin/Stack/Buttons/ActionButton") as Button
+	_assert(item_popup.visible and item_action.text.begins_with("Sell"), "Expected a shop inventory item to open details with a sell action")
+	item_popup.call("hide_popup")
+	shop._show_buy_item_popup(0)
+	_assert(item_popup.visible and item_action.text.begins_with("Buy"), "Expected a shop offer to open details with a buy action")
+	item_popup.call("hide_popup")
 	_assert(food_row.get_child_count() == 3, "Expected three food offers")
 	_assert(life_row.get_child_count() == 2, "Expected two life offers")
 	_assert(_slot_button(food_row, 0).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected food offers to use inventory-sized slots")

@@ -58,7 +58,6 @@ func _position_controls(grid_position: Vector2i, map: GameMap) -> void:
 	var viewport_size := viewport.get_visible_rect().size if viewport != null else Vector2(720.0, 1280.0)
 	var center := map.grid_to_screen_position(grid_position)
 	var top_edge := map.grid_edge_to_screen_position(grid_position, false)
-	var bottom_edge := map.grid_edge_to_screen_position(grid_position, true)
 	var label_size := label.custom_minimum_size
 	label.size = label_size
 	label.position = Vector2(
@@ -68,7 +67,7 @@ func _position_controls(grid_position: Vector2i, map: GameMap) -> void:
 	if confirm_button.visible:
 		confirm_button.position = Vector2(
 			clampf(center.x - confirm_button.size.x * 0.5, 8.0, maxf(8.0, viewport_size.x - confirm_button.size.x - 8.0)),
-			clampf(bottom_edge.y - confirm_button.size.y * 0.5, 8.0, maxf(8.0, viewport_size.y - confirm_button.size.y - 8.0))
+			clampf(center.y - confirm_button.size.y * 0.5, 8.0, maxf(8.0, viewport_size.y - confirm_button.size.y - 8.0))
 		)
 
 

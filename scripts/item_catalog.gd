@@ -200,7 +200,7 @@ static func describe_effect(item: Dictionary) -> String:
 
 
 static func size_symbol(item: Dictionary) -> String:
-	return "▲" if str(item.get("size", SIZE_SMALL)) == SIZE_LARGE else "•"
+	return "▲" if str(item.get("size", SIZE_SMALL)) == SIZE_LARGE else ""
 
 
 static func _default_size_for_name(item_name: String) -> String:

@@ -207,8 +207,8 @@ func _finish_drag(canvas_position: Vector2) -> void:
 		return
 	_mark_input_handled()
 
-	if _drag_source_button != null and canvas_position.distance_to(_drag_source_button.get_global_rect().get_center()) <= 2.0:
-		_show_item_tooltip(_dragged_item_index, _drag_source_button)
+	if _drag_source_button != null and _drag_source_button.get_global_rect().has_point(canvas_position):
+		_show_item_details(_dragged_item_index)
 		_cancel_drag()
 		return
 
@@ -321,15 +321,15 @@ func _can_take_all() -> bool:
 
 
 func _flash_inventory_full() -> void:
-	if _panel == null:
+	if _take_all_button == null:
 		return
 	if _full_inventory_flash_tween != null:
 		_full_inventory_flash_tween.kill()
-	_panel.self_modulate = FULL_INVENTORY_FLASH_COLOR
+	_take_all_button.self_modulate = FULL_INVENTORY_FLASH_COLOR
 	_full_inventory_flash_tween = create_tween()
 	_full_inventory_flash_tween.set_trans(Tween.TRANS_SINE)
 	_full_inventory_flash_tween.set_ease(Tween.EASE_OUT)
-	_full_inventory_flash_tween.tween_property(_panel, "self_modulate", Color.WHITE, FULL_INVENTORY_FLASH_DURATION)
+	_full_inventory_flash_tween.tween_property(_take_all_button, "self_modulate", Color.WHITE, FULL_INVENTORY_FLASH_DURATION)
 	_full_inventory_flash_tween.finished.connect(func() -> void:
 		_full_inventory_flash_tween = null
 	)
@@ -339,8 +339,8 @@ func _reset_full_inventory_flash() -> void:
 	if _full_inventory_flash_tween != null:
 		_full_inventory_flash_tween.kill()
 		_full_inventory_flash_tween = null
-	if _panel != null:
-		_panel.self_modulate = Color.WHITE
+	if _take_all_button != null:
+		_take_all_button.self_modulate = Color.WHITE
 
 
 func _is_item_loot(entry: Dictionary) -> bool:
@@ -387,6 +387,13 @@ func _event_canvas_position(event: InputEvent, source_button: Button) -> Vector2
 
 func _mark_input_handled() -> void:
 	UIUtils.mark_input_handled(self)
+
+
+func _show_item_details(item_index: int) -> void:
+	if item_index < 0 or item_index >= loot.size() or _inventory == null:
+		return
+	_hide_tooltip()
+	_inventory.show_item_details(loot[item_index].get("item", {}))
 
 
 func _show_item_tooltip(item_index: int, source_button: Button) -> void:

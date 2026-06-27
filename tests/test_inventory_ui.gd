@@ -22,6 +22,7 @@ func _initialize() -> void:
 	var title := inventory.get_node("InventoryReveal/InventoryOverlay/ContentMargin/Stack/Title") as Label
 	var slots := inventory.get_node("InventoryReveal/InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
 	var tooltip := inventory.get_node("ItemTooltip") as PanelContainer
+	var item_popup := inventory.get_node("ItemDetailsPopup") as Control
 
 	_assert(backpack_button != null, "Expected inventory to create a backpack button")
 	_assert(inventory.button_size == Vector2(144.0, 144.0), "Expected backpack button to fit closely around its icon")
@@ -32,8 +33,9 @@ func _initialize() -> void:
 	_assert(is_equal_approx(backpack_button.position.x, inventory.left_margin), "Expected backpack button to sit at the left HUD edge")
 	_assert(is_equal_approx(backpack_button.position.y, inventory.top_margin), "Expected backpack button to sit below the resource row")
 	_assert(inventory.top_margin == 81.0, "Expected a small gap between the resource row and backpack image")
-	_assert(is_equal_approx(frame.position.y, backpack_button.position.y - inventory.frame_top_padding), "Expected the backpack panel to remain connected while its image moves down")
-	_assert(is_equal_approx(frame.size.y, backpack_button.size.y + inventory.frame_top_padding + inventory.frame_bottom_padding), "Expected the closed backpack panel to use its full height")
+	_assert(is_equal_approx(frame.position.x + frame.size.x, backpack_button.position.x + backpack_button.size.x), "Expected the collapsed extension's right edge to align with the backpack")
+	_assert(is_equal_approx(frame.size.x, 20.0), "Expected the closed inventory extension to remain tucked behind the backpack")
+	_assert(is_equal_approx(frame.size.y, backpack_button.size.y + inventory.frame_top_padding + inventory.frame_bottom_padding), "Expected the inventory extension to share the backpack panel height")
 	_assert(not overlay.visible, "Expected inventory overlay to start closed")
 	_assert(inventory.get_carried_items().size() == 1, "Expected player inventory to start with one visible weapon")
 	_assert(inventory.get_power_bonus() == 1, "Expected Walking Stick to add one power")
@@ -54,10 +56,10 @@ func _initialize() -> void:
 	_assert(overlay.pivot_offset.x == 0.0, "Expected inventory overlay to animate from its left edge")
 	_assert(title.text == "Inventory", "Expected expanded inventory area to show its title")
 	_assert(title.get_theme_font_size("font_size") == 18, "Expected inventory title to be clearly readable")
-	_assert(title.get_theme_color("font_color") == UIStyle.text(inventory), "Expected inventory title to use the clear primary text color")
-	_assert(frame.position.x == backpack_button.position.x and frame.position.y < backpack_button.position.y, "Expected shared inventory frame to extend above the backpack image")
-	_assert(frame.size.x == overlay.size.x + backpack_button.size.x, "Expected shared inventory frame to wrap slots and backpack as one control")
-	_assert(is_equal_approx(frame.position.y + frame.size.y, backpack_button.position.y + backpack_button.size.y + inventory.frame_bottom_padding), "Expected shared inventory frame to end at the backpack panel bottom edge")
+	_assert(title.get_theme_color("font_color") == Color(1, 0.93, 0.72), "Expected inventory title to remain readable on the dark HUD extension")
+	_assert(frame.position.x < reveal.position.x and frame.position.y < backpack_button.position.y, "Expected the inventory extension to overlap the backpack's existing right edge")
+	_assert(is_equal_approx(frame.position.x + frame.size.x, reveal.position.x + overlay.size.x), "Expected the moving right edge to end beyond all three slots")
+	_assert(is_equal_approx(frame.position.y + frame.size.y, backpack_button.position.y + backpack_button.size.y + inventory.frame_bottom_padding), "Expected the extension to retain the backpack panel bottom edge")
 	_assert(overlay.scale == Vector2.ONE, "Expected inventory contents to remain undistorted while the shared panel expands")
 	_assert(reveal.clip_contents, "Expected the growing panel to clip inventory contents during its transition")
 	var open_frame_size := frame.size
@@ -79,19 +81,17 @@ func _initialize() -> void:
 	_assert((first_slot.get_node("ItemSizeBadge") as Label).text == "▲", "Expected the large Walking Stick icon to show a size marker")
 
 	inventory._on_item_pressed(0, first_slot)
-	_assert(tooltip.visible, "Expected pressing an item to show a tooltip")
-	var tooltip_name := tooltip.get_node("ContentMargin/Text/ItemName") as Label
-	var tooltip_effect := tooltip.get_node("ContentMargin/Text/ItemEffect") as Label
-	_assert(tooltip_name.text == "Walking Stick", "Expected tooltip to show the item name")
-	_assert(tooltip_effect.text.begins_with("+1 Power") and tooltip_effect.text.contains("Large"), "Expected tooltip to show the item effect and size")
-	_assert(tooltip_name.get_theme_color("font_color") == UIStyle.text(inventory), "Expected tooltip name text to use the shared UI text color")
-	_assert(tooltip_effect.get_theme_color("font_color") == UIStyle.muted_text(inventory), "Expected tooltip effect text to use the shared UI muted text color")
+	_assert(item_popup.visible, "Expected pressing an item to show the item details popup")
+	var popup_name := item_popup.get_node("Center/Panel/Margin/Stack/Header/Heading/ItemName") as Label
+	var popup_meta := item_popup.get_node("Center/Panel/Margin/Stack/Header/Heading/Meta") as Label
+	var popup_stats := item_popup.get_node("Center/Panel/Margin/Stack/Stats") as VBoxContainer
+	_assert(popup_name.text == "Walking Stick", "Expected item popup to show the item name")
+	_assert(popup_meta.text.contains("BIG ITEM"), "Expected item popup to state that the item is big")
+	_assert(popup_stats.get_child_count() == 1 and (popup_stats.get_child(0).get_child(1) as Label).text == "+1", "Expected item popup to show each stat clearly")
+	_assert(not tooltip.visible, "Expected the old compact tooltip to stay hidden")
 
-	inventory._on_item_pressed(0, first_slot)
-	_assert(not tooltip.visible, "Expected pressing the same item again to hide the tooltip")
-
-	inventory._on_item_pressed(0, first_slot)
-	_assert(tooltip.visible, "Expected pressing the item after hiding it to show the tooltip again")
+	item_popup.call("hide_popup")
+	_assert(not item_popup.visible, "Expected the item popup close action to hide it")
 
 	var outside_click := InputEventMouseButton.new()
 	outside_click.button_index = MOUSE_BUTTON_LEFT
@@ -100,7 +100,7 @@ func _initialize() -> void:
 	inventory._input(outside_click)
 	_assert(not inventory.is_open(), "Expected clicking outside inventory to close it")
 	_assert(overlay.visible, "Expected clicking outside inventory to animate the overlay closed")
-	_assert(not tooltip.visible, "Expected outside click to hide the tooltip")
+	_assert(not item_popup.visible, "Expected outside click to leave the item popup closed")
 
 	inventory.toggle_inventory()
 	inventory._on_item_pressed(0, first_slot)

@@ -3,6 +3,9 @@ extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
 
+const HUD_FILL := Color(0.12, 0.27, 0.23, 0.98)
+const HUD_BORDER := Color(0.58, 0.43, 0.23, 0.9)
+
 @export var margin := 0.0
 @export var top_bar_height := 76.0
 @export var pocket_overlap := 8.0
@@ -12,11 +15,26 @@ const UIStyle = preload("res://scripts/ui_style.gd")
 @export var settings_height := 68.0
 @export var inner_corner_radius := 16.0
 
+var _inventory: InventoryUI
+var _animated_backpack_right := 0.0
+
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_inventory = get_parent().get_node_or_null("Inventory") as InventoryUI
+	set_process(_inventory != null)
 	resized.connect(_layout_panel)
 	_layout_panel()
+
+
+func _process(_delta: float) -> void:
+	if _inventory == null:
+		return
+	var target_right := _inventory.get_hud_extension_right()
+	if is_equal_approx(target_right, _animated_backpack_right):
+		return
+	_animated_backpack_right = target_right
+	queue_redraw()
 
 
 func _notification(what: int) -> void:
@@ -25,26 +43,31 @@ func _notification(what: int) -> void:
 
 
 func _draw() -> void:
-	var fill := UIStyle.panel_fill(self)
-	var top_panel := _top_bar_style(fill)
-	var backpack_panel := _backpack_pocket_style(fill)
-	var settings_panel := _settings_pocket_style(fill)
-	var top_rect := Rect2(Vector2.ZERO, Vector2(size.x, top_bar_height))
 	var pocket_top := top_bar_height - pocket_overlap
-	var backpack_rect := Rect2(
-		Vector2(0.0, pocket_top),
-		Vector2(minf(backpack_width, size.x), backpack_height)
-	)
-	var settings_rect := Rect2(
-		Vector2(maxf(0.0, size.x - settings_width), pocket_top),
-		Vector2(minf(settings_width, size.x), settings_height)
-	)
-
-	draw_style_box(top_panel, top_rect)
-	draw_style_box(backpack_panel, backpack_rect)
-	draw_style_box(settings_panel, settings_rect)
-	_draw_inner_corner(Vector2(backpack_rect.end.x, top_bar_height), false, fill)
-	_draw_inner_corner(Vector2(settings_rect.position.x, top_bar_height), true, fill)
+	var bevel := minf(inner_corner_radius, 12.0)
+	var backpack_right := minf(maxf(backpack_width, _animated_backpack_right), size.x)
+	var backpack_bottom := pocket_top + backpack_height
+	var settings_left := maxf(0.0, size.x - settings_width)
+	var settings_bottom := pocket_top + settings_height
+	var outline := PackedVector2Array([
+		Vector2(0.0, 0.0),
+		Vector2(size.x, 0.0),
+		Vector2(size.x, settings_bottom - bevel),
+		Vector2(size.x - bevel, settings_bottom),
+		Vector2(settings_left + bevel, settings_bottom),
+		Vector2(settings_left, settings_bottom - bevel),
+		Vector2(settings_left, top_bar_height + bevel),
+		Vector2(settings_left - bevel, top_bar_height),
+		Vector2(backpack_right + bevel, top_bar_height),
+		Vector2(backpack_right, top_bar_height + bevel),
+		Vector2(backpack_right, backpack_bottom - bevel),
+		Vector2(backpack_right - bevel, backpack_bottom),
+		Vector2(0.0, backpack_bottom),
+	])
+	draw_colored_polygon(outline, HUD_FILL)
+	var closed_outline := outline.duplicate()
+	closed_outline.append(outline[0])
+	draw_polyline(closed_outline, HUD_BORDER, 3.0, true)
 
 
 func _layout_panel() -> void:
@@ -53,51 +76,3 @@ func _layout_panel() -> void:
 	var panel_height := maxf(top_bar_height, top_bar_height - pocket_overlap + backpack_height)
 	size = Vector2(maxf(1.0, viewport_size.x - margin * 2.0), panel_height)
 	queue_redraw()
-
-
-func _top_bar_style(fill: Color) -> StyleBoxFlat:
-	var stylebox := StyleBoxFlat.new()
-	stylebox.bg_color = fill
-	stylebox.border_color = Color(0, 0, 0, 0)
-	stylebox.set_border_width_all(0)
-	stylebox.corner_radius_top_left = 0
-	stylebox.corner_radius_top_right = 0
-	stylebox.corner_radius_bottom_left = 0
-	stylebox.corner_radius_bottom_right = 0
-	return stylebox
-
-
-func _backpack_pocket_style(fill: Color) -> StyleBoxFlat:
-	var stylebox := _square_style(fill)
-	stylebox.corner_radius_bottom_right = 18
-	return stylebox
-
-
-func _settings_pocket_style(fill: Color) -> StyleBoxFlat:
-	var stylebox := _square_style(fill)
-	stylebox.corner_radius_bottom_left = 18
-	return stylebox
-
-
-func _square_style(fill: Color) -> StyleBoxFlat:
-	var stylebox := StyleBoxFlat.new()
-	stylebox.bg_color = fill
-	stylebox.border_color = Color(0, 0, 0, 0)
-	stylebox.set_border_width_all(0)
-	stylebox.set_corner_radius_all(0)
-	return stylebox
-
-
-func _draw_inner_corner(corner: Vector2, opens_left: bool, fill: Color) -> void:
-	var radius := maxf(0.0, inner_corner_radius)
-	if radius <= 0.0:
-		return
-	var points := PackedVector2Array([corner])
-	var center := corner + Vector2(-radius if opens_left else radius, radius)
-	var start_angle := -PI * 0.5
-	var end_angle := 0.0 if opens_left else -PI
-	for step in 9:
-		var weight := float(step) / 8.0
-		var angle := lerpf(start_angle, end_angle, weight)
-		points.append(center + Vector2(cos(angle), sin(angle)) * radius)
-	draw_colored_polygon(points, fill)

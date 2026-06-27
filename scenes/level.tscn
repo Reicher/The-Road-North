@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/map.gd" id="1_1fs71"]
 [ext_resource type="Script" path="res://scripts/level.gd" id="1_y88x2"]
@@ -16,6 +16,10 @@
 [ext_resource type="PackedScene" path="res://ui/encounter.tscn" id="12_encounter"]
 [ext_resource type="Script" path="res://scripts/hud_background.gd" id="13_hudbg"]
 [ext_resource type="PackedScene" path="res://ui/settings_menu.tscn" id="14_settings"]
+[ext_resource type="Shader" path="res://shaders/hud_parchment.gdshader" id="15_hud_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_hud"]
+shader = ExtResource("15_hud_shader")
 
 [node name="Level" type="Node"]
 script = ExtResource("1_y88x2")
@@ -86,6 +90,7 @@ vertical_alignment = 1
 autowrap_mode = 2
 
 [node name="HudBackground" type="Control" parent="UI"]
+material = SubResource("ShaderMaterial_hud")
 anchors_preset = 0
 offset_left = 8.0
 offset_top = 8.0

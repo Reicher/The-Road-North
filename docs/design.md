@@ -248,7 +248,8 @@ active and contributes its stats. The backpack may contain at most one `large`
 item, while `small` items have no size-specific limit. Heavier weapons are
 large, while Dagger and Hatchet are small weapons. Binoculars, Goldsmith's
 Scale, Guiding Charm, Watchman's Lantern, and Traveler's Pack are small; Field
-Medic's Bag is large equipment. Item icons show `▲` for large and `•` for small.
+Medic's Bag is large equipment. Large item icons show a prominent `▲` badge in
+their upper-left corner; small items have no size badge.
 
 Items: Walking Stick +1 Power, Short Blade +1 Power, Bent Spear +2 Power/-1
 Sight, Old Sword +2 Power/-1 Sight, Dagger +2 Power, Hatchet +3 Power, Hunter's

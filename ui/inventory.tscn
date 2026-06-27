@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/inventory_ui.gd" id="1_2vjgq"]
+[ext_resource type="PackedScene" path="res://ui/item_details_popup.tscn" id="2_popup"]
 
 [node name="Inventory" type="Control"]
 anchors_preset = 15
@@ -48,7 +49,7 @@ alignment = 1
 [node name="Title" type="Label" parent="InventoryReveal/InventoryOverlay/ContentMargin/Stack"]
 theme_type_variation = &"TitleLabel"
 layout_mode = 2
-theme_override_colors/font_color = Color(0.2, 0.14, 0.09, 1)
+theme_override_colors/font_color = Color(1, 0.93, 0.72, 1)
 theme_override_font_sizes/font_size = 18
 text = "Inventory"
 horizontal_alignment = 1
@@ -114,3 +115,5 @@ z_index = 1000
 top_level = true
 expand_mode = 1
 stretch_mode = 5
+
+[node name="ItemDetailsPopup" parent="." instance=ExtResource("2_popup")]

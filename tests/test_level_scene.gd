@@ -112,9 +112,12 @@ func run() -> void:
 	player.move_started.emit(Vector2i(4, 7))
 	_assert(typed_level.state == Level.RunState.PLAYER_MOVING, "Expected level to own player moving state")
 	_assert(player.input_enabled, "Expected level to keep destination input enabled while moving")
-	_assert(camera.get("_following_player"), "Expected camera to follow the player while movement is active")
+	_assert(not camera.get("_following_player"), "Expected camera not to snap directly to the player when movement starts")
+	_assert(camera.get("_move_focus_tween") != null, "Expected camera to approach the player with a smooth transition")
 	var movement_midpoint := map.grid_to_world(Vector2i(2, 3))
 	player.position = movement_midpoint
+	await create_timer(camera.move_focus_duration + 0.05).timeout
+	_assert(camera.get("_following_player"), "Expected camera to begin continuous following after reaching the player")
 	camera.call("_process", 0.0)
 	var expected_follow_target: Vector2 = camera.call("_get_clamped_target_for_world_position", movement_midpoint)
 	_assert((camera.get("_target_xz") as Vector2).is_equal_approx(expected_follow_target), "Expected camera to track the player's tweened world position")

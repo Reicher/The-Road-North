@@ -133,6 +133,7 @@ var _confirmation_prompt: Label
 var _confirmation_confirm_button: Button
 var _confirmation_cancel_button: Button
 var _confirmation_callback: Callable
+var _item_details_popup
 
 
 func _ready() -> void:
@@ -346,6 +347,7 @@ func _bind_scene_nodes() -> void:
 	_play_next_button = $ShopScroll/ShopMargin/ShopStack/PlayNextButton as Button
 	_deck_overlay = $DeckOverlay as DeckOverlay
 	_drag_ghost = $DragGhost as TextureRect
+	_item_details_popup = $ItemDetailsPopup
 
 	_buy_food_button.pressed.connect(buy_food)
 	_buy_heal_button.pressed.connect(buy_heal)
@@ -528,9 +530,8 @@ func _refresh_inventory_slots() -> void:
 		var item: Dictionary = inventory[index]
 		slot.configure(item, index)
 		_apply_slot_style(slot)
-		slot.slot_gui_input.connect(_on_slot_gui_input)
 		if not item.is_empty():
-			slot.pressed.connect(_confirm_sell_inventory_slot.bind(index))
+			slot.pressed.connect(_show_sell_item_popup.bind(index))
 			_slot_row.add_child(_priced_slot(slot, "+%d" % (_sell_price(item) * _inventory_gold_multiplier())))
 		else:
 			_slot_row.add_child(_priced_slot(slot, ""))
@@ -577,8 +578,8 @@ func _refresh_offers() -> void:
 			button.configure(offer, index)
 			_apply_slot_style(button)
 			ItemIconLibrary.update_size_badge(button, offer)
-			button.disabled = index in _purchased_item_offers or not _has_empty_inventory_slot() or int(progression.get("gold", 0)) < int(offer["price"])
-			button.pressed.connect(_confirm_buy_item_offer.bind(index))
+			button.disabled = index in _purchased_item_offers
+			button.pressed.connect(_show_buy_item_popup.bind(index))
 			_item_row.add_child(_priced_slot(button, "%d" % int(offer["price"])))
 		else:
 			var empty := ITEM_SLOT_SCENE.instantiate() as ItemSlot
@@ -757,7 +758,7 @@ func _on_slot_gui_input(event: InputEvent, slot: ItemSlot) -> void:
 	if slot.item_data.is_empty():
 		return
 	if event is InputEventScreenTouch and not event.pressed:
-		_confirm_sell_inventory_slot(slot.slot_index)
+		_show_sell_item_popup(slot.slot_index)
 
 
 func _on_item_offer_input(event: InputEvent, index: int, button: Button) -> void:
@@ -786,6 +787,30 @@ func _confirm_buy_item_offer(offer_index: int) -> void:
 		return
 	var offer := item_offers[offer_index]
 	_show_confirmation("Buy %s for %dg?" % [str(offer.get("name", "item")), int(offer.get("price", 0))], buy_item.bind(offer_index))
+
+
+func _show_sell_item_popup(slot_index: int) -> void:
+	var inventory: Array = progression.get("inventory", [])
+	if slot_index < 0 or slot_index >= inventory.size():
+		return
+	var item: Dictionary = inventory[slot_index]
+	if item.is_empty():
+		return
+	var sale_price := _sell_price(item) * _inventory_gold_multiplier()
+	_item_details_popup.show_item(item, "Sell  +%dg" % sale_price, sell_inventory_slot.bind(slot_index))
+
+
+func _show_buy_item_popup(offer_index: int) -> void:
+	if offer_index < 0 or offer_index >= item_offers.size():
+		return
+	var offer := item_offers[offer_index]
+	var can_buy := (
+		offer_index not in _purchased_item_offers
+		and _has_empty_inventory_slot()
+		and int(progression.get("gold", 0)) >= int(offer.get("price", 0))
+		and _can_carry_item(offer, -1)
+	)
+	_item_details_popup.show_item(offer, "Buy  %dg" % int(offer.get("price", 0)), buy_item.bind(offer_index), can_buy)
 
 
 func _confirm_buy_food(offer: Dictionary) -> void:

@@ -43,7 +43,8 @@ static func get_icon(item: Dictionary) -> Texture2D:
 
 static func update_size_badge(control: Control, item: Dictionary) -> void:
 	var badge := control.get_node_or_null("ItemSizeBadge") as Label
-	if item.is_empty():
+	var is_large := not item.is_empty() and str(item.get("size", ItemCatalog.SIZE_SMALL)) == ItemCatalog.SIZE_LARGE
+	if not is_large:
 		if badge != null:
 			badge.visible = false
 		return
@@ -51,17 +52,16 @@ static func update_size_badge(control: Control, item: Dictionary) -> void:
 		badge = Label.new()
 		badge.name = "ItemSizeBadge"
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		badge.position = Vector2(-24.0, 2.0)
-		badge.size = Vector2(22.0, 22.0)
+		badge.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		badge.position = Vector2(5.0, 5.0)
+		badge.size = Vector2(32.0, 32.0)
 		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		badge.add_theme_font_size_override("font_size", 18)
-		badge.add_theme_color_override("font_color", Color(0.18, 0.12, 0.07))
-		badge.add_theme_color_override("font_shadow_color", Color(1.0, 0.95, 0.78))
-		badge.add_theme_constant_override("shadow_offset_x", 1)
-		badge.add_theme_constant_override("shadow_offset_y", 1)
+		badge.add_theme_font_size_override("font_size", 24)
+		badge.add_theme_color_override("font_color", Color(1.0, 0.88, 0.35))
+		badge.add_theme_color_override("font_outline_color", Color(0.16, 0.09, 0.035))
+		badge.add_theme_constant_override("outline_size", 5)
 		control.add_child(badge)
-	badge.text = ItemCatalog.size_symbol(item)
-	badge.tooltip_text = "Large item" if str(item.get("size", ItemCatalog.SIZE_SMALL)) == ItemCatalog.SIZE_LARGE else "Small item"
+	badge.text = "▲"
+	badge.tooltip_text = "Big item"
 	badge.visible = true

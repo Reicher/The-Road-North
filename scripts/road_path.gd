@@ -54,21 +54,6 @@ static func build_move_path(map: GameMap, from_position: Vector2i, to_position: 
 	return path
 
 
-static func build_route_path(map: GameMap, grid_path: Array[Vector2i], current_world_position: Vector3) -> PackedVector3Array:
-	var route := PackedVector3Array()
-	if grid_path.is_empty():
-		return route
-	route.append(current_world_position)
-	var hop_start := current_world_position
-	for index in range(grid_path.size() - 1):
-		var hop := build_move_path(map, grid_path[index], grid_path[index + 1], hop_start)
-		for point_index in range(1, hop.size()):
-			if route[-1].distance_squared_to(hop[point_index]) > 0.001:
-				route.append(hop[point_index])
-		hop_start = hop[-1]
-	return route
-
-
 static func get_world_anchor(map: GameMap, grid_position: Vector2i) -> Vector3:
 	var offset := get_anchor_offset(_get_openings(map, grid_position), map.tile_size)
 	return map.grid_to_world(grid_position) + Vector3(offset.x, 0.0, offset.y)

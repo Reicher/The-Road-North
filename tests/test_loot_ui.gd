@@ -56,6 +56,8 @@ func _initialize() -> void:
 	_assert(inventory.is_open(), "Expected loot screen interaction to keep the backpack open")
 
 	var loot_item := loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootItem0") as Button
+	var take_button := loot_ui.get_node("LootPanel/ContentMargin/Stack/ButtonRow/TakeAllButton") as Button
+	_assert(take_button.text == "Take", "Expected the loot action to use the concise Take label")
 	_assert(loot_item.custom_minimum_size.is_equal_approx(inventory.get_slot_size()), "Expected loot item slots to match backpack slot size")
 	_assert(loot_item.text == "", "Expected loot item slots to use icons instead of text")
 	_assert(loot_item.icon != null, "Expected loot item slots to show an item image")
@@ -71,19 +73,12 @@ func _initialize() -> void:
 	_assert(drag_ghost.texture == loot_item.icon, "Expected drag cursor to use the dragged item image")
 	_assert(drag_ghost.size.is_equal_approx(inventory.get_slot_size()), "Expected drag cursor to match item slot size")
 	loot_ui._finish_drag(loot_item.get_global_rect().get_center())
-	var loot_tooltip := loot_ui.get_node("ItemTooltip") as PanelContainer
-	var loot_tooltip_name := loot_tooltip.get_node("ContentMargin/Text/ItemName") as Label
-	var loot_tooltip_effect := loot_tooltip.get_node("ContentMargin/Text/ItemEffect") as Label
-	_assert(loot_tooltip.visible, "Expected tapping a loot item slot to show its tooltip")
-	_assert(loot_tooltip_name.text == "Binoculars", "Expected loot tooltip to show the item name")
-	_assert(loot_tooltip_effect.text == "+1 Sight", "Expected loot tooltip to show the item effect")
-	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
-	loot_ui._finish_drag(loot_item.get_global_rect().get_center())
-	_assert(not loot_tooltip.visible, "Expected tapping the same loot item again to hide its tooltip")
-	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
-	loot_ui._finish_drag(loot_item.get_global_rect().get_center())
-	await create_timer(LootUI.TOOLTIP_VISIBLE_DURATION + 0.1).timeout
-	_assert(not loot_tooltip.visible, "Expected the loot tooltip to hide automatically after a short time")
+	var item_popup := inventory.get_node("ItemDetailsPopup") as ItemDetailsPopup
+	var popup_name := item_popup.get_node("Center/Panel/Margin/Stack/Header/Heading/ItemName") as Label
+	_assert(item_popup.visible, "Expected tapping a loot item slot to show the shared item details popup")
+	_assert(popup_name.text == "Binoculars", "Expected loot item details to show the item name")
+	item_popup.hide_popup()
+	await create_timer(inventory.overlay_animation_duration + 0.1).timeout
 
 	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
 	loot_ui._finish_drag(overlay.get_global_rect().get_center())
@@ -150,7 +145,7 @@ func _initialize() -> void:
 	loot_ui.take_all()
 	_assert(loot_ui.is_open(), "Expected full inventory to leave item loot behind after Take All")
 	_assert(inventory.is_open(), "Expected failed Take All to keep the inventory open for manual choices")
-	_assert(loot_panel.self_modulate == LootUI.FULL_INVENTORY_FLASH_COLOR, "Expected failed Take All to flash the loot panel red")
+	_assert(take_button.self_modulate == LootUI.FULL_INVENTORY_FLASH_COLOR, "Expected failed Take to flash the Take button red")
 	_assert(player.food == 8, "Expected Take All not to add already collected food again")
 	_assert(player.gold == 11, "Expected Take All not to add already collected gold again")
 	_assert(loot_ui.loot == loot_before_failed_take_all, "Expected failed Take All to leave all loot untouched")

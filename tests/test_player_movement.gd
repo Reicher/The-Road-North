@@ -46,11 +46,9 @@ func _initialize() -> void:
 	_assert(map.get_node("MapVisuals").get("_selection_highlight") != null, "Expected the selected tile to get a visible outline")
 	_assert(player.get_node("MovementSelection/Label").text == "Straight Road", "Expected the selected road type to be named")
 	_assert(player.get_node("MovementSelection/ConfirmButton").visible, "Expected a reachable road selection to show movement confirmation")
-	_assert(map.get_node("MapVisuals").get("_route_line") != null, "Expected a one-tile movement to preview its route")
 	_assert(player.confirm_selected_move(), "Expected confirming a reachable road selection to start movement")
 	_assert(player.grid_position == Vector2i(4, 7), "Expected confirmed selection to move the player")
 	_assert(player.food == 4, "Expected confirmed movement to consume food")
-	_assert(map.get_node("MapVisuals").get("_route_line") == null, "Expected the route preview to disappear after reaching its destination")
 	roads.set_encounter(Vector2i(4, 7), {"type": GameMap.ENCOUNTER_ENEMY, "power": 2})
 	map.tile_pressed.emit(Vector2i(4, 7))
 	_assert(player.get_node("MovementSelection/Label").text == "Straight Road - Enemy", "Expected enemy roads to identify both road and encounter")
@@ -162,31 +160,13 @@ func _initialize() -> void:
 	path_player.move_duration = 0.0
 	root.add_child(path_player)
 	path_player._ready()
-	path_player.select_tile(Vector2i(1, 0))
-	var route_visuals: MapVisuals = path_map.get_node("MapVisuals")
-	_assert(route_visuals.get("_route_line") != null, "Expected a multi-tile movement to preview its complete route")
-	_assert(route_visuals.ROUTE_COLOR.r > route_visuals.ROUTE_COLOR.b, "Expected the movement route to use a golden color instead of blue")
-	path_player.clear_tile_selection()
-	var close_parallel_route := PackedVector3Array([
-		Vector3(0.0, 0.0, 0.0),
-		Vector3(10.0, 0.0, 0.0),
-		Vector3(10.0, 0.0, 1.0),
-		Vector3(0.0, 0.0, 1.0),
-	])
-	route_visuals.show_route(close_parallel_route, path_map.tile_size)
-	route_visuals.advance_route(Vector3(0.0, 0.0, 1.0))
-	_assert(route_visuals.get("_route_points").size() == 4, "Expected route progress not to jump to a later nearby segment")
-	_assert(is_equal_approx(route_visuals.get("_route_progress"), 1.0), "Expected route progress to follow the exact traveled distance continuously")
-	route_visuals.clear_route()
 	path_map.update_encounter_data(Vector2i(0, 1), {"type": GameConstants.ENCOUNTER_GRAVEYARD})
 	_assert(path_player.move_to(Vector2i(1, 0)), "Expected a non-adjacent connected destination to start movement")
 	_assert(path_player.grid_position == Vector2i(0, 1), "Expected a blocking encounter to pause the active route")
 	_assert(path_player.get("_route_destination") == Vector2i(1, 0), "Expected a paused route to retain its confirmed destination")
-	_assert(path_map.get_node("MapVisuals").get("_route_line") != null, "Expected the untraveled route to remain visible during an encounter")
 	_assert(path_player.continue_route_after_encounter(), "Expected closing an encounter to resume the active route")
 	_assert(path_player.grid_position == Vector2i(1, 0), "Expected automatic movement to reach the selected destination")
 	_assert(path_player.food == 7, "Expected automatic movement to spend one food per path step")
-	_assert(path_map.get_node("MapVisuals").get("_route_line") == null, "Expected a resumed route to disappear after completion")
 
 	path_map.clear_encounter(Vector2i(0, 1))
 	path_map.update_encounter_data(Vector2i(0, 1), {

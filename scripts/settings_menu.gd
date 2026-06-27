@@ -21,11 +21,11 @@ func _ready() -> void:
 	_settings_button.text = "⚙"
 	_settings_button.custom_minimum_size = button_size
 	_settings_button.add_theme_font_size_override("font_size", 52)
-	_settings_button.add_theme_color_override("font_color", UIStyle.text(self))
-	_settings_button.add_theme_color_override("font_hover_color", UIStyle.text(self))
-	_settings_button.add_theme_color_override("font_pressed_color", UIStyle.text(self))
-	_settings_button.add_theme_color_override("font_outline_color", Color(0.34, 0.23, 0.14, 0.45))
-	_settings_button.add_theme_constant_override("outline_size", 1)
+	_settings_button.add_theme_color_override("font_color", Color(1.0, 0.93, 0.72))
+	_settings_button.add_theme_color_override("font_hover_color", Color(1.0, 0.82, 0.42))
+	_settings_button.add_theme_color_override("font_pressed_color", Color(0.91, 0.67, 0.28))
+	_settings_button.add_theme_color_override("font_outline_color", Color(0.04, 0.10, 0.08, 0.9))
+	_settings_button.add_theme_constant_override("outline_size", 3)
 	_settings_button.add_theme_stylebox_override("normal", _transparent_stylebox())
 	_settings_button.add_theme_stylebox_override("hover", UIStyle.rounded_box(self, Color(1.0, 0.94, 0.78, 0.45), Color(0, 0, 0, 0), 12, 0))
 	_settings_button.add_theme_stylebox_override("pressed", UIStyle.rounded_box(self, Color(0.90, 0.72, 0.40, 0.52), Color(0, 0, 0, 0), 12, 0))
