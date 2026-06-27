@@ -29,15 +29,16 @@ func _initialize() -> void:
 	_assert(roads.get_visual_tile(Vector2i(4, 4)) != null, "Expected roads to spawn visual tile")
 	_assert(roads.get_visual_tile(Vector2i(4, 4)).position == map.grid_to_world(Vector2i(4, 4)), "Expected visual tile to align to grid center")
 	var straight_visuals := roads.get_visual_tile(Vector2i(4, 4)).get_node("Visuals") as RoadTileVisuals
-	_assert(not straight_visuals.call("_point_touches_road", Vector2(0.15, -0.40), STRAIGHT.get_rotated_openings(0), 0.21), "Expected trees to fit close beside narrow roads")
+	_assert(straight_visuals.call("_point_touches_road", Vector2(0.15, -0.40), STRAIGHT.get_rotated_openings(0), 0.21), "Expected a clear tree-free margin beside roads")
+	_assert(not straight_visuals.call("_point_touches_road", Vector2(0.24, -0.40), STRAIGHT.get_rotated_openings(0), 0.21), "Expected trees to remain available away from the road margin")
 	_assert(straight_visuals.call("_point_touches_road", Vector2(0.10, -0.40), STRAIGHT.get_rotated_openings(0), 0.21), "Expected trees not to be placed on roads")
 	await process_frame
 	var road_trees := straight_visuals.get_children().filter(func(child: Node) -> bool: return child.name != "RoadCenter")
-	_assert(road_trees.size() == 9, "Expected placed road tiles to refill all available grass with trees")
+	_assert(road_trees.size() == 4, "Expected placed road tiles to use sparse roadside trees")
 	var closest_tree_edge_distance := 1.0
 	for tree in road_trees:
 		closest_tree_edge_distance = minf(closest_tree_edge_distance, absf((tree as Node3D).position.x / map.tile_size) - 0.105)
-	_assert(closest_tree_edge_distance < 0.07, "Expected at least one tree to stand close to the road edge")
+	_assert(closest_tree_edge_distance >= 0.10, "Expected roadside trees to leave the road visually clear")
 
 	_assert(roads.place_tile(Vector2i(4, 3), STRAIGHT, 0), "Expected matching north/south connection to place")
 	_assert(not roads.place_tile(Vector2i(5, 4), STRAIGHT, 1), "Expected invalid east/west mismatch to be rejected")
@@ -70,7 +71,7 @@ func _initialize() -> void:
 	var junction_visuals := roads.get_visual_tile(Vector2i(4, 8)).get_node("Visuals") as RoadTileVisuals
 	var junction_mesh: ArrayMesh = junction_visuals.call("_build_road_mesh", FOUR_WAY.get_rotated_openings(0), map.tile_size, map.tile_size * 0.21, 0.0)
 	_assert(junction_mesh.get_aabb().size.x >= map.tile_size * 0.99 and junction_mesh.get_aabb().size.z >= map.tile_size * 0.99, "Expected four-way road arms to reach every tile edge without appearing compressed")
-	_assert(not junction_visuals.call("_point_touches_road", Vector2(0.14, 0.14), FOUR_WAY.get_rotated_openings(0), 0.21), "Expected four-way junctions not to add a large square road center")
+	_assert(not junction_visuals.call("_point_touches_road", Vector2(0.23, 0.23), FOUR_WAY.get_rotated_openings(0), 0.21), "Expected four-way junctions not to add a large square road center")
 
 	quit()
 

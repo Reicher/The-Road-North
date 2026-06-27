@@ -3,8 +3,8 @@ extends Node3D
 
 const GROUND_HEIGHT := 0.10
 const ROAD_WIDTH_RATIO := 0.21
-const ROAD_TREE_MARGIN_RATIO := 0.035
-const ROAD_TILE_TREE_COUNT := 9
+const ROAD_TREE_MARGIN_RATIO := 0.11
+const ROAD_TILE_TREE_COUNT := 4
 const ROAD_EDGE_SAMPLES := 6
 const ROAD_EDGE_JITTER_RATIO := 0.009
 const RoadPath = preload("res://scripts/road_path.gd")
@@ -278,7 +278,7 @@ func _add_road_tile_trees(openings: Dictionary, tile_size: float) -> void:
 	for slot in slots:
 		if _point_touches_road(slot, openings, ROAD_WIDTH_RATIO):
 			continue
-		var scale_factor := 0.70 + float(posmod(seed + added * 5, 7)) * 0.055
+		var scale_factor := 0.62 + float(posmod(seed + added * 5, 7)) * 0.045
 		var width_factor := 0.86 + float(posmod(seed + added * 3, 5)) * 0.055
 		var rotation_y := float(posmod(seed * 13 + added * 71, 360))
 		_add_tree(tile_size, Vector3(slot.x * tile_size, 0.0, slot.y * tile_size), scale_factor, width_factor, rotation_y)
