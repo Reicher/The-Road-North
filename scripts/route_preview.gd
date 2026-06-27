@@ -2,7 +2,7 @@ class_name RoutePreview
 extends MeshInstance3D
 
 const ROUTE_COLOR := Color(1.0, 0.72, 0.08)
-const WIDTH_TILE_RATIO := 0.045
+const WIDTH_TILE_RATIO := 0.028
 const ROAD_HEIGHT := 0.10
 const HEIGHT_TILE_RATIO := 0.003
 
