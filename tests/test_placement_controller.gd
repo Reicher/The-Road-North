@@ -134,6 +134,11 @@ func _initialize() -> void:
 	_assert(preview_tile.scale == Vector3.ONE, "Expected preview road to use the same scale as confirmed roads")
 	var preview_visuals := placement.get_node("PreviewTile/Visuals")
 	_assert(preview_visuals.get_node_or_null("Highlight") != null, "Expected the road preview to render one colored placement box")
+	_assert(preview_visuals.get_node_or_null("EncounterPlaza") != null, "Expected encounter road previews to show their final plaza")
+	_assert(preview_tile.get_node_or_null("Enemy/EnemyModel") != null, "Expected enemy road previews to show the final enemy model")
+	_assert(preview_tile.get_node_or_null("Enemy/PowerLabel") == null or not preview_tile.get_node("Enemy/PowerLabel").visible, "Expected enemy road previews to hide enemy power")
+	_assert(preview_tile.get_node_or_null("Enemy/PowerIcon") == null or not preview_tile.get_node("Enemy/PowerIcon").visible, "Expected enemy road previews to hide the power icon")
+	_assert(preview_tile.get_node_or_null("Enemy/QuestionMark") == null, "Expected enemy previews to use the final model without a question-mark marker")
 	_assert(preview_visuals.get_node_or_null("HighlightNorth") == null, "Expected no second border box around the road preview")
 	var rotate_button := placement.get_node("PlacementControls/Buttons/RotateButton") as Button
 	var confirm_button := placement.get_node("PlacementControls/Buttons/ConfirmButton") as Button

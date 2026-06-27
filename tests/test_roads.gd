@@ -33,7 +33,7 @@ func _initialize() -> void:
 	_assert(not straight_visuals.call("_point_touches_road", Vector2(0.24, -0.40), STRAIGHT.get_rotated_openings(0), 0.21), "Expected trees to remain available away from the road margin")
 	_assert(straight_visuals.call("_point_touches_road", Vector2(0.10, -0.40), STRAIGHT.get_rotated_openings(0), 0.21), "Expected trees not to be placed on roads")
 	await process_frame
-	var road_trees := straight_visuals.get_children().filter(func(child: Node) -> bool: return child.name != "RoadCenter")
+	var road_trees := straight_visuals.get_children().filter(func(child: Node) -> bool: return child.get_node_or_null("CrownLower") != null)
 	_assert(road_trees.size() == 4, "Expected placed road tiles to use sparse roadside trees")
 	var closest_tree_edge_distance := 1.0
 	for tree in road_trees:
@@ -72,6 +72,9 @@ func _initialize() -> void:
 	var junction_mesh: ArrayMesh = junction_visuals.call("_build_road_mesh", FOUR_WAY.get_rotated_openings(0), map.tile_size, map.tile_size * 0.21, 0.0)
 	_assert(junction_mesh.get_aabb().size.x >= map.tile_size * 0.99 and junction_mesh.get_aabb().size.z >= map.tile_size * 0.99, "Expected four-way road arms to reach every tile edge without appearing compressed")
 	_assert(not junction_visuals.call("_point_touches_road", Vector2(0.23, 0.23), FOUR_WAY.get_rotated_openings(0), 0.21), "Expected four-way junctions not to add a large square road center")
+	var dead_end_mesh: ArrayMesh = junction_visuals.call("_build_road_mesh", preload("res://data/road_dead_end.tres").get_rotated_openings(0), map.tile_size, map.tile_size * 0.21, 0.0)
+	var dead_end_vertices: PackedVector3Array = dead_end_mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	_assert(dead_end_vertices.size() > 12, "Expected Dead Ends to use a smooth rounded cap instead of a square end")
 
 	quit()
 

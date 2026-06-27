@@ -7,8 +7,12 @@ const ROAD_TREE_MARGIN_RATIO := 0.11
 const ROAD_TILE_TREE_COUNT := 4
 const ROAD_EDGE_SAMPLES := 6
 const ROAD_EDGE_JITTER_RATIO := 0.009
+const ENCOUNTER_PLAZA_DIAMETER_RATIO := 0.48
+const ENCOUNTER_PLAZA_HEIGHT_RATIO := 0.012
 const RoadPath = preload("res://scripts/road_path.gd")
 const ModelAssets = preload("res://scripts/model_assets.gd")
+const VisualPalette = preload("res://scripts/map_visual_palette.gd")
+const EnvironmentAssets = preload("res://scripts/map_environment_assets.gd")
 
 var _enemy_view: EnemyView
 
@@ -25,28 +29,33 @@ func render(
 	highlight_enabled: bool,
 	highlight_color: Color,
 	encounter_data: Dictionary,
-	enemy_offset: Vector3
+	enemy_offset: Vector3,
+	encounter_power_visible: bool
 ) -> void:
 	for child in get_children():
 		child.queue_free()
 
 	var openings := _get_openings(definition, rotation_steps)
+	var road_color := VisualPalette.ROAD
 	if definition != null and definition.get("road_visible") != false:
-		var road_color: Color = definition.get("road_color")
+		road_color = definition.get("road_color")
 		_draw_road(openings, tile_size, tile_size * ROAD_WIDTH_RATIO, road_color)
 
 	if definition != null:
 		_draw_visual_identity(str(definition.get("visual_identity")), openings, tile_size)
 		_add_road_tile_trees(openings, tile_size)
 
-	if not encounter_data.is_empty() and _encounter_type(encounter_data) != GameMap.ENCOUNTER_ENEMY:
-		_draw_reward_encounter(encounter_data, tile_size)
+	var road_anchor := RoadPath.get_anchor_offset(openings, tile_size)
+	var encounter_offset := enemy_offset + Vector3(road_anchor.x, 0.0, road_anchor.y)
+	if not encounter_data.is_empty():
+		_add_encounter_plaza(tile_size, encounter_offset, road_color)
+		if _encounter_type(encounter_data) != GameMap.ENCOUNTER_ENEMY:
+			_draw_reward_encounter(encounter_data, tile_size, encounter_offset)
 
 	if highlight_enabled:
 		_add_highlight(tile_size, highlight_color)
 
-	var road_anchor := RoadPath.get_anchor_offset(openings, tile_size)
-	_refresh_enemy_view(tile_size, encounter_data, enemy_offset + Vector3(road_anchor.x, 0.0, road_anchor.y))
+	_refresh_enemy_view(tile_size, encounter_data, encounter_offset, encounter_power_visible)
 
 
 func _get_openings(definition: Resource, rotation_steps: int) -> Dictionary:
@@ -56,6 +65,8 @@ func _get_openings(definition: Resource, rotation_steps: int) -> Dictionary:
 
 
 func _draw_road(openings: Dictionary, tile_size: float, width: float, color: Color, y_offset := 0.0) -> void:
+	_add_road_feather("RoadFeatherOuter", openings, tile_size, width + tile_size * 0.075, GROUND_HEIGHT + y_offset - 0.006, Color(color.r, color.g, color.b, 0.14))
+	_add_road_feather("RoadFeatherInner", openings, tile_size, width + tile_size * 0.040, GROUND_HEIGHT + y_offset - 0.003, Color(color.r, color.g, color.b, 0.28))
 	var mesh := _build_road_mesh(openings, tile_size, width, GROUND_HEIGHT + y_offset)
 	var instance := MeshInstance3D.new()
 	instance.name = "RoadCenter"
@@ -65,9 +76,20 @@ func _draw_road(openings: Dictionary, tile_size: float, width: float, color: Col
 	add_child(instance)
 
 
+func _add_road_feather(node_name: String, openings: Dictionary, tile_size: float, width: float, road_y: float, color: Color) -> void:
+	var feather := MeshInstance3D.new()
+	feather.name = node_name
+	feather.mesh = _build_road_mesh(openings, tile_size, width, road_y)
+	feather.material_override = _make_road_material(color)
+	feather.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(feather)
+
+
 func _build_road_mesh(openings: Dictionary, tile_size: float, width: float, road_y: float) -> ArrayMesh:
 	if RoadPath.is_corner(openings):
 		return _build_curved_road_mesh(openings, tile_size, width, road_y)
+	if _opening_count(openings) == 1:
+		return _build_dead_end_mesh(openings, tile_size, width, road_y)
 	var half_width := width * 0.5
 	var polygons: Array[PackedVector2Array] = [
 		PackedVector2Array([
@@ -103,6 +125,40 @@ func _build_road_mesh(openings: Dictionary, tile_size: float, width: float, road
 		_add_road_top_triangle(surface, a, b, c, top_y)
 	surface.generate_normals()
 	return surface.commit()
+
+
+func _build_dead_end_mesh(openings: Dictionary, tile_size: float, width: float, road_y: float) -> ArrayMesh:
+	var direction := Vector2.ZERO
+	for candidate in [Vector2(0.0, -1.0), Vector2(1.0, 0.0), Vector2(0.0, 1.0), Vector2(-1.0, 0.0)]:
+		if openings.get(_direction_name(candidate), false) == true:
+			direction = candidate
+			break
+	var side := Vector2(-direction.y, direction.x)
+	var half_width := width * 0.5
+	var edge := direction * tile_size * 0.5
+	var outline := PackedVector2Array([edge + side * half_width, edge - side * half_width])
+	for sample in 7:
+		var angle := PI * float(sample) / 6.0
+		outline.append(-side * cos(angle) * half_width - direction * sin(angle) * half_width)
+	return _build_flat_polygon_mesh(outline, road_y + 0.006)
+
+
+func _build_flat_polygon_mesh(outline: PackedVector2Array, y: float) -> ArrayMesh:
+	var surface := SurfaceTool.new()
+	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var indices := Geometry2D.triangulate_polygon(outline)
+	for index in range(0, indices.size(), 3):
+		_add_road_top_triangle(surface, outline[indices[index]], outline[indices[index + 1]], outline[indices[index + 2]], y)
+	surface.generate_normals()
+	return surface.commit()
+
+
+func _opening_count(openings: Dictionary) -> int:
+	var count := 0
+	for direction_name in ["north", "east", "south", "west"]:
+		if openings.get(direction_name, false) == true:
+			count += 1
+	return count
 
 
 func _build_curved_road_mesh(openings: Dictionary, tile_size: float, width: float, road_y: float) -> ArrayMesh:
@@ -182,11 +238,8 @@ func _road_edge_jitter(seed: int, sample: int, side: int, amount: float) -> floa
 	return (float(hash_value) / 50.0 - 1.0) * amount
 
 
-func _make_road_material(color: Color) -> StandardMaterial3D:
-	var material := _make_material(color)
-	material.roughness = 1.0
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	return material
+func _make_road_material(color: Color) -> Material:
+	return VisualPalette.make_road_material(color)
 
 
 func _draw_visual_identity(identity: String, openings: Dictionary, tile_size: float) -> void:
@@ -209,26 +262,41 @@ func _get_house_z_offset(openings: Dictionary, tile_size: float) -> float:
 	return tile_size * 0.08
 
 
-func _draw_reward_encounter(encounter: Dictionary, tile_size: float) -> void:
+func _add_encounter_plaza(tile_size: float, offset: Vector3, road_color: Color) -> void:
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = tile_size * ENCOUNTER_PLAZA_DIAMETER_RATIO * 0.5
+	mesh.bottom_radius = mesh.top_radius * 1.04
+	mesh.height = tile_size * ENCOUNTER_PLAZA_HEIGHT_RATIO
+	mesh.radial_segments = 12
+	var plaza := MeshInstance3D.new()
+	plaza.name = "EncounterPlaza"
+	plaza.mesh = mesh
+	plaza.position = offset + Vector3(0.0, GROUND_HEIGHT + mesh.height * 0.5 + 0.008, 0.0)
+	plaza.material_override = _make_road_material(road_color)
+	plaza.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(plaza)
+
+
+func _draw_reward_encounter(encounter: Dictionary, tile_size: float, encounter_offset: Vector3) -> void:
 	var kind := str(encounter.get("type", ""))
 	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
-		_add_bush(tile_size, Vector3(0.0, 0.0, tile_size * 0.20), true)
+		_add_bush(tile_size, encounter_offset, true)
 	elif kind == GameMap.ENCOUNTER_CACHE:
-		_add_box("Cache", Vector3(tile_size * 0.28, tile_size * 0.16, tile_size * 0.20), Vector3(0.0, GROUND_HEIGHT + tile_size * 0.08, tile_size * 0.18), Color(0.48, 0.27, 0.12))
+		_add_box("Cache", Vector3(tile_size * 0.28, tile_size * 0.16, tile_size * 0.20), encounter_offset + Vector3(0.0, GROUND_HEIGHT + tile_size * 0.08, 0.0), VisualPalette.WOOD)
 	elif kind == GameMap.ENCOUNTER_CAMPFIRE:
-		_add_campfire(tile_size)
+		_add_campfire(tile_size, encounter_offset)
 	elif kind == GameMap.ENCOUNTER_TAVERN:
-		_add_tavern(tile_size)
+		_add_tavern(tile_size, encounter_offset)
 	elif kind == GameMap.ENCOUNTER_WITCH_HUT:
-		_add_witch_hut(tile_size)
+		_add_witch_hut(tile_size, encounter_offset)
 	elif kind == GameMap.ENCOUNTER_SHRINE:
-		_add_shrine(tile_size)
+		_add_shrine(tile_size, encounter_offset)
 	elif kind == GameMap.ENCOUNTER_GRAVEYARD:
-		_add_graveyard(tile_size)
+		_add_graveyard(tile_size, encounter_offset)
 
 
-func _add_campfire(tile_size: float) -> void:
-	var center := Vector3(tile_size * 0.22, GROUND_HEIGHT, tile_size * 0.20)
+func _add_campfire(tile_size: float, encounter_offset: Vector3) -> void:
+	var center := encounter_offset + Vector3(0.0, GROUND_HEIGHT, 0.0)
 	var log_a := _add_box("CampfireLogA", Vector3(tile_size * 0.25, tile_size * 0.045, tile_size * 0.055), center + Vector3(0.0, tile_size * 0.025, 0.0), Color(0.32, 0.16, 0.07))
 	log_a.rotation.y = deg_to_rad(38.0)
 	var log_b := _add_box("CampfireLogB", Vector3(tile_size * 0.25, tile_size * 0.045, tile_size * 0.055), center + Vector3(0.0, tile_size * 0.03, 0.0), Color(0.42, 0.22, 0.09))
@@ -236,37 +304,37 @@ func _add_campfire(tile_size: float) -> void:
 	_add_cone("CampfireFlame", tile_size * 0.09, tile_size * 0.24, center + Vector3(0.0, tile_size * 0.15, 0.0), Color(1.0, 0.36, 0.06), 8)
 
 
-func _add_tavern(tile_size: float) -> void:
-	var center := Vector3(tile_size * 0.24, GROUND_HEIGHT, tile_size * 0.18)
+func _add_tavern(tile_size: float, encounter_offset: Vector3) -> void:
+	var center := encounter_offset + Vector3(0.0, GROUND_HEIGHT, 0.0)
 	_add_box("TavernBody", Vector3(tile_size * 0.32, tile_size * 0.25, tile_size * 0.26), center + Vector3(0.0, tile_size * 0.13, 0.0), Color(0.62, 0.40, 0.19))
 	_add_cone("TavernRoof", tile_size * 0.25, tile_size * 0.18, center + Vector3(0.0, tile_size * 0.34, 0.0), Color(0.55, 0.16, 0.10), 4)
 	_add_box("TavernSignPost", Vector3(tile_size * 0.025, tile_size * 0.22, tile_size * 0.025), center + Vector3(-tile_size * 0.23, tile_size * 0.12, 0.0), Color(0.25, 0.13, 0.05))
 	_add_box("TavernSign", Vector3(tile_size * 0.16, tile_size * 0.09, tile_size * 0.025), center + Vector3(-tile_size * 0.23, tile_size * 0.22, 0.0), Color(0.90, 0.67, 0.20))
 
 
-func _add_witch_hut(tile_size: float) -> void:
-	var center := Vector3(tile_size * 0.24, GROUND_HEIGHT, tile_size * 0.18)
+func _add_witch_hut(tile_size: float, encounter_offset: Vector3) -> void:
+	var center := encounter_offset + Vector3(0.0, GROUND_HEIGHT, 0.0)
 	_add_box("WitchHutBody", Vector3(tile_size * 0.30, tile_size * 0.24, tile_size * 0.25), center + Vector3(0.0, tile_size * 0.13, 0.0), Color(0.19, 0.16, 0.22))
 	var roof := _add_cone("WitchHutRoof", tile_size * 0.26, tile_size * 0.24, center + Vector3(0.0, tile_size * 0.37, 0.0), Color(0.37, 0.16, 0.48), 5)
 	roof.rotation.y = deg_to_rad(18.0)
 	_add_sphere("WitchHutGlow", tile_size * 0.045, center + Vector3(0.0, tile_size * 0.17, -tile_size * 0.14), Color(0.63, 0.95, 0.45))
 
 
-func _add_shrine(tile_size: float) -> void:
-	var center := Vector3(tile_size * 0.24, GROUND_HEIGHT, tile_size * 0.18)
+func _add_shrine(tile_size: float, encounter_offset: Vector3) -> void:
+	var center := encounter_offset + Vector3(0.0, GROUND_HEIGHT, 0.0)
 	_add_box("ShrineBase", Vector3(tile_size * 0.28, tile_size * 0.08, tile_size * 0.24), center + Vector3(0.0, tile_size * 0.04, 0.0), Color(0.40, 0.43, 0.46))
 	_add_box("ShrinePillar", Vector3(tile_size * 0.12, tile_size * 0.34, tile_size * 0.12), center + Vector3(0.0, tile_size * 0.23, 0.0), Color(0.58, 0.61, 0.62))
 	_add_sphere("ShrineLight", tile_size * 0.075, center + Vector3(0.0, tile_size * 0.45, 0.0), Color(0.38, 0.82, 1.0))
 
 
-func _add_graveyard(tile_size: float) -> void:
+func _add_graveyard(tile_size: float, encounter_offset: Vector3) -> void:
 	var stone := Color(0.46, 0.47, 0.45)
 	for index in 3:
 		var side := -1.0 if index % 2 == 0 else 1.0
 		var z := (-0.24 + float(index) * 0.22) * tile_size
-		var center := Vector3(side * tile_size * 0.27, GROUND_HEIGHT, z)
+		var center := encounter_offset + Vector3(side * tile_size * 0.18, GROUND_HEIGHT, z * 0.65)
 		_add_box("Gravestone%d" % index, Vector3(tile_size * 0.14, tile_size * 0.22, tile_size * 0.055), center + Vector3(0.0, tile_size * 0.11, 0.0), stone)
-	var cross_center := Vector3(tile_size * 0.29, GROUND_HEIGHT, tile_size * 0.24)
+	var cross_center := encounter_offset + Vector3(tile_size * 0.16, GROUND_HEIGHT, tile_size * 0.13)
 	_add_box("GraveCrossPost", Vector3(tile_size * 0.045, tile_size * 0.30, tile_size * 0.045), cross_center + Vector3(0.0, tile_size * 0.15, 0.0), Color(0.25, 0.19, 0.13))
 	_add_box("GraveCrossBar", Vector3(tile_size * 0.17, tile_size * 0.045, tile_size * 0.045), cross_center + Vector3(0.0, tile_size * 0.20, 0.0), Color(0.25, 0.19, 0.13))
 
@@ -339,12 +407,7 @@ func _point_touches_road(point: Vector2, openings: Dictionary, width_ratio: floa
 
 
 func _add_tree(tile_size: float, offset: Vector3, scale_factor: float = 1.0, width_factor: float = 1.0, rotation_y := 0.0) -> void:
-	var model := ModelAssets.instantiate_model(ModelAssets.TREE_MODEL, "Tree", offset, tile_size * scale_factor)
-	if model != null:
-		model.scale.x *= width_factor
-		model.scale.z *= width_factor
-		model.rotation_degrees.y = rotation_y
-		add_child(model)
+	add_child(EnvironmentAssets.create_tree(tile_size, offset, scale_factor, width_factor, rotation_y, get_child_count()))
 
 
 func _add_bush(tile_size: float, offset: Vector3, berries := false) -> void:
@@ -358,7 +421,7 @@ func _add_highlight(tile_size: float, highlight_color: Color) -> void:
 	_add_box("Highlight", Vector3(tile_size * 1.08, 0.018, tile_size * 1.08), Vector3(0.0, preview_y, 0.0), highlight_color)
 
 
-func _refresh_enemy_view(tile_size: float, encounter_data: Dictionary, enemy_offset: Vector3) -> void:
+func _refresh_enemy_view(tile_size: float, encounter_data: Dictionary, enemy_offset: Vector3, power_visible: bool) -> void:
 	if _enemy_view == null:
 		_enemy_view = get_node_or_null("../Enemy") as EnemyView
 	if _enemy_view == null:
@@ -366,6 +429,7 @@ func _refresh_enemy_view(tile_size: float, encounter_data: Dictionary, enemy_off
 	_enemy_view.tile_size = tile_size
 	_enemy_view.enemy_data = encounter_data if _encounter_type(encounter_data) == GameMap.ENCOUNTER_ENEMY else {}
 	_enemy_view.position = enemy_offset
+	_enemy_view.set_combat_status_visible(power_visible)
 
 
 func _encounter_type(encounter_data: Dictionary) -> String:
@@ -415,10 +479,4 @@ func _add_sphere(node_name: String, radius: float, local_position: Vector3, colo
 
 
 func _make_material(color: Color) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = 0.9
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	if color.a < 1.0:
-		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	return material
+	return VisualPalette.make_material(color)

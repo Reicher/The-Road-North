@@ -36,6 +36,11 @@ extends Node3D
 		encounter_data = value
 		_refresh_visuals()
 
+@export var encounter_power_visible := true:
+	set(value):
+		encounter_power_visible = value
+		_refresh_visuals()
+
 var enemy_data := {}:
 	get:
 		return encounter_data if _encounter_type() == GameMap.ENCOUNTER_ENEMY else {}
@@ -92,7 +97,8 @@ func _refresh_visuals() -> void:
 		highlight_enabled,
 		highlight_color,
 		encounter_data,
-		enemy_offset if enemy_offset is Vector3 else Vector3.ZERO
+		enemy_offset if enemy_offset is Vector3 else Vector3.ZERO,
+		encounter_power_visible
 	)
 
 

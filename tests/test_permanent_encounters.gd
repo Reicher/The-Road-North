@@ -34,6 +34,7 @@ func _init() -> void:
 		_assert(marker_card._encounter_marker_texture() != null, "Expected permanent encounter card to have an image marker: %s" % encounter_type)
 		marker_card.free()
 	_assert(roads.get_visual_tile(target).get_node_or_null("Visuals/CampfireFlame") != null, "Expected Campfire to have a distinct 3D marker")
+	_assert(roads.get_visual_tile(target).get_node_or_null("Visuals/EncounterPlaza") != null, "Expected every encounter to stand on a round plaza")
 	_assert_marker(roads.get_visual_tile(target), GameConstants.ENCOUNTER_TAVERN, "TavernBody")
 	_assert_marker(roads.get_visual_tile(target), GameConstants.ENCOUNTER_WITCH_HUT, "WitchHutBody")
 	_assert_marker(roads.get_visual_tile(target), GameConstants.ENCOUNTER_SHRINE, "ShrinePillar")
@@ -108,6 +109,7 @@ func _plain_road_card() -> Dictionary:
 func _assert_marker(tile: RoadTile, encounter_type: String, marker_name: String) -> void:
 	tile.set_encounter_data({"type": encounter_type})
 	_assert(tile.get_node_or_null("Visuals/%s" % marker_name) != null, "Expected %s to have a distinct 3D marker" % encounter_type)
+	_assert(tile.get_node_or_null("Visuals/EncounterPlaza") != null, "Expected %s to stand on a round plaza" % encounter_type)
 
 
 func _assert(condition: bool, message: String) -> void:

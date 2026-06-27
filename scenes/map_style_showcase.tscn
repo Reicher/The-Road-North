@@ -1,0 +1,28 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/map_style_showcase.gd" id="1_showcase"]
+
+[sub_resource type="Environment" id="Environment_showcase"]
+background_mode = 1
+background_color = Color(0.12, 0.15, 0.12, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.78, 0.82, 0.72, 1)
+ambient_light_energy = 0.35
+
+[node name="MapStyleShowcase" type="Node3D"]
+script = ExtResource("1_showcase")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_showcase")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-52, -35, 0)
+light_color = Color(1, 0.91, 0.76, 1)
+light_energy = 0.9
+shadow_enabled = true
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(96, 520, 590)
+projection = 1
+size = 470.0
+current = true

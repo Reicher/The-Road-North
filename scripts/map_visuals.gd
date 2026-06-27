@@ -3,11 +3,12 @@ extends Node3D
 
 const GROUND_HEIGHT := 0.08
 const FOREST_PADDING_TILES := 4
-const GROUND_LIGHT_COLOR := Color(0.69, 0.76, 0.57)
+const VisualPalette = preload("res://scripts/map_visual_palette.gd")
+const EnvironmentAssets = preload("res://scripts/map_environment_assets.gd")
+const GROUND_LIGHT_COLOR := VisualPalette.GRASS
 const PLAYABLE_GRID_COLOR := Color(0.30, 0.38, 0.26, 0.28)
 const PLAYABLE_BORDER_COLOR := Color(0.30, 0.38, 0.26, 0.62)
 const SELECTION_COLOR := Color(1.0, 0.86, 0.28, 0.96)
-const ModelAssets = preload("res://scripts/model_assets.gd")
 const TREE_SLOTS := [
 	Vector2(-0.38, -0.36),
 	Vector2(-0.08, -0.39),
@@ -187,7 +188,8 @@ func _add_border_forest_cell(map: GameMap, grid_position: Vector2i) -> void:
 	_forest_root.add_child(cell)
 	_forest_nodes.append(cell)
 
-	_add_box(cell, "ForestGround", Vector3(map.tile_size * 1.08, GROUND_HEIGHT, map.tile_size * 1.08), Vector3(0.0, -GROUND_HEIGHT * 0.65, 0.0), GROUND_LIGHT_COLOR)
+	var forest_ground := _add_box(cell, "ForestGround", Vector3(map.tile_size * 1.08, GROUND_HEIGHT, map.tile_size * 1.08), Vector3(0.0, -GROUND_HEIGHT * 0.65, 0.0), GROUND_LIGHT_COLOR)
+	forest_ground.material_override = VisualPalette.make_ground_material(GROUND_LIGHT_COLOR)
 	_add_outside_forest_trees(map, cell, grid_position)
 
 
@@ -198,13 +200,14 @@ func _add_playable_ground(map: GameMap) -> void:
 
 	var width := float(map.playable_width) * map.tile_size
 	var height := float(map.playable_height) * map.tile_size
-	_add_box(
+	var ground := _add_box(
 		_ground_node,
 		"Ground",
 		Vector3(width, GROUND_HEIGHT, height),
 		Vector3(width * 0.5, -GROUND_HEIGHT * 0.5, height * 0.5),
 		GROUND_LIGHT_COLOR
 	)
+	ground.material_override = VisualPalette.make_ground_material(GROUND_LIGHT_COLOR)
 
 
 func _add_playable_grid(map: GameMap) -> void:
@@ -257,8 +260,7 @@ func _add_playable_area_border(map: GameMap) -> void:
 func _add_fixed_feature_visual(map: GameMap, parent: Node3D, feature: Dictionary) -> void:
 	var feature_type := str(feature.get("type", ""))
 	if feature_type == GameMap.FEATURE_MOUNTAIN:
-		_add_cone(parent, "Mountain", map.tile_size * 0.58, map.tile_size * 0.64, Vector3(0.0, map.tile_size * 0.32, 0.0), Color(0.42, 0.43, 0.39))
-		_add_cone(parent, "SnowCap", map.tile_size * 0.24, map.tile_size * 0.20, Vector3(0.0, map.tile_size * 0.72, 0.0), Color(0.82, 0.84, 0.78))
+		EnvironmentAssets.add_mountain(parent, map.tile_size, parent.get_index())
 	elif feature_type == GameMap.FEATURE_RIVER:
 		_add_river(map, parent, int(feature.get("rotation_steps", 0)))
 	elif feature_type == GameMap.FEATURE_BRIDGE:
@@ -267,15 +269,11 @@ func _add_fixed_feature_visual(map: GameMap, parent: Node3D, feature: Dictionary
 
 
 func _add_river(map: GameMap, parent: Node3D, rotation_steps: int) -> void:
-	var horizontal := posmod(rotation_steps, 2) == 0
-	var size := Vector3(map.tile_size * 1.04, 0.04, map.tile_size * 0.34) if horizontal else Vector3(map.tile_size * 0.34, 0.04, map.tile_size * 1.04)
-	_add_box(parent, "River", size, Vector3(0.0, 0.03, 0.0), Color(0.23, 0.48, 0.68))
+	EnvironmentAssets.add_river(parent, map.tile_size, rotation_steps)
 
 
 func _add_bridge(map: GameMap, parent: Node3D, rotation_steps: int) -> void:
-	var horizontal_river := posmod(rotation_steps, 2) == 0
-	var size := Vector3(map.tile_size * 0.23, 0.08, map.tile_size) if horizontal_river else Vector3(map.tile_size, 0.08, map.tile_size * 0.23)
-	_add_box(parent, "Bridge", size, Vector3(0.0, 0.09, 0.0), Color(0.55, 0.36, 0.18))
+	EnvironmentAssets.add_bridge(parent, map.tile_size, rotation_steps)
 
 
 func _add_cell_trees(map: GameMap, parent: Node3D, grid_position: Vector2i) -> void:
@@ -303,12 +301,8 @@ func _add_outside_forest_trees(map: GameMap, parent: Node3D, grid_position: Vect
 
 
 func _add_tree(map: GameMap, parent: Node3D, offset: Vector3, scale_factor: float = 1.0, width_factor: float = 1.0, rotation_y := 0.0) -> void:
-	var model := ModelAssets.instantiate_model(ModelAssets.TREE_MODEL, "Tree", offset, map.tile_size * scale_factor)
-	if model != null:
-		model.scale.x *= width_factor
-		model.scale.z *= width_factor
-		model.rotation_degrees.y = rotation_y
-		parent.add_child(model)
+	var variant := parent.get_index() + parent.get_child_count()
+	parent.add_child(EnvironmentAssets.create_tree(map.tile_size, offset, scale_factor, width_factor, rotation_y, variant))
 
 
 func _add_box(parent: Node3D, node_name: String, size: Vector3, local_position: Vector3, color: Color) -> MeshInstance3D:
@@ -339,12 +333,7 @@ func _add_cone(parent: Node3D, node_name: String, bottom_radius: float, height: 
 
 
 func _make_material(color: Color) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	material.roughness = 0.9
-	if color.a < 1.0:
-		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	return material
+	return VisualPalette.make_material(color)
 
 
 func _resolve_roots() -> void:

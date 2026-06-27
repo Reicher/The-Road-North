@@ -59,7 +59,8 @@ pan_margin_z_tiles = 3.0
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.707107, -0.353553, 0.612372, 0, 0.866025, 0.5, -0.707107, -0.353553, 0.612372, 0, 0, 0)
-light_energy = 1.6
+light_color = Color(0.88, 0.92, 0.84, 1)
+light_energy = 1.15
 shadow_enabled = true
 
 [node name="UI" type="CanvasLayer" parent="."]

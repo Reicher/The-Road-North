@@ -28,10 +28,11 @@ func _initialize() -> void:
 		await process_frame
 		_assert(is_equal_approx(tile.tile_size, TILE_SIZE), "Expected tile size to remain grid aligned")
 		_assert(_count_named_children(tile.get_node("Visuals"), "RoadCenter") == 1, "Expected roads to render without a second shoulder frame: %s" % path)
+		_assert(_count_named_children(tile.get_node("Visuals"), "RoadShoulder") == 0, "Expected roads not to use a dark outline frame: %s" % path)
+		_assert(_count_named_children(tile.get_node("Visuals"), "RoadFeatherInner") == 1 and _count_named_children(tile.get_node("Visuals"), "RoadFeatherOuter") == 1, "Expected road sides to fade into the ground: %s" % path)
 		var road_center := tile.get_node("Visuals/RoadCenter") as MeshInstance3D
-		var road_material := road_center.material_override as StandardMaterial3D
-		_assert(road_material.albedo_texture == null, "Expected roads to use a clean solid color: %s" % path)
-		_assert(road_material.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED, "Expected flat roads to render without lighting shadows: %s" % path)
+		var road_material := road_center.material_override as ShaderMaterial
+		_assert(road_material != null and road_material.shader.code.contains("texture_value"), "Expected roads to use subtle procedural grain: %s" % path)
 		_assert(road_center.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF, "Expected flat roads not to cast shadows: %s" % path)
 		_assert(road_center.mesh is ArrayMesh, "Expected each road tile to use one continuous generated mesh: %s" % path)
 		for direction in ["North", "East", "South", "West"]:
@@ -64,6 +65,11 @@ func _initialize() -> void:
 	var curved_enemy := corner_tile.get_node("Enemy") as EnemyView
 	var corner_anchor := RoadPath.get_anchor_offset(corner_openings, TILE_SIZE)
 	_assert(curved_enemy.position.is_equal_approx(Vector3(corner_anchor.x, 0.0, corner_anchor.y)), "Expected enemies on corners to stand on the curved road")
+	var corner_plaza := corner_tile.get_node_or_null("Visuals/EncounterPlaza") as MeshInstance3D
+	_assert(corner_plaza != null, "Expected enemies to stand on the shared encounter plaza")
+	_assert(Vector2(corner_plaza.position.x, corner_plaza.position.z).is_equal_approx(corner_anchor), "Expected encounter plazas to follow the curved road anchor")
+	var corner_plaza_material := corner_plaza.material_override as ShaderMaterial
+	_assert((corner_plaza_material.get_shader_parameter("base_color") as Color).is_equal_approx(corner_tile.definition.road_color), "Expected encounter plazas to use exactly the underlying road color")
 	corner_tile.queue_free()
 
 	var enemy_tile := TILE_SCENE.instantiate() as RoadTile
