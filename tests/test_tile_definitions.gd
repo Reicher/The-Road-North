@@ -91,6 +91,20 @@ func _initialize() -> void:
 	_assert(berry_visuals.get_node_or_null("BerryBush0BerryA") == null, "Expected red berries to disappear after collection")
 	berry_tile.queue_free()
 
+	var cache_tile := TILE_SCENE.instantiate() as RoadTile
+	cache_tile.definition = straight
+	cache_tile.tile_size = TILE_SIZE
+	cache_tile.encounter_data = {"type": GameMap.ENCOUNTER_CACHE}
+	get_root().add_child(cache_tile)
+	await process_frame
+	var cache_visuals := cache_tile.get_node("Visuals")
+	_assert(cache_visuals.get_node_or_null("Cache") != null, "Expected cache loot to appear on its road plaza")
+	_assert(cache_visuals.get_node_or_null("EncounterPlaza") != null, "Expected cache loot to have a round road plaza")
+	cache_tile.set_encounter_data({})
+	_assert(cache_visuals.get_node_or_null("Cache") == null, "Expected collected cache loot to disappear")
+	_assert(cache_visuals.get_node_or_null("EncounterPlaza") != null, "Expected the round road plaza to remain after cache collection")
+	cache_tile.queue_free()
+
 	var enemy_tile := TILE_SCENE.instantiate() as RoadTile
 	get_root().add_child(enemy_tile)
 	enemy_tile.definition = straight

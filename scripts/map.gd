@@ -156,6 +156,24 @@ func clear_selected_tile() -> void:
 	_visuals.clear_selected_cell()
 
 
+func show_route_preview(points: PackedVector3Array) -> void:
+	if not _resolve_visuals():
+		return
+	_visuals.show_route(points, tile_size)
+
+
+func advance_route_preview(world_position: Vector3) -> void:
+	if not _resolve_visuals():
+		return
+	_visuals.advance_route(world_position)
+
+
+func clear_route_preview() -> void:
+	if not _resolve_visuals():
+		return
+	_visuals.clear_route()
+
+
 func set_cell_trees_visible(grid_position: Vector2i, trees_visible: bool) -> void:
 	if not _resolve_visuals():
 		return

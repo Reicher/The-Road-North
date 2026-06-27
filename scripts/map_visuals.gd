@@ -9,6 +9,22 @@ const GROUND_LIGHT_COLOR := VisualPalette.GRASS
 const PLAYABLE_GRID_COLOR := Color(0.30, 0.38, 0.26, 0.28)
 const PLAYABLE_BORDER_COLOR := Color(0.30, 0.38, 0.26, 0.62)
 const SELECTION_COLOR := Color(1.0, 0.86, 0.28, 0.96)
+const ROUTE_COLOR := Color(1.0, 0.67, 0.08, 0.96)
+const ROUTE_SHADER := """
+shader_type spatial;
+render_mode unshaded, cull_disabled, blend_add, depth_draw_never;
+uniform vec4 route_color : source_color;
+uniform float route_progress = 0.0;
+void fragment() {
+	float edge = 1.0 - abs(UV.y * 2.0 - 1.0);
+	float glow = smoothstep(0.0, 0.55, edge);
+	float pulse = 0.82 + 0.18 * sin(TIME * 4.0 - UV.x * 0.08);
+	float revealed = smoothstep(route_progress - 1.5, route_progress, UV.x);
+	ALBEDO = route_color.rgb;
+	EMISSION = route_color.rgb * (1.8 + pulse);
+	ALPHA = route_color.a * glow * pulse * revealed;
+}
+"""
 const TREE_SLOTS := [
 	Vector2(-0.38, -0.36),
 	Vector2(-0.08, -0.39),
@@ -49,6 +65,11 @@ var _cells_root: Node3D
 var _forest_root: Node3D
 var _tap_highlights: Dictionary = {}
 var _selection_highlight: Node3D
+var _route_line: MeshInstance3D
+var _route_points := PackedVector3Array()
+var _route_width := 4.0
+var _route_last_world_position := Vector3.ZERO
+var _route_progress := 0.0
 
 
 func rebuild_all(map: GameMap) -> void:
@@ -179,6 +200,99 @@ func clear_selected_cell() -> void:
 	if _selection_highlight != null and is_instance_valid(_selection_highlight):
 		_selection_highlight.queue_free()
 	_selection_highlight = null
+
+
+func show_route(points: PackedVector3Array, tile_size: float) -> void:
+	clear_route()
+	if points.size() < 2:
+		return
+	_route_points = points.duplicate()
+	_route_last_world_position = points[0]
+	_route_progress = 0.0
+	_route_width = maxf(3.5, tile_size * 0.045)
+	_route_line = MeshInstance3D.new()
+	_route_line.name = "MovementRoute"
+	_route_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var material := ShaderMaterial.new()
+	var shader := Shader.new()
+	shader.code = ROUTE_SHADER
+	material.shader = shader
+	material.set_shader_parameter("route_color", ROUTE_COLOR)
+	_route_line.material_override = material
+	add_child(_route_line)
+	_rebuild_route_mesh()
+
+
+func advance_route(world_position: Vector3) -> void:
+	if _route_points.size() < 2:
+		return
+	_route_progress += _route_last_world_position.distance_to(world_position)
+	_route_last_world_position = world_position
+	var material := _route_line.material_override as ShaderMaterial
+	if material != null:
+		material.set_shader_parameter("route_progress", _route_progress)
+
+
+func clear_route() -> void:
+	_route_points.clear()
+	_route_last_world_position = Vector3.ZERO
+	_route_progress = 0.0
+	if _route_line != null and is_instance_valid(_route_line):
+		_route_line.queue_free()
+	_route_line = null
+
+
+func _rebuild_route_mesh() -> void:
+	if _route_line == null or _route_points.size() < 2:
+		return
+	var mesh := ImmediateMesh.new()
+	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	var traveled := 0.0
+	var has_vertices := false
+	var route_sides := PackedVector3Array()
+	for point_index in range(_route_points.size()):
+		route_sides.append(_get_route_side(point_index))
+	for index in range(_route_points.size() - 1):
+		var from := _route_points[index] + Vector3.UP * 2.2
+		var to := _route_points[index + 1] + Vector3.UP * 2.2
+		var direction := to - from
+		if direction.length_squared() < 0.001:
+			continue
+		var from_side := route_sides[index]
+		var to_side := route_sides[index + 1]
+		var next_distance := traveled + direction.length()
+		_add_route_vertex(mesh, from - from_side, Vector2(traveled, 0.0))
+		_add_route_vertex(mesh, from + from_side, Vector2(traveled, 1.0))
+		_add_route_vertex(mesh, to + to_side, Vector2(next_distance, 1.0))
+		_add_route_vertex(mesh, from - from_side, Vector2(traveled, 0.0))
+		_add_route_vertex(mesh, to + to_side, Vector2(next_distance, 1.0))
+		_add_route_vertex(mesh, to - to_side, Vector2(next_distance, 0.0))
+		has_vertices = true
+		traveled = next_distance
+	if has_vertices:
+		mesh.surface_end()
+	_route_line.mesh = mesh
+
+
+func _add_route_vertex(mesh: ImmediateMesh, vertex: Vector3, uv: Vector2) -> void:
+	mesh.surface_set_uv(uv)
+	mesh.surface_add_vertex(vertex)
+
+
+func _get_route_side(point_index: int) -> Vector3:
+	var previous_index := maxi(0, point_index - 1)
+	var next_index := mini(_route_points.size() - 1, point_index + 1)
+	var tangent := _route_points[next_index] - _route_points[previous_index]
+	if tangent.length_squared() < 0.001:
+		return Vector3.ZERO
+	tangent = tangent.normalized()
+	var miter := Vector3(-tangent.z, 0.0, tangent.x)
+	var segment := _route_points[next_index] - _route_points[point_index]
+	if segment.length_squared() < 0.001:
+		segment = _route_points[point_index] - _route_points[previous_index]
+	var segment_normal := Vector3(-segment.z, 0.0, segment.x).normalized()
+	var miter_scale := 1.0 / maxf(0.5, absf(miter.dot(segment_normal)))
+	return miter * _route_width * 0.5 * minf(miter_scale, 1.5)
 
 
 func _add_border_forest_cell(map: GameMap, grid_position: Vector2i) -> void:

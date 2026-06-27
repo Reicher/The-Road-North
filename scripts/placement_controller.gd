@@ -458,7 +458,7 @@ func _refresh_preview() -> void:
 	_preview_tile.rotation_steps = rotation_steps
 	_preview_tile.tile_size = _map.tile_size
 	_preview_tile.encounter_power_visible = false
-	_preview_tile.encounter_data = _get_preview_encounter_data()
+	_preview_tile.set_preview_encounter_data(_get_preview_encounter_data())
 	_preview_tile.position = _map.grid_to_world(preview_position)
 	_preview_tile.scale = Vector3.ONE
 	_preview_tile.visible = true

@@ -29,6 +29,7 @@ func render(
 	highlight_enabled: bool,
 	highlight_color: Color,
 	encounter_data: Dictionary,
+	encounter_plaza_visible: bool,
 	enemy_offset: Vector3,
 	encounter_power_visible: bool
 ) -> void:
@@ -50,10 +51,10 @@ func render(
 
 	var road_anchor := RoadPath.get_anchor_offset(openings, tile_size)
 	var encounter_offset := enemy_offset + Vector3(road_anchor.x, 0.0, road_anchor.y)
+	if encounter_plaza_visible:
+		_add_encounter_plaza(tile_size, encounter_offset, road_color)
 	if not encounter_data.is_empty():
 		var encounter_type := _encounter_type(encounter_data)
-		if encounter_type not in [GameMap.ENCOUNTER_ENEMY, GameMap.ENCOUNTER_BERRY_BUSH]:
-			_add_encounter_plaza(tile_size, encounter_offset, road_color)
 		if encounter_type != GameMap.ENCOUNTER_ENEMY:
 			_draw_reward_encounter(encounter_data, tile_size, encounter_offset, openings)
 

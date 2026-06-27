@@ -34,6 +34,8 @@ extends Node3D
 @export var encounter_data := {}:
 	set(value):
 		encounter_data = value
+		if _encounter_uses_plaza(value):
+			_encounter_plaza_visible = true
 		_refresh_visuals()
 
 @export var encounter_power_visible := true:
@@ -58,6 +60,7 @@ var enemy_offset = Vector3.ZERO:
 		_refresh_visuals()
 
 var _visuals: Node
+var _encounter_plaza_visible := false
 
 
 func _ready() -> void:
@@ -84,6 +87,13 @@ func set_encounter_data(value: Dictionary) -> void:
 	encounter_data = value
 
 
+func set_preview_encounter_data(value: Dictionary) -> void:
+	# Preview tiles are reused between cards and must not retain a plaza from
+	# an encounter shown by the previous card.
+	_encounter_plaza_visible = _encounter_uses_plaza(value)
+	encounter_data = value
+
+
 func _refresh_visuals() -> void:
 	if not is_inside_tree():
 		return
@@ -97,6 +107,7 @@ func _refresh_visuals() -> void:
 		highlight_enabled,
 		highlight_color,
 		encounter_data,
+		_encounter_plaza_visible,
 		enemy_offset if enemy_offset is Vector3 else Vector3.ZERO,
 		encounter_power_visible
 	)
@@ -112,3 +123,11 @@ func _resolve_visuals() -> bool:
 
 func _encounter_type() -> String:
 	return str(encounter_data.get("type", ""))
+
+
+func _encounter_uses_plaza(value: Dictionary) -> bool:
+	var encounter_type := str(value.get("type", ""))
+	return not encounter_type.is_empty() and encounter_type not in [
+		GameMap.ENCOUNTER_ENEMY,
+		GameMap.ENCOUNTER_BERRY_BUSH,
+	]

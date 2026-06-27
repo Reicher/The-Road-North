@@ -41,7 +41,7 @@ var input_enabled := true:
 	set(value):
 		input_enabled = value
 		if not input_enabled:
-			clear_tile_selection()
+			clear_tile_selection(not _moving)
 
 var _map: GameMap
 var _inventory: InventoryUI
@@ -121,6 +121,7 @@ func move_to(target_position: Vector2i) -> bool:
 		return false
 	_map.flash_tile(target_position)
 	_route_destination = target_position
+	_show_route_to_destination()
 	if _moving:
 		return true
 
@@ -155,9 +156,11 @@ func _follow_route_immediately(input_enabled_before_move: bool) -> void:
 			return
 		_spend_movement_food()
 		position = RoadPath.get_world_anchor(_map, next_position)
+		_map.advance_route_preview(position)
 		grid_position = next_position
 		refresh_enemy_risk_colors()
 		if check_run_won():
+			_map.clear_route_preview()
 			_moving = false
 			moved.emit(grid_position)
 			return
@@ -167,6 +170,8 @@ func _follow_route_immediately(input_enabled_before_move: bool) -> void:
 		if _encounter_pauses_route(reached_encounter):
 			break
 	_moving = false
+	if grid_position == _route_destination or food <= 0:
+		_map.clear_route_preview()
 	moved.emit(grid_position)
 
 
@@ -195,8 +200,10 @@ func _follow_route(input_enabled_before_move: bool) -> void:
 			position = RoadPath.get_world_anchor(_map, next_position)
 
 		grid_position = next_position
+		_map.advance_route_preview(position)
 		refresh_enemy_risk_colors()
 		if check_run_won():
+			_map.clear_route_preview()
 			_moving = false
 			moved.emit(grid_position)
 			return
@@ -207,6 +214,8 @@ func _follow_route(input_enabled_before_move: bool) -> void:
 			break
 
 	_moving = false
+	if grid_position == _route_destination or food <= 0:
+		_map.clear_route_preview()
 	moved.emit(grid_position)
 
 
@@ -360,12 +369,18 @@ func select_tile(target_position: Vector2i) -> void:
 		return
 	_selected_tile = target_position
 	_map.select_tile(target_position)
+	var can_confirm := _is_selectable_movement_destination(target_position)
+	if can_confirm and target_position != grid_position:
+		var path := _map.find_shortest_path(grid_position, target_position)
+		_show_route_for_path(path)
+	else:
+		_map.clear_route_preview()
 	if _movement_selection != null:
 		_movement_selection.show_selection(
 			_get_tile_display_name(target_position),
 			target_position,
 			_map,
-			_is_selectable_movement_destination(target_position)
+			can_confirm
 		)
 
 
@@ -373,16 +388,18 @@ func confirm_selected_move() -> bool:
 	if _selected_tile.x < 0 or not _is_selectable_movement_destination(_selected_tile):
 		return false
 	var target := _selected_tile
-	clear_tile_selection()
+	clear_tile_selection(false)
 	return move_to(target)
 
 
-func clear_tile_selection() -> void:
+func clear_tile_selection(clear_route := true) -> void:
 	_selected_tile = Vector2i(-1, -1)
 	if _map != null:
 		_map.clear_selected_tile()
 	if _movement_selection != null:
 		_movement_selection.hide_selection()
+	if clear_route and _map != null:
+		_map.clear_route_preview()
 
 
 func get_selected_tile() -> Vector2i:
@@ -460,6 +477,7 @@ func _animate_hop_to_grid_position(target_position: Vector2i, duration: float) -
 	tween.tween_method(func(progress: float) -> void:
 		var sample := RoadPath.sample_path(path, progress)
 		_apply_hop_at_position(sample["position"], sample["direction"], progress)
+		_map.advance_route_preview(sample["position"])
 	, 0.0, 1.0, duration)
 	await tween.finished
 	position = target_world_position
@@ -618,6 +636,7 @@ func _retreat_from_enemy(origin_position: Vector2i, previous_input_enabled: bool
 	grid_position = origin_position
 	_moving = false
 	_route_destination = grid_position
+	_map.clear_route_preview()
 	_finish_combat(previous_input_enabled)
 	move_failed.emit(grid_position)
 	_check_game_over()
@@ -666,6 +685,22 @@ func continue_route_after_encounter() -> bool:
 	else:
 		_follow_route(input_enabled)
 	return true
+
+
+func _show_route_to_destination() -> void:
+	if _map == null or grid_position == _route_destination:
+		if _map != null:
+			_map.clear_route_preview()
+		return
+	var path := _map.find_shortest_path(grid_position, _route_destination)
+	_show_route_for_path(path)
+
+
+func _show_route_for_path(path: Array[Vector2i]) -> void:
+	if path.size() < 2:
+		_map.clear_route_preview()
+		return
+	_map.show_route_preview(RoadPath.build_route_path(_map, path, position))
 
 
 func _encounter_pauses_route(encounter: Dictionary) -> bool:
