@@ -692,7 +692,10 @@ func _resolve_reward_encounter_at(target_position: Vector2i) -> void:
 		permanent_encounter_reached.emit(target_position, encounter.duplicate(true))
 		return
 	if _rewards.collect_reward_at(target_position):
-		_clear_visual_encounter_data(target_position)
+		if str(encounter.get("type", "")) == GameMap.ENCOUNTER_BERRY_BUSH:
+			_set_visual_encounter_data(target_position, {"type": GameMap.ENCOUNTER_BERRY_BUSH, "depleted": true})
+		else:
+			_clear_visual_encounter_data(target_position)
 
 
 func trigger_game_over(reason: String) -> void:

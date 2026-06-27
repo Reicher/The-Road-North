@@ -8,8 +8,8 @@ signal tile_destroyed(grid_position: Vector2i, card: CardView)
 signal tile_rotated(grid_position: Vector2i, card: CardView)
 signal encounter_changed(grid_position: Vector2i, card: CardView)
 
-const VALID_COLOR := Color(0.10, 0.95, 0.28, 0.34)
-const INVALID_COLOR := Color(1.00, 0.10, 0.08, 0.38)
+const VALID_COLOR := Color(0.18, 0.88, 0.34, 0.82)
+const INVALID_COLOR := Color(0.96, 0.16, 0.12, 0.86)
 const MODE_NONE := ""
 const MODE_ROAD_PLACEMENT := "road_placement"
 const MODE_DESTROY_TARGETING := "destroy_targeting"
@@ -27,6 +27,17 @@ uniform float tile_size;
 uniform float sight;
 uniform vec4 fog_color : source_color;
 
+const float EDGE_SOFTNESS = 0.20;
+
+float grid_distance(vec2 a, vec2 b) {
+	return abs(a.x - b.x) + abs(a.y - b.y);
+}
+
+float distance_to_cell(vec2 point, vec2 cell) {
+	vec2 distance_to_box = max(abs(point - (cell + vec2(0.5))) - vec2(0.5), vec2(0.0));
+	return length(distance_to_box);
+}
+
 void vertex() {
 	POSITION = vec4(VERTEX.xy, 1.0, 1.0);
 }
@@ -43,13 +54,30 @@ void fragment() {
 	vec2 grid_position = floor(world_position.xz / tile_size);
 	bool inside_map = grid_position.x >= 0.0 && grid_position.y >= 0.0
 		&& grid_position.x < map_size.x && grid_position.y < map_size.y;
-	float distance_from_player = abs(grid_position.x - player_grid.x)
-		+ abs(grid_position.y - player_grid.y);
+	float distance_from_player = grid_distance(grid_position, player_grid);
 	if (inside_map && distance_from_player <= sight) {
 		discard;
 	}
+
+	float edge_alpha = 1.0;
+	if (inside_map) {
+		vec2 continuous_grid_position = world_position.xz / tile_size;
+		float distance_to_clear_area = 2.0;
+		for (int offset_y = -1; offset_y <= 1; offset_y++) {
+			for (int offset_x = -1; offset_x <= 1; offset_x++) {
+				vec2 candidate = grid_position + vec2(float(offset_x), float(offset_y));
+				if (grid_distance(candidate, player_grid) <= sight) {
+					distance_to_clear_area = min(distance_to_clear_area, distance_to_cell(continuous_grid_position, candidate));
+				}
+			}
+		}
+		float edge_noise = sin(world_position.x * 0.075 + TIME * 0.28)
+			* sin(world_position.z * 0.061 - TIME * 0.19) * 0.018;
+		edge_alpha = smoothstep(0.0, EDGE_SOFTNESS, distance_to_clear_area + edge_noise);
+		edge_alpha = mix(0.22, 1.0, edge_alpha);
+	}
 	ALBEDO = fog_color.rgb;
-	ALPHA = fog_color.a;
+	ALPHA = fog_color.a * edge_alpha;
 }
 """
 

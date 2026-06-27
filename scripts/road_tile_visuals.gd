@@ -33,7 +33,7 @@ func render(
 	encounter_power_visible: bool
 ) -> void:
 	for child in get_children():
-		child.queue_free()
+		child.free()
 
 	var openings := _get_openings(definition, rotation_steps)
 	var road_color := VisualPalette.ROAD
@@ -43,14 +43,19 @@ func render(
 
 	if definition != null:
 		_draw_visual_identity(str(definition.get("visual_identity")), openings, tile_size)
-		_add_road_tile_trees(openings, tile_size)
+		var reserved_bush_positions: Array[Vector2] = []
+		if _encounter_type(encounter_data) == GameMap.ENCOUNTER_BERRY_BUSH:
+			reserved_bush_positions = _berry_bush_positions(openings)
+		_add_road_tile_trees(openings, tile_size, reserved_bush_positions)
 
 	var road_anchor := RoadPath.get_anchor_offset(openings, tile_size)
 	var encounter_offset := enemy_offset + Vector3(road_anchor.x, 0.0, road_anchor.y)
 	if not encounter_data.is_empty():
-		_add_encounter_plaza(tile_size, encounter_offset, road_color)
-		if _encounter_type(encounter_data) != GameMap.ENCOUNTER_ENEMY:
-			_draw_reward_encounter(encounter_data, tile_size, encounter_offset)
+		var encounter_type := _encounter_type(encounter_data)
+		if encounter_type not in [GameMap.ENCOUNTER_ENEMY, GameMap.ENCOUNTER_BERRY_BUSH]:
+			_add_encounter_plaza(tile_size, encounter_offset, road_color)
+		if encounter_type != GameMap.ENCOUNTER_ENEMY:
+			_draw_reward_encounter(encounter_data, tile_size, encounter_offset, openings)
 
 	if highlight_enabled:
 		_add_highlight(tile_size, highlight_color)
@@ -277,10 +282,10 @@ func _add_encounter_plaza(tile_size: float, offset: Vector3, road_color: Color) 
 	add_child(plaza)
 
 
-func _draw_reward_encounter(encounter: Dictionary, tile_size: float, encounter_offset: Vector3) -> void:
+func _draw_reward_encounter(encounter: Dictionary, tile_size: float, encounter_offset: Vector3, openings: Dictionary) -> void:
 	var kind := str(encounter.get("type", ""))
 	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
-		_add_bush(tile_size, encounter_offset, true)
+		_add_berry_bushes(tile_size, openings, encounter.get("depleted", false) != true)
 	elif kind == GameMap.ENCOUNTER_CACHE:
 		_add_box("Cache", Vector3(tile_size * 0.28, tile_size * 0.16, tile_size * 0.20), encounter_offset + Vector3(0.0, GROUND_HEIGHT + tile_size * 0.08, 0.0), VisualPalette.WOOD)
 	elif kind == GameMap.ENCOUNTER_CAMPFIRE:
@@ -339,12 +344,19 @@ func _add_graveyard(tile_size: float, encounter_offset: Vector3) -> void:
 	_add_box("GraveCrossBar", Vector3(tile_size * 0.17, tile_size * 0.045, tile_size * 0.045), cross_center + Vector3(0.0, tile_size * 0.20, 0.0), Color(0.25, 0.19, 0.13))
 
 
-func _add_road_tile_trees(openings: Dictionary, tile_size: float) -> void:
+func _add_road_tile_trees(openings: Dictionary, tile_size: float, reserved_positions: Array[Vector2] = []) -> void:
 	var added := 0
 	var seed := _tree_layout_seed(openings, tile_size)
 	var slots := _road_tree_slots(seed)
 	for slot in slots:
 		if _point_touches_road(slot, openings, ROAD_WIDTH_RATIO):
+			continue
+		var overlaps_reserved := false
+		for reserved_position in reserved_positions:
+			if slot.distance_to(reserved_position) < 0.24:
+				overlaps_reserved = true
+				break
+		if overlaps_reserved:
 			continue
 		var scale_factor := 0.62 + float(posmod(seed + added * 5, 7)) * 0.045
 		var width_factor := 0.86 + float(posmod(seed + added * 3, 5)) * 0.055
@@ -410,15 +422,63 @@ func _add_tree(tile_size: float, offset: Vector3, scale_factor: float = 1.0, wid
 	add_child(EnvironmentAssets.create_tree(tile_size, offset, scale_factor, width_factor, rotation_y, get_child_count()))
 
 
-func _add_bush(tile_size: float, offset: Vector3, berries := false) -> void:
-	_add_sphere("Bush", tile_size * 0.12, offset + Vector3(0.0, GROUND_HEIGHT + tile_size * 0.09, 0.0), Color(0.18, 0.44, 0.22))
+func _add_bush(tile_size: float, offset: Vector3, berries := false, prefix := "Bush") -> void:
+	_add_low_poly_sphere("%sCore" % prefix, tile_size * 0.085, offset + Vector3(0.0, GROUND_HEIGHT + tile_size * 0.075, 0.0), VisualPalette.FOLIAGE.lightened(0.06))
+	_add_low_poly_sphere("%sLeft" % prefix, tile_size * 0.065, offset + Vector3(-tile_size * 0.055, GROUND_HEIGHT + tile_size * 0.065, tile_size * 0.025), VisualPalette.FOLIAGE)
+	_add_low_poly_sphere("%sRight" % prefix, tile_size * 0.06, offset + Vector3(tile_size * 0.055, GROUND_HEIGHT + tile_size * 0.06, tile_size * 0.02), VisualPalette.FOLIAGE.darkened(0.06))
 	if berries:
-		_add_sphere("BerryA", tile_size * 0.024, offset + Vector3(tile_size * 0.04, GROUND_HEIGHT + tile_size * 0.15, -tile_size * 0.06), Color(0.67, 0.10, 0.18))
+		_add_berry("%sBerryA" % prefix, tile_size * 0.025, offset + Vector3(tile_size * 0.035, GROUND_HEIGHT + tile_size * 0.135, -tile_size * 0.050), VisualPalette.BERRY)
+		_add_berry("%sBerryB" % prefix, tile_size * 0.023, offset + Vector3(-tile_size * 0.050, GROUND_HEIGHT + tile_size * 0.120, -tile_size * 0.035), VisualPalette.BERRY.lightened(0.12))
+		_add_berry("%sBerryC" % prefix, tile_size * 0.022, offset + Vector3(tile_size * 0.078, GROUND_HEIGHT + tile_size * 0.100, tile_size * 0.020), VisualPalette.BERRY)
+		_add_berry("%sBerryD" % prefix, tile_size * 0.021, offset + Vector3(-tile_size * 0.082, GROUND_HEIGHT + tile_size * 0.090, tile_size * 0.030), VisualPalette.BERRY.lightened(0.08))
+		_add_berry("%sBerryE" % prefix, tile_size * 0.023, offset + Vector3(tile_size * 0.005, GROUND_HEIGHT + tile_size * 0.105, tile_size * 0.065), VisualPalette.BERRY.darkened(0.03))
+		_add_berry("%sBerryF" % prefix, tile_size * 0.020, offset + Vector3(-tile_size * 0.015, GROUND_HEIGHT + tile_size * 0.145, tile_size * 0.005), VisualPalette.BERRY.lightened(0.15))
+
+
+func _add_berry_bushes(tile_size: float, openings: Dictionary, berries: bool) -> void:
+	var positions := _berry_bush_positions(openings)
+	for index in positions.size():
+		var position_2d := positions[index]
+		_add_bush(tile_size, Vector3(position_2d.x * tile_size, 0.0, position_2d.y * tile_size), berries, "BerryBush%d" % index)
+
+
+func _berry_bush_positions(openings: Dictionary) -> Array[Vector2]:
+	var candidates := [
+		Vector2(-0.31, -0.31), Vector2(0.31, -0.31), Vector2(0.31, 0.31), Vector2(-0.31, 0.31),
+		Vector2(-0.36, 0.0), Vector2(0.36, 0.0), Vector2(0.0, -0.36), Vector2(0.0, 0.36),
+	]
+	var positions: Array[Vector2] = []
+	for candidate in candidates:
+		if _point_touches_road(candidate, openings, ROAD_WIDTH_RATIO):
+			continue
+		positions.append(candidate)
+		if positions.size() >= 3:
+			break
+	return positions
 
 
 func _add_highlight(tile_size: float, highlight_color: Color) -> void:
-	var preview_y := GROUND_HEIGHT * 0.55
-	_add_box("Highlight", Vector3(tile_size * 1.08, 0.018, tile_size * 1.08), Vector3(0.0, preview_y, 0.0), highlight_color)
+	var highlight := Node3D.new()
+	highlight.name = "Highlight"
+	add_child(highlight)
+	var span := tile_size * 0.96
+	var line_width := tile_size * 0.035
+	var y := GROUND_HEIGHT + tile_size * 0.018
+	for entry in [
+		["North", Vector3(span, 0.025, line_width), Vector3(0.0, y, -span * 0.5)],
+		["South", Vector3(span, 0.025, line_width), Vector3(0.0, y, span * 0.5)],
+		["West", Vector3(line_width, 0.025, span), Vector3(-span * 0.5, y, 0.0)],
+		["East", Vector3(line_width, 0.025, span), Vector3(span * 0.5, y, 0.0)],
+	]:
+		var mesh := BoxMesh.new()
+		mesh.size = entry[1]
+		var edge := MeshInstance3D.new()
+		edge.name = "Edge%s" % entry[0]
+		edge.mesh = mesh
+		edge.position = entry[2]
+		edge.material_override = _make_material(highlight_color)
+		edge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		highlight.add_child(edge)
 
 
 func _refresh_enemy_view(tile_size: float, encounter_data: Dictionary, enemy_offset: Vector3, power_visible: bool) -> void:
@@ -476,6 +536,30 @@ func _add_sphere(node_name: String, radius: float, local_position: Vector3, colo
 	instance.material_override = _make_material(color)
 	add_child(instance)
 	return instance
+
+
+func _add_low_poly_sphere(node_name: String, radius: float, local_position: Vector3, color: Color) -> MeshInstance3D:
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 2.0
+	mesh.radial_segments = 8
+	mesh.rings = 4
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	instance.mesh = mesh
+	instance.position = local_position
+	instance.material_override = _make_material(color)
+	add_child(instance)
+	return instance
+
+
+func _add_berry(node_name: String, radius: float, local_position: Vector3, color: Color) -> void:
+	var berry := _add_low_poly_sphere(node_name, radius, local_position, color)
+	var material := _make_material(color)
+	material.emission_enabled = true
+	material.emission = color.darkened(0.18)
+	material.emission_energy_multiplier = 0.55
+	berry.material_override = material
 
 
 func _make_material(color: Color) -> StandardMaterial3D:

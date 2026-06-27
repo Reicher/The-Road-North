@@ -101,6 +101,7 @@ func _initialize() -> void:
 	_assert(not player.position.is_equal_approx(map.grid_to_world(Vector2i(4, 6))), "Expected a corner's curved centerline not to pass through the tile center")
 	_assert(player.food == 3, "Expected encounter food to be collected after movement cost")
 	_assert(map.get_encounter(Vector2i(4, 6)).is_empty(), "Expected collected encounter to be removed")
+	_assert(roads.get_visual_tile(Vector2i(4, 6)).encounter_data.get("depleted", false) == true, "Expected collected berry roads to keep a depleted visual state")
 	roads.force_place_tile(Vector2i(5, 6), STRAIGHT, 1)
 	_assert(player.move_to(Vector2i(5, 6)), "Expected bidirectional east/west connection to allow movement")
 	_assert(player.food == 2, "Expected each valid movement to consume food after encounter reward")

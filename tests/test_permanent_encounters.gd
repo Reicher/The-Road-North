@@ -34,7 +34,7 @@ func _init() -> void:
 		_assert(marker_card._encounter_marker_texture() != null, "Expected permanent encounter card to have an image marker: %s" % encounter_type)
 		marker_card.free()
 	_assert(roads.get_visual_tile(target).get_node_or_null("Visuals/CampfireFlame") != null, "Expected Campfire to have a distinct 3D marker")
-	_assert(roads.get_visual_tile(target).get_node_or_null("Visuals/EncounterPlaza") != null, "Expected every encounter to stand on a round plaza")
+	_assert(roads.get_visual_tile(target).get_node_or_null("Visuals/EncounterPlaza") != null, "Expected permanent landmark encounters to stand on a round plaza")
 	_assert_marker(roads.get_visual_tile(target), GameConstants.ENCOUNTER_TAVERN, "TavernBody")
 	_assert_marker(roads.get_visual_tile(target), GameConstants.ENCOUNTER_WITCH_HUT, "WitchHutBody")
 	_assert_marker(roads.get_visual_tile(target), GameConstants.ENCOUNTER_SHRINE, "ShrinePillar")

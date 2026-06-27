@@ -66,11 +66,30 @@ func _initialize() -> void:
 	var corner_anchor := RoadPath.get_anchor_offset(corner_openings, TILE_SIZE)
 	_assert(curved_enemy.position.is_equal_approx(Vector3(corner_anchor.x, 0.0, corner_anchor.y)), "Expected enemies on corners to stand on the curved road")
 	var corner_plaza := corner_tile.get_node_or_null("Visuals/EncounterPlaza") as MeshInstance3D
-	_assert(corner_plaza != null, "Expected enemies to stand on the shared encounter plaza")
-	_assert(Vector2(corner_plaza.position.x, corner_plaza.position.z).is_equal_approx(corner_anchor), "Expected encounter plazas to follow the curved road anchor")
-	var corner_plaza_material := corner_plaza.material_override as ShaderMaterial
-	_assert((corner_plaza_material.get_shader_parameter("base_color") as Color).is_equal_approx(corner_tile.definition.road_color), "Expected encounter plazas to use exactly the underlying road color")
+	_assert(corner_plaza == null, "Expected enemies to stand directly on the road without a plaza")
 	corner_tile.queue_free()
+
+	var berry_tile := TILE_SCENE.instantiate() as RoadTile
+	berry_tile.definition = straight
+	berry_tile.tile_size = TILE_SIZE
+	berry_tile.encounter_data = {"type": GameMap.ENCOUNTER_BERRY_BUSH}
+	get_root().add_child(berry_tile)
+	await process_frame
+	var berry_visuals := berry_tile.get_node("Visuals")
+	_assert(berry_visuals.get_node_or_null("BerryBush0Core") != null and berry_visuals.get_node_or_null("BerryBush2Core") != null, "Expected several berry bushes around the road")
+	_assert(berry_visuals.get_node_or_null("BerryBush0BerryA") != null, "Expected fresh bushes to show distinct red berries")
+	_assert(berry_visuals.get_node_or_null("BerryBush0BerryF") != null, "Expected each fresh bush to show several distinct red berries")
+	var bright_berry_material := (berry_visuals.get_node("BerryBush0BerryA") as MeshInstance3D).material_override as StandardMaterial3D
+	_assert(bright_berry_material.emission_enabled, "Expected berries to remain readable against the dark forest palette")
+	_assert(berry_visuals.get_node_or_null("EncounterPlaza") == null, "Expected berry roads not to use an encounter plaza")
+	var reserved_bush_positions: Array[Vector2] = berry_visuals.call("_berry_bush_positions", straight.get_rotated_openings(0))
+	for tree in berry_visuals.get_children().filter(func(child: Node) -> bool: return child.get_node_or_null("CrownLower") != null):
+		for bush_position in reserved_bush_positions:
+			_assert(Vector2((tree as Node3D).position.x, (tree as Node3D).position.z).distance_to(bush_position * TILE_SIZE) >= TILE_SIZE * 0.24, "Expected berry bushes not to overlap roadside fir trees")
+	berry_tile.set_encounter_data({"type": GameMap.ENCOUNTER_BERRY_BUSH, "depleted": true})
+	_assert(berry_visuals.get_node_or_null("BerryBush0Core") != null, "Expected picked berry bushes to remain beside the road")
+	_assert(berry_visuals.get_node_or_null("BerryBush0BerryA") == null, "Expected red berries to disappear after collection")
+	berry_tile.queue_free()
 
 	var enemy_tile := TILE_SCENE.instantiate() as RoadTile
 	get_root().add_child(enemy_tile)
