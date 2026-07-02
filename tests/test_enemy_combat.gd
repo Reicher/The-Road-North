@@ -56,6 +56,13 @@ func run() -> void:
 	_assert(_label(popup, "Panel/Margin/Stack/Calculation/Fighters/Player/Power/Value").text == "1", "Expected player power number without text prefix")
 	_assert(_label(popup, "Panel/Margin/Stack/Calculation/Fighters/Player/DiceRow/Plus").text == "+", "Expected plus sign beside player die")
 	_assert((popup.get_node("Panel/Margin/Stack/Calculation/SumLine") as ColorRect).custom_minimum_size.y >= 5.0, "Expected visible full-width sum line")
+	_assert((popup.get_node("Panel") as PanelContainer).size.x >= 620.0, "Expected a large, readable combat panel")
+	var combat_panel_style := (popup.get_node("Panel") as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat
+	_assert(combat_panel_style.bg_color.a < 0.9, "Expected the combat panel background to remain visible through the popup")
+	_assert((popup.get_node("Panel/Margin/Stack/Calculation") as VBoxContainer).get_theme_constant("separation") >= 20, "Expected space between the dice and sum line")
+	_assert((popup.get_node("Panel/Margin/Stack/Calculation/Fighters/Enemy/Dice") as Control).custom_minimum_size.x >= 110.0, "Expected large combat dice")
+	_assert(_label(popup, "Panel/Margin/Stack/Calculation/Fighters/Player/Name").get_theme_font_size("font_size") >= 34, "Expected large combat labels")
+	_assert((popup.get_node("Panel/Margin") as MarginContainer).get_theme_constant("margin_left") <= 18, "Expected compact panel margins")
 	var player_column := popup.get_node("Panel/Margin/Stack/Calculation/Fighters/Player") as Control
 	var enemy_column := popup.get_node("Panel/Margin/Stack/Calculation/Fighters/Enemy") as Control
 	var player_sum := _label(popup, "Panel/Margin/Stack/Totals/PlayerSum")

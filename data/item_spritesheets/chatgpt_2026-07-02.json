@@ -1,0 +1,21 @@
+{
+  "source_size": [1254, 1254],
+  "canvas_size": 256,
+  "margin": 18,
+  "items": [
+    {"name": "Great Axe", "file": "item_great_axe.png", "crop": [0, 0, 314, 314]},
+    {"name": "Dagger", "file": "item_dagger.png", "crop": [314, 0, 627, 314]},
+    {"name": "Walking Stick", "file": "item_walking_stick.png", "crop": [627, 0, 941, 314]},
+    {"name": "Sword & Shield", "file": "item_sword_and_shield.png", "crop": [941, 0, 1254, 314]},
+    {"name": "Spear", "file": "item_spear.png", "crop": [0, 314, 314, 627]},
+    {"name": "Sword", "file": "item_sword.png", "crop": [314, 314, 627, 627]},
+    {"name": "Fallback", "file": "item_fallback.png", "crop": [627, 314, 941, 627]},
+    {"name": "Mace", "file": "item_mace.png", "crop": [941, 314, 1254, 627]},
+    {"name": "Guiding Charm", "file": "item_guiding_charm.png", "crop": [0, 627, 314, 930]},
+    {"name": "Machete", "file": "item_machete.png", "crop": [314, 627, 627, 930]},
+    {"name": "Binoculars", "file": "item_binoculars.png", "crop": [627, 627, 941, 930]},
+    {"name": "Field Medic's Bag", "file": "item_field_medics_bag.png", "crop": [941, 627, 1254, 930]},
+    {"name": "Goldsmith's Scale", "file": "item_goldsmiths_scale.png", "crop": [0, 941, 314, 1254]},
+    {"name": "Hatchet", "file": "item_hatchet.png", "crop": [314, 941, 627, 1254]}
+  ]
+}

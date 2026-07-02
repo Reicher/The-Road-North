@@ -124,8 +124,8 @@ func _set_fight_buttons(enabled: bool) -> void:
 func _apply_styles() -> void:
 	var panel := $Panel as PanelContainer
 	var title_banner := $TitleBanner as PanelContainer
-	panel.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, Color(0.95, 0.91, 0.82), Color(0.20, 0.16, 0.12), 24, 4))
-	title_banner.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, Color(0.76, 0.38, 0.33), Color(0.38, 0.20, 0.16), 8, 2))
+	panel.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, Color(0.95, 0.91, 0.82, 0.82), Color(0.20, 0.16, 0.12, 0.92), 24, 4))
+	title_banner.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, Color(0.76, 0.38, 0.33, 0.88), Color(0.38, 0.20, 0.16, 0.94), 8, 2))
 	_style_button(_fight_button, Color(0.16, 0.36, 0.49), Color(0.10, 0.22, 0.29), Color(0.24, 0.47, 0.60))
 	_style_button(_retreat_button, Color(0.80, 0.72, 0.58), Color(0.34, 0.25, 0.17), Color(0.88, 0.81, 0.68))
 	_style_button(_ok_button, Color(0.40, 0.61, 0.19), Color(0.22, 0.35, 0.10), Color(0.51, 0.72, 0.27))
@@ -135,7 +135,7 @@ func _apply_styles() -> void:
 func _style_button(button: Button, fill: Color, border: Color, hover: Color) -> void:
 	button.add_theme_color_override("font_color", Color(0.96, 0.93, 0.84))
 	button.add_theme_color_override("font_disabled_color", Color(0.62, 0.59, 0.52))
-	button.add_theme_font_size_override("font_size", 24)
+	button.add_theme_font_size_override("font_size", 30)
 	button.add_theme_stylebox_override("normal", UIStyle.elevated_box(self, fill, border, 10, 3))
 	button.add_theme_stylebox_override("hover", UIStyle.elevated_box(self, hover, border, 10, 3))
 	button.add_theme_stylebox_override("pressed", UIStyle.rounded_box(self, fill.darkened(0.15), border, 10, 3))

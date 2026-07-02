@@ -4,20 +4,29 @@ extends RefCounted
 const ItemCatalog = preload("res://scripts/item_catalog.gd")
 
 const ICON_PATHS := {
+	"bent spear": "res://assets/images/items/item_bent_spear.png",
 	"binoculars": "res://assets/images/items/item_binoculars.png",
+	"cursed blade": "res://assets/images/items/item_cursed_blade.png",
 	"dagger": "res://assets/images/items/item_dagger.png",
 	"field medic's bag": "res://assets/images/items/item_field_medics_bag.png",
 	"goldsmith's scale": "res://assets/images/items/item_goldsmiths_scale.png",
 	"great axe": "res://assets/images/items/item_great_axe.png",
 	"guiding charm": "res://assets/images/items/item_guiding_charm.png",
 	"hatchet": "res://assets/images/items/item_hatchet.png",
+	"heavy club": "res://assets/images/items/item_heavy_club.png",
+	"hunter's knife": "res://assets/images/items/item_hunters_knife.png",
 	"item": "res://assets/images/items/item_fallback.png",
 	"mace": "res://assets/images/items/item_mace.png",
 	"machete": "res://assets/images/items/item_machete.png",
+	"old sword": "res://assets/images/items/item_old_sword.png",
+	"scout's spear": "res://assets/images/items/item_scouts_spear.png",
+	"short blade": "res://assets/images/items/item_short_blade.png",
 	"spear": "res://assets/images/items/item_spear.png",
 	"sword": "res://assets/images/items/item_sword.png",
 	"sword & shield": "res://assets/images/items/item_sword_and_shield.png",
+	"traveler's pack": "res://assets/images/items/item_travelers_pack.png",
 	"walking stick": "res://assets/images/items/item_walking_stick.png",
+	"watchman's lantern": "res://assets/images/items/item_watchmans_lantern.png",
 }
 
 static var _cache: Dictionary = {}

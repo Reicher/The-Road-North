@@ -1,0 +1,16 @@
+{
+  "source_size": [1254, 1254],
+  "canvas_size": 256,
+  "margin": 18,
+  "items": [
+    {"name": "Short Blade", "file": "item_short_blade.png", "crop": [0, 0, 418, 418]},
+    {"name": "Bent Spear", "file": "item_bent_spear.png", "crop": [418, 0, 836, 418]},
+    {"name": "Old Sword", "file": "item_old_sword.png", "crop": [836, 0, 1254, 418]},
+    {"name": "Hunter's Knife", "file": "item_hunters_knife.png", "crop": [0, 418, 418, 805]},
+    {"name": "Heavy Club", "file": "item_heavy_club.png", "crop": [418, 418, 836, 805]},
+    {"name": "Scout's Spear", "file": "item_scouts_spear.png", "crop": [836, 418, 1254, 805]},
+    {"name": "Cursed Blade", "file": "item_cursed_blade.png", "crop": [0, 836, 418, 1254]},
+    {"name": "Watchman's Lantern", "file": "item_watchmans_lantern.png", "crop": [418, 836, 836, 1254]},
+    {"name": "Traveler's Pack", "file": "item_travelers_pack.png", "crop": [836, 836, 1254, 1254]}
+  ]
+}

@@ -16,17 +16,28 @@ func run() -> void:
 	_assert(start_screen != null, "Expected the game to open on the start screen")
 	_assert(main.get_node_or_null("Level") == null, "Expected level 1 to wait for Play or debug mode")
 	_assert((start_screen.get_node("AuthorLabel") as Label).text == "A game by Robin Reicher", "Expected the splash credit")
-	_assert((start_screen.get_node("Content/Title") as Label).text == "Road To Karlskoga", "Expected the working title")
-	start_screen.finish_intro()
+	_assert((start_screen.get_node("Content/Title") as Label).text == "Road to Karlskoga", "Expected the working title")
+	var intro_click := InputEventMouseButton.new()
+	intro_click.button_index = MOUSE_BUTTON_LEFT
+	intro_click.pressed = true
+	start_screen._input(intro_click)
+	_assert(not (start_screen.get_node("AuthorLabel") as Label).visible, "Expected a desktop click to skip the splash credit")
 	_assert((start_screen.get_node("Content/MenuButtons/PlayButton") as Button).text == "Play", "Expected a Play button")
 	_assert((start_screen.get_node("Content/MenuButtons/HowToPlayButton") as Button).text == "How to play", "Expected a How to play button")
 	_assert((start_screen.get_node("Content/MenuButtons/SettingsButton") as Button).text == "Settings", "Expected a Settings button")
 	_assert((start_screen.get_node("Content/MenuButtons/AboutButton") as Button).text == "About the game", "Expected an About the game button")
+	var start_title := start_screen.get_node("Content/Title") as Label
+	var title_position_before_information := start_title.global_position
+	_assert(is_equal_approx(start_title.get_global_rect().get_center().x, start_screen.get_viewport_rect().get_center().x), "Expected the game title to be horizontally centered on the screen")
 	(start_screen.get_node("Content/MenuButtons/SettingsButton") as Button).pressed.emit()
+	await process_frame
 	_assert(not (start_screen.get_node("Content/MenuButtons") as VBoxContainer).visible, "Expected information to replace the menu buttons")
-	_assert((start_screen.get_node("Content/Information") as VBoxContainer).visible, "Expected information to appear in the main layout")
-	_assert((start_screen.get_node("Content/Title") as Label).visible, "Expected the game title to remain visible")
-	(start_screen.get_node("Content/Information/BackButton") as Button).pressed.emit()
+	_assert((start_screen.get_node("Content/Information") as PanelContainer).visible, "Expected information to appear in the main layout")
+	var information_heading := start_screen.get_node("Content/Information/Margin/Stack/Heading") as Label
+	_assert(start_title.visible, "Expected the game title to remain visible")
+	_assert(start_title.global_position.is_equal_approx(title_position_before_information), "Expected the game title to remain fixed when information content changes")
+	_assert(information_heading.get_global_rect().position.y >= start_title.get_global_rect().end.y, "Expected information headings to remain below the game title: title=%s heading=%s" % [start_title.get_global_rect(), information_heading.get_global_rect()])
+	(start_screen.get_node("Content/Information/Margin/Stack/BackButton") as Button).pressed.emit()
 	(start_screen.get_node("Content/MenuButtons/PlayButton") as Button).pressed.emit()
 	await process_frame
 	_assert(main.get_node_or_null("StartScreen") == null, "Expected Play to leave the start screen")
