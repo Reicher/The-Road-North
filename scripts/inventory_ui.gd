@@ -20,7 +20,7 @@ const SLOT_DISABLED_FILL := Color(0.86, 0.80, 0.66)
 
 @export var button_size := Vector2(144.0, 144.0)
 @export var slot_size := Vector2(93.0, 93.0)
-@export var top_margin := 81.0
+@export var top_margin := 73.0
 @export var left_margin := 5.0
 @export var right_margin := 18.0
 @export var slot_spacing := 4.0

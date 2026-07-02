@@ -19,7 +19,8 @@ func run() -> void:
 	var hand := level.get_node("UI/Hand") as HandUI
 	var loot := level.get_node("UI/Loot")
 	var inventory := level.get_node("UI/Inventory")
-	var hud_background := level.get_node("UI/HudBackground")
+	var hud_background := level.get_node("UI/HudBackground") as HudBackground
+	var player_stats := level.get_node("UI/PlayerStats") as PlayerStatsUI
 	var settings_menu := level.get_node("UI/SettingsMenu")
 	var player := level.get_node("Player") as GamePlayer
 	var camera := level.get_node("Camera3D") as Camera3D
@@ -36,6 +37,9 @@ func run() -> void:
 	_assert(loot != null, "Expected level scene to include LootUI")
 	_assert(inventory != null, "Expected level scene to include InventoryUI")
 	_assert(hud_background != null, "Expected level scene to include the shared HUD background panel")
+	var stats_top_gap := player_stats.position.y - hud_background.position.y
+	var stats_bottom_gap := hud_background.position.y + hud_background.top_bar_height - (player_stats.position.y + player_stats.size.y)
+	_assert(is_equal_approx(stats_top_gap, stats_bottom_gap), "Expected resource stats to be vertically centered in the top HUD bar")
 	_assert(settings_menu != null, "Expected level scene to include a settings menu")
 	_assert(level_name_label.text == "I - 1\nFirst Bend" and level_name_label.visible, "Expected the level intro to show compact chapter and level name during the opening map hold")
 	_assert(inventory.get_index() > loot.get_index(), "Expected inventory to sit above loot for backpack interaction")

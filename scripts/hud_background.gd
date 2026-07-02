@@ -7,7 +7,7 @@ const HUD_FILL := Color(0.16, 0.34, 0.29, 0.98)
 const HUD_BORDER := Color(0.58, 0.43, 0.23, 0.9)
 
 @export var margin := 0.0
-@export var top_bar_height := 76.0
+@export var top_bar_height := 68.0
 @export var pocket_overlap := 8.0
 @export var backpack_width := 154.0
 @export var backpack_height := 170.0

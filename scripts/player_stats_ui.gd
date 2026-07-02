@@ -1,14 +1,14 @@
 class_name PlayerStatsUI
 extends HBoxContainer
 
-const STAT_ICON_SIZE := 44.0
-const STAT_VALUE_FONT_SIZE := 34
-const STAT_ROW_HEIGHT := 58.0
+const STAT_ICON_SIZE := 40.0
+const STAT_VALUE_FONT_SIZE := 32
+const STAT_ROW_HEIGHT := 52.0
 const ICON_PATHS := GameConstants.STAT_ICON_PATHS
 
 @export var player_path: NodePath
 @export var deck_controller_path: NodePath
-@export var top_margin := 18.0
+@export var top_margin := 8.0
 @export var left_margin := 18.0
 @export var right_margin := 18.0
 @export var icon_size := STAT_ICON_SIZE
@@ -57,6 +57,7 @@ func _ready() -> void:
 	_health_row = $HealthRow as StatRow
 	_power_row = $PowerRow as StatRow
 	_configure_row_layout()
+	_power_row.alignment = BoxContainer.ALIGNMENT_END
 	resized.connect(_layout_stats)
 	_food_row.low_warning_threshold = 3
 	_health_row.low_warning_threshold = 3

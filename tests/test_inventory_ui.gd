@@ -32,7 +32,7 @@ func _initialize() -> void:
 	_assert(backpack_button.expand_icon, "Expected backpack image to fill the button")
 	_assert(is_equal_approx(backpack_button.position.x, inventory.left_margin), "Expected backpack button to sit at the left HUD edge")
 	_assert(is_equal_approx(backpack_button.position.y, inventory.top_margin), "Expected backpack button to sit below the resource row")
-	_assert(inventory.top_margin == 81.0, "Expected a small gap between the resource row and backpack image")
+	_assert(inventory.top_margin == 73.0, "Expected a small gap between the resource row and backpack image")
 	_assert(is_equal_approx(frame.position.x + frame.size.x, backpack_button.position.x + backpack_button.size.x), "Expected the collapsed extension's right edge to align with the backpack")
 	_assert(is_equal_approx(frame.size.x, 20.0), "Expected the closed inventory extension to remain tucked behind the backpack")
 	_assert(is_equal_approx(frame.size.y, backpack_button.size.y + inventory.frame_top_padding + inventory.frame_bottom_padding), "Expected the inventory extension to share the backpack panel height")

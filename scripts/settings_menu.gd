@@ -3,7 +3,7 @@ extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
 
-@export var top_margin := 70.0
+@export var top_margin := 62.0
 @export var right_margin := 2.0
 @export var button_size := Vector2(64.0, 64.0)
 @export var menu_size := Vector2(260.0, 170.0)
