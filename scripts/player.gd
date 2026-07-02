@@ -589,8 +589,8 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previou
 		var enemy_score := enemy_power + rolls.y
 		if player_score > enemy_score:
 			_combat_overlay.show_round_result(rolls.x, rolls.y, "Victory", true)
-			await _finish_enemy_victory(target_position, enemy_data, combat_direction)
-			_combat_overlay.enable_ok()
+			var gold_reward := await _finish_enemy_victory(target_position, enemy_data, combat_direction)
+			_combat_overlay.enable_ok(gold_reward)
 			await _combat_overlay.ok_pressed
 			if not is_inside_tree():
 				return
@@ -615,16 +615,16 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previou
 			_combat_overlay.show_round_result(rolls.x, rolls.y, "Tie", false)
 
 
-func _finish_enemy_victory(target_position: Vector2i, enemy_data: Dictionary, combat_direction: Vector3) -> void:
+func _finish_enemy_victory(target_position: Vector2i, enemy_data: Dictionary, combat_direction: Vector3) -> int:
 	_map.clear_encounter(target_position)
 	await _play_enemy_defeat(target_position, combat_direction)
 	if not is_inside_tree():
-		return
+		return 0
 	_clear_visual_encounter_data(target_position)
 
 	_moving = false
 
-	_rewards.open_enemy_loot(enemy_data)
+	return _rewards.open_enemy_loot(enemy_data)
 
 
 func _retreat_from_enemy(origin_position: Vector2i, previous_input_enabled: bool) -> void:

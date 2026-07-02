@@ -16,7 +16,7 @@ static func create_tree(
 	tree.name = "Tree"
 	tree.position = offset
 	tree.rotation_degrees.y = rotation_y
-	var slender_width := width_factor * 0.72
+	var slender_width := width_factor * 0.62
 	tree.scale = Vector3(slender_width, 1.0, slender_width) * scale_factor
 
 	_add_cylinder(tree, "Trunk", tile_size * 0.026, tile_size * 0.25, Vector3(0.0, tile_size * 0.125, 0.0), VisualPalette.WOOD_DARK, 5)
@@ -101,6 +101,7 @@ static func add_bridge(parent: Node3D, tile_size: float, rotation_steps: int) ->
 	for index in 7:
 		var z := (-0.42 + float(index) * 0.14) * tile_size
 		var plank := _add_box(bridge, "Plank%d" % index, Vector3(tile_size * 0.31, tile_size * 0.065, tile_size * 0.12), Vector3(0.0, tile_size * 0.095, z), VisualPalette.WOOD.lightened(0.03 * float(index % 2)))
+		plank.material_override = VisualPalette.make_wood_material(VisualPalette.WOOD.lightened(0.03 * float(index % 2)))
 		plank.rotation.y = deg_to_rad(-2.0 + float(index % 3) * 2.0)
 	for side in [-1.0, 1.0]:
 		_add_box(bridge, "Rail%d" % int(side), Vector3(tile_size * 0.035, tile_size * 0.035, tile_size), Vector3(side * tile_size * 0.18, tile_size * 0.105, 0.0), VisualPalette.WOOD_DARK)

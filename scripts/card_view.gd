@@ -78,6 +78,12 @@ signal pointer_released(card: CardView, canvas_position: Vector2)
 		focused = value
 		queue_redraw()
 
+@export var hand_presentation := false:
+	set(value):
+		hand_presentation = value
+		_refresh_text()
+		queue_redraw()
+
 @export var card_color := Color.TRANSPARENT:
 	set(value):
 		card_color = value
@@ -123,6 +129,7 @@ static func clear_texture_cache() -> void:
 const TITLE_RECT := Rect2(14.0, 12.0, 122.0, 52.0)
 const ART_RECT := Rect2(18.0, 72.0, 114.0, 62.0)
 const ROAD_ART_RECT := Rect2(18.0, 67.0, 114.0, 114.0)
+const PLAIN_ROAD_ART_RECT := Rect2(18.0, 51.0, 114.0, 114.0)
 const NO_DETAIL_ART_RECT := Rect2(18.0, 94.0, 114.0, 62.0)
 const DETAIL_RECT := Rect2(14.0, 141.0, 122.0, 38.0)
 const CATEGORY_RECT := Rect2(22.0, 186.0, 106.0, 22.0)
@@ -352,7 +359,7 @@ func _title_from_definition() -> String:
 func _card_header_text() -> String:
 	if category != GameConstants.ROAD_CATEGORY or tile_definition == null:
 		return title
-	return _title_from_definition()
+	return _encounter_display_name() if hand_presentation else _title_from_definition()
 
 
 func _draw_card_art_texture(art_rect: Rect2) -> void:
@@ -396,6 +403,8 @@ func _status_icon_y(art_rect: Rect2, icon_size: Vector2) -> float:
 
 func get_card_art_rect() -> Rect2:
 	if category == GameConstants.ROAD_CATEGORY:
+		if hand_presentation and encounter_data.is_empty():
+			return _scaled_rect(PLAIN_ROAD_ART_RECT)
 		return _scaled_rect(ROAD_ART_RECT)
 	if _compact_detail_text().is_empty():
 		return _scaled_rect(NO_DETAIL_ART_RECT)
@@ -454,6 +463,27 @@ func _category_badge_text() -> String:
 	if not encounter_data.is_empty():
 		return "ROAD + LOOT"
 	return "ROAD"
+
+
+func _encounter_display_name() -> String:
+	match _encounter_type():
+		GameMap.ENCOUNTER_ENEMY:
+			return "Enemy"
+		GameMap.ENCOUNTER_BERRY_BUSH:
+			return "Berry Bush"
+		GameMap.ENCOUNTER_CACHE:
+			return "Cache"
+		GameMap.ENCOUNTER_CAMPFIRE:
+			return "Campfire"
+		GameMap.ENCOUNTER_TAVERN:
+			return "Tavern"
+		GameMap.ENCOUNTER_WITCH_HUT:
+			return "Witch's Hut"
+		GameMap.ENCOUNTER_SHRINE:
+			return "Shrine"
+		GameMap.ENCOUNTER_GRAVEYARD:
+			return "Graveyard"
+	return ""
 
 
 func _draw_card_tint() -> void:

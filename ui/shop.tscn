@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/shop_ui.gd" id="1_shop"]
 [ext_resource type="PackedScene" path="res://ui/stat_chip.tscn" id="2_chip"]
 [ext_resource type="PackedScene" path="res://ui/deck_overlay.tscn" id="3_overlay"]
 [ext_resource type="PackedScene" path="res://ui/item_details_popup.tscn" id="4_popup"]
+[ext_resource type="Texture2D" path="res://assets/images/backgrounds/shop_background.png" id="5_background"]
 
 [node name="Shop" type="Control"]
 anchors_preset = 15
@@ -15,7 +16,7 @@ script = ExtResource("1_shop")
 
 [node name="ItemDetailsPopup" parent="." instance=ExtResource("4_popup")]
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,17 +24,19 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.08, 0.07, 0.05, 0.96)
+texture = ExtResource("5_background")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="ShopScroll" type="ScrollContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 6.0
-offset_top = 6.0
-offset_right = -6.0
-offset_bottom = -6.0
+offset_left = 34.0
+offset_top = 24.0
+offset_right = -34.0
+offset_bottom = -22.0
 grow_horizontal = 2
 grow_vertical = 2
 horizontal_scroll_mode = 0
@@ -44,14 +47,14 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/margin_left = 6
 theme_override_constants/margin_right = 6
-theme_override_constants/margin_top = 4
-theme_override_constants/margin_bottom = 4
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_bottom = 0
 
 [node name="ShopStack" type="VBoxContainer" parent="ShopScroll/ShopMargin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 2
+theme_override_constants/separation = 4
 
 [node name="SummaryPanel" type="PanelContainer" parent="ShopScroll/ShopMargin/ShopStack"]
 layout_mode = 2

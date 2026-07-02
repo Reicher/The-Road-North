@@ -90,14 +90,14 @@ func _initialize() -> void:
 	var plain_detail_label := hand.cards[0].get_node("Detail") as Label
 	var berry_detail_label := hand.cards[1].get_node("Detail") as Label
 	var enemy_detail_label := hand.cards[3].get_node("Detail") as Label
-	_assert(plain_title_label.text == "Straight Road", "Expected plain road cards to show only the road type")
+	_assert(plain_title_label.text == "", "Expected plain road cards to hide the road type")
 	_assert(plain_detail_label.text == "", "Expected plain road cards to leave the detail text empty")
-	_assert(berry_title_label.text == "Corner", "Expected berry road cards to show only the road type")
+	_assert(berry_title_label.text == "Berry Bush", "Expected berry road cards to name their encounter instead of the road type")
 	_assert(berry_detail_label.text == "", "Expected berry road cards to leave the detail text empty")
-	_assert(berry_category_label.text == "ROAD + FOOD", "Expected berry road cards to identify their food reward")
-	_assert(enemy_title_label.text == "Four-Way Intersection", "Expected enemy road cards to show only the road type")
+	_assert(berry_category_label.text == "ROAD + FOOD", "Expected berry road cards to keep their category badge")
+	_assert(enemy_title_label.text == "Enemy", "Expected enemy road cards to name their encounter instead of the road type")
 	_assert(enemy_detail_label.text == "", "Expected enemy road cards to leave the detail text empty")
-	_assert(enemy_category_label.text == "ROAD + ENEMY", "Expected enemy road cards to identify their enemy encounter")
+	_assert(enemy_category_label.text == "ROAD + ENEMY", "Expected enemy road cards to keep their category badge")
 	_assert(hand.cards[0]._resolved_card_tint_color() == Color(0.78, 0.86, 0.82, CardView.CARD_TINT_ALPHA), "Expected plain road cards to use the neutral road tint")
 	_assert(hand.cards[1]._resolved_card_tint_color() == Color(0.84, 0.93, 0.78, CardView.CARD_TINT_ALPHA), "Expected food road cards to use the food tint")
 	_assert(hand.cards[3]._resolved_card_tint_color() == Color(0.97, 0.82, 0.76, CardView.CARD_TINT_ALPHA), "Expected enemy road cards to use the danger tint")
@@ -107,7 +107,7 @@ func _initialize() -> void:
 		_assert(road_art.get_size() == Vector2(466.0, 466.0), "Expected road art to use the new square tile canvas")
 		var opaque_bounds := _opaque_bounds(road_art.get_image())
 		_assert(opaque_bounds == Rect2(Vector2.ZERO, road_art.get_size()), "Expected %s road art to fill the shared card-art canvas; got %s" % [card.title, opaque_bounds])
-	_assert(title_label.offset_bottom < focused_card.get_card_art_rect().position.y, "Expected two-line card titles to stay above the card art")
+	_assert(focused_card.get_card_art_rect() == focused_card._scaled_rect(CardView.PLAIN_ROAD_ART_RECT), "Expected plain road art to be centered on the card")
 	_assert(focused_card.get_card_art_rect().size.y > CardView.NO_DETAIL_ART_RECT.size.y, "Expected larger cards to scale up their road art")
 	var card_scale_y: float = focused_card.size.y / CardView.BASE_CARD_SIZE.y
 	var expected_category_top := roundf(CardView.CATEGORY_RECT.position.y * card_scale_y)
@@ -188,6 +188,7 @@ func _initialize() -> void:
 
 	var cache_card := CARD_SCENE.instantiate() as CardView
 	root.add_child(cache_card)
+	cache_card.hand_presentation = true
 	cache_card.configure({
 		"category": "Road",
 		"tile_definition": CORNER,
@@ -196,13 +197,14 @@ func _initialize() -> void:
 			"loot": [{"kind": "item", "item": {"name": "Walking Stick", "effect": "+1 Power", "power_bonus": 1}}],
 		},
 	})
-	_assert((cache_card.get_node("Title") as Label).text == "Corner", "Expected treasure road cards to show only the road type")
-	_assert((cache_card.get_node("Category") as Label).text == "ROAD + LOOT", "Expected treasure road cards to identify their loot encounter")
+	_assert((cache_card.get_node("Title") as Label).text == "Cache", "Expected treasure road cards to name their encounter")
+	_assert((cache_card.get_node("Category") as Label).text == "ROAD + LOOT", "Expected treasure road cards to keep their category badge")
 	_assert(cache_card._resolved_card_tint_color() == Color(0.78, 0.91, 0.90, CardView.CARD_TINT_ALPHA), "Expected treasure road cards to use the loot tint")
 	cache_card.queue_free()
 
 	var special_road_card := CARD_SCENE.instantiate() as CardView
 	root.add_child(special_road_card)
+	special_road_card.hand_presentation = true
 	special_road_card.configure({
 		"category": "Road",
 		"title": "Campfire",
@@ -210,11 +212,17 @@ func _initialize() -> void:
 		"tile_definition": DEAD_END,
 		"encounter": {"type": GameConstants.ENCOUNTER_CAMPFIRE},
 	})
-	_assert((special_road_card.get_node("Title") as Label).text == "Dead End", "Expected permanent encounter roads to show only the road type")
-	_assert((special_road_card.get_node("Category") as Label).text == "ROAD + SPECIAL", "Expected permanent encounter roads to identify their special encounter category")
+	_assert((special_road_card.get_node("Title") as Label).text == "Campfire", "Expected permanent encounter roads to name their special encounter")
+	_assert((special_road_card.get_node("Category") as Label).text == "ROAD + SPECIAL", "Expected permanent encounter roads to keep their category badge")
 	_assert((special_road_card.get_node("Detail") as Label).text == "", "Expected permanent encounter roads to leave the detail text empty")
 	_assert(special_road_card.get_card_art_rect() == special_road_card._scaled_rect(CardView.ROAD_ART_RECT), "Expected permanent encounter roads to use square road card art placement")
 	_assert(special_road_card._resolved_card_tint_color() == Color(0.88, 0.84, 0.96, CardView.CARD_TINT_ALPHA), "Expected permanent encounter roads to use the special road tint")
+	special_road_card.configure({
+		"category": "Road",
+		"tile_definition": DEAD_END,
+		"encounter": {"type": GameConstants.ENCOUNTER_GRAVEYARD},
+	})
+	_assert((special_road_card.get_node("Title") as Label).text == "Graveyard", "Expected Graveyard roads to show the encounter heading")
 	special_road_card.queue_free()
 
 	var event_card := CARD_SCENE.instantiate() as CardView

@@ -1,20 +1,23 @@
 class_name PlacementControlsUI
 extends CanvasLayer
 
-const PREVIEW_BUTTON_SIZE := Vector2(56.0, 56.0)
+const PREVIEW_BUTTON_SIZE := Vector2(68.0, 68.0)
 const PREVIEW_CONTROL_GAP := 6.0
 
 var prompt_label: Label
 var buttons: Control
-var rotate_button: Button
+var rotate_left_button: Button
+var rotate_right_button: Button
 var confirm_button: Button
 var cancel_button: Button
 
 
-func bind_actions(rotate_action: Callable, confirm_action: Callable, cancel_action: Callable) -> void:
+func bind_actions(rotate_left_action: Callable, rotate_right_action: Callable, confirm_action: Callable, cancel_action: Callable) -> void:
 	_resolve_nodes()
-	if not rotate_button.pressed.is_connected(rotate_action):
-		rotate_button.pressed.connect(rotate_action)
+	if not rotate_left_button.pressed.is_connected(rotate_left_action):
+		rotate_left_button.pressed.connect(rotate_left_action)
+	if not rotate_right_button.pressed.is_connected(rotate_right_action):
+		rotate_right_button.pressed.connect(rotate_right_action)
 	if not confirm_button.pressed.is_connected(confirm_action):
 		confirm_button.pressed.connect(confirm_action)
 	if not cancel_button.pressed.is_connected(cancel_action):
@@ -30,8 +33,8 @@ func show_prompt(text: String, hand: HandUI) -> void:
 
 func show_idle_placement(hand: HandUI) -> void:
 	_resolve_nodes()
-	rotate_button.visible = true
-	rotate_button.disabled = true
+	_set_rotate_buttons_visible(true)
+	_set_rotate_buttons_disabled(true)
 	confirm_button.disabled = true
 	buttons.visible = true
 	position_buttons(Vector2i(-1, -1), null, hand)
@@ -39,7 +42,7 @@ func show_idle_placement(hand: HandUI) -> void:
 
 func show_tile_targeting(hand: HandUI) -> void:
 	_resolve_nodes()
-	rotate_button.visible = false
+	_set_rotate_buttons_visible(false)
 	confirm_button.disabled = true
 	buttons.visible = true
 	position_buttons(Vector2i(-1, -1), null, hand)
@@ -51,11 +54,13 @@ func show_preview_controls(
 	hand: HandUI,
 	valid: bool,
 	rotate_visible := true,
-	hint: String = ""
+	hint: String = "",
+	confirm_visible := true
 ) -> void:
 	_resolve_nodes()
-	rotate_button.visible = rotate_visible
-	rotate_button.disabled = not rotate_visible
+	_set_rotate_buttons_visible(rotate_visible)
+	_set_rotate_buttons_disabled(not rotate_visible)
+	confirm_button.visible = confirm_visible
 	confirm_button.disabled = not valid
 	buttons.visible = true
 	position_buttons(preview_position, map, hand)
@@ -81,8 +86,9 @@ func show_hint(
 func hide_all() -> void:
 	_resolve_nodes()
 	buttons.visible = false
-	rotate_button.visible = true
-	rotate_button.disabled = false
+	_set_rotate_buttons_visible(true)
+	_set_rotate_buttons_disabled(false)
+	confirm_button.visible = true
 	prompt_label.visible = false
 	confirm_button.disabled = true
 
@@ -93,9 +99,10 @@ func position_buttons(preview_position: Vector2i, map: GameMap, hand: HandUI) ->
 	var has_preview := preview_position.x >= 0 and map != null
 	if buttons.visible and has_preview:
 		var canvas_position: Vector2 = map.grid_to_screen_position(preview_position)
-		var top_edge_position := map.grid_edge_to_screen_position(preview_position, false)
+		var top_left_position := map.grid_corner_to_screen_position(preview_position, false, false)
+		var top_right_position := map.grid_corner_to_screen_position(preview_position, true, false)
 		var bottom_edge_position := map.grid_edge_to_screen_position(preview_position, true)
-		_position_around_preview(canvas_position, viewport_size, top_edge_position.y, bottom_edge_position.y)
+		_position_around_preview(canvas_position, viewport_size, top_left_position, top_right_position, bottom_edge_position.y)
 	elif buttons.visible:
 		_position_at_bottom(viewport_size)
 
@@ -104,7 +111,7 @@ func position_buttons(preview_position: Vector2i, map: GameMap, hand: HandUI) ->
 			preview_position,
 			map,
 			hand,
-			buttons.visible and rotate_button.visible
+			buttons.visible and rotate_left_button.visible
 		)
 	else:
 		position_prompt(hand)
@@ -141,12 +148,14 @@ func position_prompt_above_preview(
 	if above_rotate_button:
 		var minimum_rotate_y := prompt_size.y + PREVIEW_CONTROL_GAP + 8.0
 		var viewport_height := _get_viewport_size().y
-		rotate_button.position.y = clampf(
-			maxf(rotate_button.position.y, minimum_rotate_y),
+		var rotate_y := clampf(
+			maxf(rotate_left_button.position.y, minimum_rotate_y),
 			8.0,
-			maxf(8.0, viewport_height - rotate_button.size.y - 8.0)
+			maxf(8.0, viewport_height - rotate_left_button.size.y - 8.0)
 		)
-		prompt_y = rotate_button.position.y - prompt_size.y - PREVIEW_CONTROL_GAP
+		rotate_left_button.position.y = rotate_y
+		rotate_right_button.position.y = rotate_y
+		prompt_y = rotate_y - prompt_size.y - PREVIEW_CONTROL_GAP
 	prompt_label.size = prompt_size
 	prompt_label.position = Vector2(
 		clampf(
@@ -181,7 +190,8 @@ func _resolve_nodes() -> void:
 		return
 	prompt_label = get_node("PromptLabel") as Label
 	buttons = get_node("Buttons") as Control
-	rotate_button = get_node("Buttons/RotateButton") as Button
+	rotate_left_button = get_node("Buttons/RotateLeftButton") as Button
+	rotate_right_button = get_node("Buttons/RotateRightButton") as Button
 	confirm_button = get_node("Buttons/ConfirmButton") as Button
 	cancel_button = get_node("Buttons/CancelButton") as Button
 
@@ -189,20 +199,31 @@ func _resolve_nodes() -> void:
 func _position_around_preview(
 	canvas_position: Vector2,
 	viewport_size: Vector2,
-	top_edge_y := NAN,
+	top_left_position := Vector2(NAN, NAN),
+	top_right_position := Vector2(NAN, NAN),
 	bottom_edge_y := NAN
 ) -> void:
 	var button_size := PREVIEW_BUTTON_SIZE
-	var side_offset := 52.0
-	if is_nan(top_edge_y):
-		top_edge_y = canvas_position.y - 48.0
+	var side_offset := 58.0
+	if is_nan(top_left_position.x):
+		top_left_position = canvas_position + Vector2(-48.0, -48.0)
+	if is_nan(top_right_position.x):
+		top_right_position = canvas_position + Vector2(48.0, -48.0)
 	if is_nan(bottom_edge_y):
 		bottom_edge_y = canvas_position.y + 48.0
 	var bottom_y := bottom_edge_y - button_size.y * 0.5
-	var top_y := top_edge_y - button_size.y * 0.5
 	var center_x := canvas_position.x - button_size.x * 0.5
 
-	rotate_button.position = _clamp_button_position(Vector2(center_x, top_y), button_size, viewport_size)
+	rotate_left_button.position = _clamp_button_position(
+		top_left_position - button_size * 0.5,
+		button_size,
+		viewport_size
+	)
+	rotate_right_button.position = _clamp_button_position(
+		top_right_position - button_size * 0.5,
+		button_size,
+		viewport_size
+	)
 	confirm_button.position = _clamp_button_position(
 		Vector2(canvas_position.x - side_offset - button_size.x * 0.5, bottom_y),
 		button_size,
@@ -218,13 +239,14 @@ func _position_around_preview(
 
 
 func _position_at_bottom(viewport_size: Vector2) -> void:
-	var button_size := Vector2(56.0, 56.0)
+	var button_size := PREVIEW_BUTTON_SIZE
 	var side_gap := 5.0
 	var bottom_y := viewport_size.y - button_size.y - 8.0
 	var center_x := viewport_size.x * 0.5
-	rotate_button.position = Vector2(center_x - button_size.x * 0.5, bottom_y)
-	confirm_button.position = Vector2(center_x - button_size.x - side_gap, bottom_y)
-	cancel_button.position = Vector2(center_x + side_gap, bottom_y)
+	rotate_left_button.position = Vector2(center_x - button_size.x * 2.0 - side_gap * 1.5, bottom_y + 4.0)
+	rotate_right_button.position = Vector2(center_x - button_size.x - side_gap * 0.5, bottom_y + 4.0)
+	confirm_button.position = Vector2(center_x + side_gap * 0.5, bottom_y)
+	cancel_button.position = Vector2(center_x + button_size.x + side_gap * 1.5, bottom_y)
 	buttons.position = Vector2.ZERO
 	buttons.size = viewport_size
 
@@ -234,6 +256,16 @@ func _clamp_button_position(position: Vector2, button_size: Vector2, viewport_si
 		clampf(position.x, 8.0, maxf(8.0, viewport_size.x - button_size.x - 8.0)),
 		clampf(position.y, 8.0, maxf(8.0, viewport_size.y - button_size.y - 8.0))
 	)
+
+
+func _set_rotate_buttons_visible(value: bool) -> void:
+	rotate_left_button.visible = value
+	rotate_right_button.visible = value
+
+
+func _set_rotate_buttons_disabled(value: bool) -> void:
+	rotate_left_button.disabled = value
+	rotate_right_button.disabled = value
 
 
 func _get_viewport_size() -> Vector2:

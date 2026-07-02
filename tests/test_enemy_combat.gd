@@ -58,7 +58,7 @@ func run() -> void:
 	_assert((popup.get_node("Panel/Margin/Stack/Calculation/SumLine") as ColorRect).custom_minimum_size.y >= 5.0, "Expected visible full-width sum line")
 	_assert((popup.get_node("Panel") as PanelContainer).size.x >= 620.0, "Expected a large, readable combat panel")
 	var combat_panel_style := (popup.get_node("Panel") as PanelContainer).get_theme_stylebox("panel") as StyleBoxFlat
-	_assert(combat_panel_style.bg_color.a < 0.9, "Expected the combat panel background to remain visible through the popup")
+	_assert(combat_panel_style.bg_color.a < 0.8, "Expected the combat panel background to remain clearly visible through the popup")
 	_assert((popup.get_node("Panel/Margin/Stack/Calculation") as VBoxContainer).get_theme_constant("separation") >= 20, "Expected space between the dice and sum line")
 	_assert((popup.get_node("Panel/Margin/Stack/Calculation/Fighters/Enemy/Dice") as Control).custom_minimum_size.x >= 110.0, "Expected large combat dice")
 	_assert(_label(popup, "Panel/Margin/Stack/Calculation/Fighters/Player/Name").get_theme_font_size("font_size") >= 34, "Expected large combat labels")
@@ -98,6 +98,7 @@ func run() -> void:
 	await _wait_until(func() -> bool: return not _button(popup, "Panel/Margin/Stack/OKButton").disabled)
 	_assert(map.get_encounter(Vector2i(4, 7)).is_empty(), "Expected victory to remove enemy before OK")
 	_assert(_button(popup, "Panel/Margin/Stack/OKButton").visible, "Expected victory to replace combat buttons with OK")
+	_assert(_button(popup, "Panel/Margin/Stack/OKButton").text.contains("+%d Gold" % player.gold), "Expected the victory button to show the awarded gold")
 	_assert(not popup.get_node("Panel/Margin/Stack/Buttons").visible, "Expected Fight and Retreat hidden after victory")
 	_button(popup, "Panel/Margin/Stack/OKButton").pressed.emit()
 	await _wait_until(func() -> bool: return not player.is_in_combat())

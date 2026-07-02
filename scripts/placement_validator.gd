@@ -46,6 +46,41 @@ func get_road_placement_hint(grid_position: Vector2i, connections: Dictionary, p
 	return ""
 
 
+func get_invalid_road_connections(grid_position: Vector2i, connections: Dictionary) -> Array[String]:
+	var invalid_directions: Array[String] = []
+	if not _map.is_inside_playable_area(grid_position):
+		return invalid_directions
+
+	for direction_name in GameConstants.DIRECTIONS:
+		var neighbor_position: Vector2i = grid_position + GameConstants.DIRECTIONS[direction_name]
+		var opens_to_neighbor: bool = connections.get(direction_name, false) == true
+		if not _map.is_inside_playable_area(neighbor_position):
+			if opens_to_neighbor:
+				invalid_directions.append(direction_name)
+			continue
+
+		var opposite: String = GameConstants.OPPOSITE_DIRECTIONS[direction_name]
+		var feature_connections := _map.get_fixed_feature_connections(neighbor_position)
+		if not feature_connections.is_empty():
+			if opens_to_neighbor != (feature_connections.get(opposite, false) == true):
+				invalid_directions.append(direction_name)
+			continue
+
+		if opens_to_neighbor and not _map.can_build_on_fixed_feature(neighbor_position):
+			var feature_type := str(_map.get_fixed_feature(neighbor_position).get("type", ""))
+			if feature_type != GameConstants.FEATURE_RIVER:
+				invalid_directions.append(direction_name)
+			continue
+
+		var neighbor: Variant = _map.get_tile(neighbor_position)
+		if neighbor is Dictionary:
+			var neighbor_connections: Dictionary = neighbor.get("connections", {})
+			if opens_to_neighbor != (neighbor_connections.get(opposite, false) == true):
+				invalid_directions.append(direction_name)
+
+	return invalid_directions
+
+
 func get_tile_target_hint(grid_position: Vector2i, event_type: String) -> String:
 	if _is_too_far_away(grid_position):
 		return HINT_TOO_FAR

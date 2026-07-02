@@ -1,7 +1,40 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/placement_controls_ui.gd" id="1_x2qxl"]
 [ext_resource type="Script" path="res://scripts/placement_action_button.gd" id="2_action"]
+[ext_resource type="Texture2D" path="res://assets/images/ui/placement/placement_actions_atlas.png" id="3_actions_atlas"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_accept"]
+atlas = ExtResource("3_actions_atlas")
+region = Rect2(61, 58, 319, 314)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cancel"]
+atlas = ExtResource("3_actions_atlas")
+region = Rect2(447, 59, 320, 313)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rotate_left"]
+atlas = ExtResource("3_actions_atlas")
+region = Rect2(833, 59, 319, 313)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rotate_right"]
+atlas = ExtResource("3_actions_atlas")
+region = Rect2(1219, 58, 318, 314)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_accept_pressed"]
+atlas = ExtResource("3_actions_atlas")
+region = Rect2(60, 423, 319, 322)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cancel_pressed"]
+atlas = ExtResource("3_actions_atlas")
+region = Rect2(447, 423, 320, 321)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rotate_left_pressed"]
+atlas = ExtResource("3_actions_atlas")
+region = Rect2(833, 423, 319, 322)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_rotate_right_pressed"]
+atlas = ExtResource("3_actions_atlas")
+region = Rect2(1219, 424, 318, 320)
 
 [node name="PlacementControls" type="CanvasLayer"]
 layer = 20
@@ -23,34 +56,59 @@ visible = false
 custom_minimum_size = Vector2(128, 128)
 mouse_filter = 2
 
-[node name="RotateButton" type="Button" parent="Buttons"]
-custom_minimum_size = Vector2(56, 56)
+[node name="RotateLeftButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(68, 68)
 layout_mode = 0
-offset_left = 36.0
-offset_right = 92.0
-offset_bottom = 56.0
+offset_right = 68.0
+offset_bottom = 68.0
 focus_mode = 0
+icon = SubResource("AtlasTexture_rotate_left")
+icon_max_width = 68
+expand_icon = true
 script = ExtResource("2_action")
 action = 0
+pressed_icon = SubResource("AtlasTexture_rotate_left_pressed")
 
-[node name="ConfirmButton" type="Button" parent="Buttons"]
-custom_minimum_size = Vector2(56, 56)
+[node name="RotateRightButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(68, 68)
 layout_mode = 0
-offset_top = 72.0
-offset_right = 56.0
-offset_bottom = 128.0
+offset_left = 72.0
+offset_right = 140.0
+offset_bottom = 68.0
 focus_mode = 0
-disabled = true
+icon = SubResource("AtlasTexture_rotate_right")
+icon_max_width = 68
+expand_icon = true
 script = ExtResource("2_action")
 action = 1
+pressed_icon = SubResource("AtlasTexture_rotate_right_pressed")
+
+[node name="ConfirmButton" type="Button" parent="Buttons"]
+custom_minimum_size = Vector2(68, 68)
+layout_mode = 0
+offset_top = 72.0
+offset_right = 68.0
+offset_bottom = 140.0
+focus_mode = 0
+disabled = true
+icon = SubResource("AtlasTexture_accept")
+icon_max_width = 68
+expand_icon = true
+script = ExtResource("2_action")
+action = 2
+pressed_icon = SubResource("AtlasTexture_accept_pressed")
 
 [node name="CancelButton" type="Button" parent="Buttons"]
-custom_minimum_size = Vector2(56, 56)
+custom_minimum_size = Vector2(68, 68)
 layout_mode = 0
 offset_left = 72.0
 offset_top = 72.0
-offset_right = 128.0
-offset_bottom = 128.0
+offset_right = 140.0
+offset_bottom = 140.0
 focus_mode = 0
+icon = SubResource("AtlasTexture_cancel")
+icon_max_width = 68
+expand_icon = true
 script = ExtResource("2_action")
-action = 2
+action = 3
+pressed_icon = SubResource("AtlasTexture_cancel_pressed")

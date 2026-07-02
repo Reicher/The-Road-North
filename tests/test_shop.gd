@@ -57,9 +57,11 @@ func run() -> void:
 	_assert(remove_button.custom_minimum_size.y == 56.0 and view_deck_button.custom_minimum_size.y == 56.0, "Expected deck buttons to keep a fixed normal height")
 	_assert(remove_button.size_flags_vertical == Control.SIZE_SHRINK_CENTER and view_deck_button.size_flags_vertical == Control.SIZE_SHRINK_CENTER, "Expected deck buttons not to stretch vertically")
 	_assert(summary_panel != null, "Expected a styled summary panel")
-	_assert(inventory_slots.get_child_count() == InventoryUI.SLOT_COUNT, "Expected the inventory to render one visible stack per backpack slot")
+	_assert(inventory_slots.get_child_count() == 1, "Expected the inventory row to render only carried items so a single item can be centered")
+	_assert(inventory_slots.alignment == BoxContainer.ALIGNMENT_CENTER, "Expected carried items to stay centered for one, two, or three visible items")
 	_assert(_slot_button(inventory_slots, 0).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected inventory entries to use inventory-sized slots")
-	_assert(_price_text(inventory_slots, 0).begins_with("+"), "Expected sellable equipment to show sale value outside the slot")
+	_assert(_price_text(inventory_slots, 0).begins_with("+"), "Expected sellable equipment to show its sale value behind the item")
+	_assert((inventory_slots.get_child(0).get_node("OverlapPrice") as Control).position.y == 70.0, "Expected equipment prices to share the item's bottom edge")
 	_assert(_nested_label_index(shop_stack, "Sellable equipment") >= 0, "Expected the compact sellable equipment row label")
 	_assert(_nested_label_index(shop_stack, "Item shop") >= 0, "Expected the compact item shop row label")
 	for shelf_name in ["SellableRowShelf", "ItemRowShelf", "FoodRowShelf", "LifeRowShelf", "CardsSectionShelf", "DeckSectionShelf"]:
@@ -68,8 +70,9 @@ func run() -> void:
 	_assert(inventory_slots.get_parent().size_flags_vertical == Control.SIZE_EXPAND_FILL, "Expected compact shop rows to participate in even vertical distribution")
 	_assert(shop.find_child("SellBuySeparator", true, false) == null, "Expected the sellable shelf edge to replace the separate divider")
 	_assert(item_row.get_child_count() == InventoryUI.SLOT_COUNT, "Expected buyable items to render in the same number of slots as the inventory")
+	_assert(item_row.alignment == BoxContainer.ALIGNMENT_CENTER, "Expected one, two, or three available item offers to remain centered")
 	_assert(_slot_button(item_row, 0).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected buyable items to use the same slot size as the inventory")
-	_assert(_price_text(item_row, 0).is_valid_int(), "Expected buyable items to show purchase price outside the slot")
+	_assert(_price_text(item_row, 0).is_valid_int(), "Expected buyable items to show their purchase price behind the item")
 	shop._show_sell_item_popup(0)
 	var item_popup := shop.get_node("ItemDetailsPopup") as Control
 	var item_action := item_popup.get_node("Center/Panel/Margin/Stack/Buttons/ActionButton") as Button
@@ -80,19 +83,28 @@ func run() -> void:
 	item_popup.call("hide_popup")
 	_assert(food_row.get_child_count() == 3, "Expected three food offers")
 	_assert(life_row.get_child_count() == 2, "Expected two life offers")
-	_assert(_slot_button(food_row, 0).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected food offers to use inventory-sized slots")
-	_assert((_slot_button(food_row, 0).get_child(0) as Label).text == "Bread", "Expected food slot title to sit at the top")
-	_assert((_slot_button(food_row, 0).get_child(2) as Label).text == "+1", "Expected food amount to share the lower slot space")
-	_assert(_price_text(food_row, 0) == "1", "Expected food slots to show purchase price outside the slot")
-	_assert(_slot_button(life_row, 0).custom_minimum_size.is_equal_approx(shop.SLOT_SIZE), "Expected life offers to use inventory-sized slots")
-	_assert((_slot_button(life_row, 0).get_child(2) as Label).text == "+1", "Expected life slots to show only the amount")
+	var bread_offer := food_row.get_child(0) as Button
+	var bandage_offer := life_row.get_child(0) as Button
+	_assert(bread_offer.custom_minimum_size.x > shop.SLOT_SIZE.x, "Expected the food click target to include the price at the item's right edge")
+	_assert((bread_offer.get_node("FloatingArt") as TextureRect).texture != null, "Expected bread to use its dedicated transparent artwork")
+	_assert((bread_offer.get_node("TopPrice/PriceLabel") as Label).text == "1", "Expected the food price along the offer's upper edge")
+	_assert((bandage_offer.get_node("FloatingArt") as TextureRect).texture != null, "Expected bandage to use its dedicated transparent artwork")
+	_assert((bandage_offer.get_node("TopPrice/PriceLabel") as Label).text == "1", "Expected the life price along the offer's upper edge")
+	_assert((shop.find_child("FoodLift", true, false) as MarginContainer).get_theme_constant("margin_bottom") == 16, "Expected the complete Food row to sit higher in its shelf")
+	_assert((shop.find_child("LifeLift", true, false) as MarginContainer).get_theme_constant("margin_bottom") == 26, "Expected the complete Life row to sit higher in its shelf")
+	_assert((bread_offer.get_node("TopPrice") as Control).z_index > (bread_offer.get_node("FloatingArt") as Control).z_index, "Expected floating prices to stay above consumable art")
+	_assert((inventory_slots.get_child(0).get_node("OverlapPrice") as Control).z_index > _slot_button(inventory_slots, 0).z_index, "Expected floating equipment prices to stay above their items")
 	var legacy_potion_row := shop.find_child("PotionsRow", true, false) as Control
 	_assert(legacy_potion_row != null and not legacy_potion_row.visible, "Expected potions to be hidden from the shop")
 	var bottom_spacer := shop.find_child("BottomSpacer", true, false) as Control
 	_assert(bottom_spacer != null and not bottom_spacer.visible, "Expected the bottom spacer not to create empty shop space")
 	_assert(shop.card_offers.size() == 3, "Expected shop to roll exactly three special card offers")
+	_assert(not cards_title.visible, "Expected the card shelf to rely on the cards instead of a separate Cards heading")
 	_assert(cards_title.get_parent() == card_row.get_parent(), "Expected the Cards title to stay grouped with the card offers")
 	_assert(deck_section_title.get_parent() == deck_row.get_parent(), "Expected the Deck title to stay grouped with the deck buttons")
+	_assert(not deck_section_title.visible, "Expected the deck actions to have no separate Deck heading")
+	_assert(remove_button.custom_minimum_size.x == 240.0 and view_deck_button.custom_minimum_size.x == 240.0, "Expected narrower inset deck buttons")
+	_assert(deck_row.get_theme_constant("separation") == 32, "Expected more space between the two deck actions")
 	_assert(cards_title.get_parent().size_flags_vertical == Control.SIZE_EXPAND_FILL, "Expected Cards section to keep its group while sharing vertical space")
 	_assert(deck_section_title.get_parent().size_flags_vertical == Control.SIZE_EXPAND_FILL, "Expected Deck section to keep its group while sharing vertical space")
 	_assert(_offer_types_are_unique(shop.card_offers), "Expected shop special-card offers not to contain duplicate card types")
@@ -103,12 +115,21 @@ func run() -> void:
 	for offer_node in card_row.get_children():
 		var card := offer_node.get_node("Card") as CardView
 		_assert(card != null and card.size.is_equal_approx(shop.CARD_OFFER_SIZE), "Expected shop offers to use the compact shop CardView size")
+		_assert(card.hand_presentation, "Expected shop cards to use exactly the same titles and layout rules as cards in hand")
 		_assert(card.category in [GameConstants.EVENT_CATEGORY, GameConstants.ROAD_CATEGORY], "Expected shop CardView to show special event or special road data")
 		_assert(card.card_base_texture_path == CardView.DEFAULT_CARD_BASE_TEXTURE_PATH, "Expected shop cards to use the same painted card design as gameplay")
-		_assert((offer_node.get_node("BuyButton") as Button).icon != null, "Expected special card prices to use the gold resource icon")
+		_assert(offer_node.get_node_or_null("CardPrice") == null, "Expected no price symbol or number beside shop cards")
+		_assert((offer_node.get_node("BuyButton") as Button).text.is_empty(), "Expected cards to use one invisible full-offer click target instead of a separate buy button")
+	(card_row.get_child(0).get_node("BuyButton") as Button).pressed.emit()
+	var card_popup := shop.find_child("CardOfferPopup", true, false) as Control
+	_assert(card_popup != null and card_popup.visible, "Expected tapping a shop card to open its details popup")
+	_assert(shop._card_offer_detail.text == str(shop.card_offers[0].get("detail", "")), "Expected the popup to explain what the special card does")
+	_assert(shop._card_offer_cost.text == "Cost: %dg" % int(shop.card_offers[0]["price"]), "Expected the card price only inside the popup")
+	shop.call("_hide_card_offer_popup")
 
 	shop.call("_show_deck_overlay", true)
 	var deck_overlay := shop.find_child("DeckOverlay", true, false) as DeckOverlay
+	_assert(deck_overlay.z_index > 2, "Expected the deck overlay to cover every floating shop item and consumable")
 	var deck_title := deck_overlay.find_child("Title", true, false) as Label
 	var deck_grid := deck_overlay.find_child("Grid", true, false) as GridContainer
 	_assert(deck_title.text == "REMOVE CARD", "Expected the removal overlay to use a clear, polished title")
@@ -231,11 +252,14 @@ func _nested_label_index(parent: Node, text: String) -> int:
 
 
 func _slot_button(row: HBoxContainer, index: int) -> Button:
-	return (row.get_child(index).get_child(0) as Button)
+	for child in row.get_child(index).get_children():
+		if child is Button:
+			return child as Button
+	return null
 
 
 func _price_text(row: HBoxContainer, index: int) -> String:
-	var chip := row.get_child(index).get_child(1) as HBoxContainer
+	var chip := row.get_child(index).get_node_or_null("OverlapPrice") as HBoxContainer
 	var label := chip.get_node_or_null("PriceLabel") as Label
 	return label.text if label != null else ""
 

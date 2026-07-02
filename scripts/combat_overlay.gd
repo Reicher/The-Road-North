@@ -58,6 +58,7 @@ func open_preview(player_power: int, enemy_power: int, risk_level: String) -> vo
 	_set_result_color(TEXT_COLOR)
 	$Panel/Margin/Stack/Buttons.visible = true
 	_set_fight_buttons(true)
+	_ok_button.text = "OK"
 	_ok_button.visible = false
 	visible = true
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -87,7 +88,8 @@ func show_round_result(player_roll: int, enemy_roll: int, result: String, victor
 	_ok_button.disabled = victory
 
 
-func enable_ok() -> void:
+func enable_ok(gold_reward: int = 0) -> void:
+	_ok_button.text = "OK  ·  +%d Gold" % gold_reward
 	_ok_button.disabled = false
 
 
@@ -124,8 +126,8 @@ func _set_fight_buttons(enabled: bool) -> void:
 func _apply_styles() -> void:
 	var panel := $Panel as PanelContainer
 	var title_banner := $TitleBanner as PanelContainer
-	panel.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, Color(0.95, 0.91, 0.82, 0.82), Color(0.20, 0.16, 0.12, 0.92), 24, 4))
-	title_banner.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, Color(0.76, 0.38, 0.33, 0.88), Color(0.38, 0.20, 0.16, 0.94), 8, 2))
+	panel.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, Color(0.95, 0.91, 0.82, 0.72), Color(0.20, 0.16, 0.12, 0.88), 24, 4))
+	title_banner.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, Color(0.76, 0.38, 0.33, 0.80), Color(0.38, 0.20, 0.16, 0.90), 8, 2))
 	_style_button(_fight_button, Color(0.16, 0.36, 0.49), Color(0.10, 0.22, 0.29), Color(0.24, 0.47, 0.60))
 	_style_button(_retreat_button, Color(0.80, 0.72, 0.58), Color(0.34, 0.25, 0.17), Color(0.88, 0.81, 0.68))
 	_style_button(_ok_button, Color(0.40, 0.61, 0.19), Color(0.22, 0.35, 0.10), Color(0.51, 0.72, 0.27))

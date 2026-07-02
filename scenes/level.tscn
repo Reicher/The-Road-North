@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://scripts/map.gd" id="1_1fs71"]
 [ext_resource type="Script" path="res://scripts/level.gd" id="1_y88x2"]
@@ -20,6 +20,15 @@
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_hud"]
 shader = ExtResource("15_hud_shader")
+
+[sub_resource type="Environment" id="Environment_moonlit"]
+background_mode = 1
+background_color = Color(0.025, 0.04, 0.065, 1)
+background_energy_multiplier = 0.45
+ambient_light_source = 3
+ambient_light_color = Color(0.25, 0.34, 0.46, 1)
+ambient_light_energy = 0.22
+reflected_light_source = 2
 
 [node name="Level" type="Node"]
 script = ExtResource("1_y88x2")
@@ -61,10 +70,13 @@ reserved_bottom_path = NodePath("../UI/Hand")
 pan_margin_x_tiles = 3.0
 pan_margin_z_tiles = 3.0
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_moonlit")
+
+[node name="Moonlight" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.707107, -0.353553, 0.612372, 0, 0.866025, 0.5, -0.707107, -0.353553, 0.612372, 0, 0, 0)
-light_color = Color(0.88, 0.92, 0.84, 1)
-light_energy = 1.15
+light_color = Color(0.48, 0.62, 0.82, 1)
+light_energy = 0.42
 shadow_enabled = true
 
 [node name="UI" type="CanvasLayer" parent="."]

@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_x4v0h"]
 [ext_resource type="Script" path="res://scripts/player_rewards.gd" id="2_bbaf7"]
@@ -6,10 +6,35 @@
 [ext_resource type="PackedScene" path="res://ui/movement_selection.tscn" id="4_selection"]
 [ext_resource type="Script" path="res://scripts/route_preview.gd" id="5_route"]
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lantern"]
+albedo_color = Color(1, 0.58, 0.25, 1)
+emission_enabled = true
+emission = Color(1, 0.58, 0.25, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_lantern"]
+material = SubResource("StandardMaterial3D_lantern")
+radius = 2.4
+height = 4.8
+radial_segments = 8
+rings = 4
+
 [node name="Player" type="Node3D"]
 script = ExtResource("1_x4v0h")
 
 [node name="Visuals" type="Node3D" parent="."]
+
+[node name="LanternLight" type="OmniLight3D" parent="."]
+position = Vector3(0, 72, 0)
+light_color = Color(1, 0.58, 0.25, 1)
+light_energy = 18.0
+omni_range = 250.0
+omni_attenuation = 0.72
+
+[node name="LanternGlow" type="MeshInstance3D" parent="."]
+position = Vector3(0, 24, 0)
+mesh = SubResource("SphereMesh_lantern")
+cast_shadow = 0
 
 [node name="RoutePreview" type="MeshInstance3D" parent="."]
 script = ExtResource("5_route")

@@ -10,15 +10,22 @@ const PLAYABLE_GRID_COLOR := Color(0.30, 0.38, 0.26, 0.28)
 const PLAYABLE_BORDER_COLOR := Color(0.30, 0.38, 0.26, 0.62)
 const SELECTION_COLOR := Color(1.0, 0.86, 0.28, 0.96)
 const TREE_SLOTS := [
-	Vector2(-0.38, -0.36),
-	Vector2(-0.08, -0.39),
-	Vector2(0.31, -0.34),
-	Vector2(-0.34, -0.04),
-	Vector2(0.14, -0.08),
-	Vector2(0.39, 0.04),
-	Vector2(-0.28, 0.33),
-	Vector2(0.03, 0.38),
-	Vector2(0.34, 0.30),
+	Vector2(-0.39, -0.38),
+	Vector2(-0.13, -0.40),
+	Vector2(0.14, -0.37),
+	Vector2(0.39, -0.34),
+	Vector2(-0.37, -0.12),
+	Vector2(-0.10, -0.11),
+	Vector2(0.18, -0.09),
+	Vector2(0.40, -0.05),
+	Vector2(-0.40, 0.16),
+	Vector2(-0.14, 0.14),
+	Vector2(0.13, 0.18),
+	Vector2(0.39, 0.20),
+	Vector2(-0.35, 0.40),
+	Vector2(-0.08, 0.38),
+	Vector2(0.20, 0.40),
+	Vector2(0.42, 0.41),
 ]
 const OUTSIDE_TREE_SLOTS := [
 	Vector2(-0.44, -0.43),
@@ -278,10 +285,10 @@ func _add_bridge(map: GameMap, parent: Node3D, rotation_steps: int) -> void:
 
 func _add_cell_trees(map: GameMap, parent: Node3D, grid_position: Vector2i) -> void:
 	var seed := grid_position.x * 11 + grid_position.y * 7
-	var count := 6 + posmod(seed, 3)
+	var count := 10 + posmod(seed, 3)
 	var occupied_slots: Dictionary = {}
 	for index in count:
-		var slot_index := posmod(index * 4 + seed, TREE_SLOTS.size())
+		var slot_index := posmod(index * 5 + seed, TREE_SLOTS.size())
 		occupied_slots[slot_index] = true
 		var offset: Vector2 = TREE_SLOTS[slot_index]
 		var scale_factor := 0.70 + float(posmod(seed + index * 5, 7)) * 0.055

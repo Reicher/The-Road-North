@@ -1,8 +1,8 @@
 class_name MapVisualPalette
 extends RefCounted
 
-const GRASS := Color(0.40, 0.58, 0.27)
-const GRASS_DARK := Color(0.23, 0.40, 0.19)
+const GRASS := Color(0.31, 0.43, 0.29)
+const GRASS_DARK := Color(0.17, 0.29, 0.20)
 const ROAD := Color(0.38, 0.27, 0.17)
 const ROAD_EDGE := Color(0.29, 0.20, 0.13)
 const WOOD_DARK := Color(0.27, 0.13, 0.055)
@@ -11,7 +11,7 @@ const STONE := Color(0.34, 0.38, 0.32)
 const STONE_LIGHT := Color(0.58, 0.64, 0.54)
 const WATER := Color(0.07, 0.32, 0.52)
 const WATER_CURRENT := Color(0.48, 0.82, 0.88)
-const FOLIAGE := Color(0.08, 0.33, 0.13)
+const FOLIAGE := Color(0.055, 0.235, 0.115)
 const BERRY := Color(0.67, 0.10, 0.18)
 const ENEMY := Color(0.78, 0.12, 0.10)
 const PLAYER := Color(0.38, 0.72, 0.86)
@@ -20,6 +20,7 @@ const MAGIC := Color(0.63, 0.95, 0.45)
 
 static var _ground_shader: Shader
 static var _road_shader: Shader
+static var _wood_shader: Shader
 static var _water_shader: Shader
 static var _foliage_wind_shader: Shader
 static var _rock_shader: Shader
@@ -46,6 +47,13 @@ static func make_ground_material(color: Color) -> ShaderMaterial:
 static func make_road_material(color: Color) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
 	material.shader = _get_road_shader()
+	material.set_shader_parameter("base_color", color)
+	return material
+
+
+static func make_wood_material(color: Color) -> ShaderMaterial:
+	var material := ShaderMaterial.new()
+	material.shader = _get_wood_shader()
 	material.set_shader_parameter("base_color", color)
 	return material
 
@@ -106,9 +114,12 @@ void fragment() {
 	float medium = value_noise(map_position.xz * 0.052 + vec2(17.3, -8.7));
 	float fine = value_noise(map_position.xz * 0.14 + vec2(-4.1, 23.9));
 	float variation = broad * 0.52 + medium * 0.32 + fine * 0.16;
-	vec3 cool_grass = base_color.rgb * vec3(0.82, 0.93, 0.76);
-	vec3 warm_grass = base_color.rgb * vec3(1.12, 1.05, 0.82);
-	ALBEDO = mix(cool_grass, warm_grass, smoothstep(0.18, 0.82, variation));
+	float mottling = smoothstep(0.24, 0.78, variation);
+	float sparse_wear = smoothstep(0.78, 0.92, medium + fine * 0.18);
+	vec3 shadow_grass = base_color.rgb * vec3(0.72, 0.82, 0.74);
+	vec3 dry_grass = base_color.rgb * vec3(1.10, 1.03, 0.86);
+	ALBEDO = mix(shadow_grass, dry_grass, mottling);
+	ALBEDO *= mix(1.0, 0.84, sparse_wear * 0.34);
 	ROUGHNESS = 1.0;
 }
 """
@@ -133,6 +144,27 @@ void fragment() {
 }
 """
 	return _road_shader
+
+
+static func _get_wood_shader() -> Shader:
+	if _wood_shader == null:
+		_wood_shader = Shader.new()
+		_wood_shader.code = """
+shader_type spatial;
+render_mode cull_disabled;
+uniform vec4 base_color : source_color;
+varying vec3 map_position;
+void vertex() { map_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
+float grain(vec2 point) { return fract(sin(dot(point, vec2(27.17, 91.73))) * 43758.5453); }
+void fragment() {
+	float long_grain = sin(map_position.z * 0.42 + sin(map_position.x * 0.13) * 1.8) * 0.5 + 0.5;
+	float scuffs = grain(floor(map_position.xz * vec2(0.12, 0.28)));
+	float wear = long_grain * 0.16 + scuffs * 0.12;
+	ALBEDO = base_color.rgb * mix(0.73, 1.06, wear + 0.34);
+	ROUGHNESS = 0.98;
+}
+"""
+	return _wood_shader
 
 
 static func _get_water_shader() -> Shader:

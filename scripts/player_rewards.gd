@@ -28,12 +28,14 @@ func set_loot_seed(seed: int) -> void:
 	_loot_rng.seed = seed
 
 
-func open_enemy_loot(enemy_data: Dictionary) -> void:
+func open_enemy_loot(enemy_data: Dictionary) -> int:
 	if _loot_ui == null:
-		return
+		return 0
 	var loot := _make_enemy_loot(enemy_data)
+	var gold_before := _player.gold if _player != null else 0
 	if not loot.is_empty():
 		_loot_ui.open_loot(loot)
+	return (_player.gold - gold_before) if _player != null else 0
 
 
 func collect_loot(loot: Array) -> void:

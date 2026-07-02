@@ -16,6 +16,14 @@ func _initialize() -> void:
 	map.name = "Map"
 	root.add_child(map)
 	_assert(map.get_padded_world_rect() == map.get_playable_world_rect(), "Expected map bounds to exclude visual padding")
+	await process_frame
+	var empty_cell := map.get_node("MapVisuals/Cells/Cell_0_0") as Node3D
+	var empty_cell_trees := empty_cell.get_children().filter(func(child: Node) -> bool: return child.get_node_or_null("CrownLower") != null)
+	var empty_tree_positions: Dictionary = {}
+	for tree in empty_cell_trees:
+		empty_tree_positions[(tree as Node3D).position] = true
+	_assert(empty_cell_trees.size() >= 10, "Expected dense trees on empty playable cells")
+	_assert(empty_tree_positions.size() == empty_cell_trees.size(), "Expected playable-cell trees not to overlap in the same slot")
 
 	var roads = ROADS_SCRIPT.new()
 	roads.name = "Roads"
@@ -34,11 +42,11 @@ func _initialize() -> void:
 	_assert(straight_visuals.call("_point_touches_road", Vector2(0.10, -0.40), STRAIGHT.get_rotated_openings(0), 0.21), "Expected trees not to be placed on roads")
 	await process_frame
 	var road_trees := straight_visuals.get_children().filter(func(child: Node) -> bool: return child.get_node_or_null("CrownLower") != null)
-	_assert(road_trees.size() == 4, "Expected placed road tiles to use sparse roadside trees")
+	_assert(road_trees.size() == 6, "Expected placed road tiles to use dense roadside trees")
 	var closest_tree_edge_distance := 1.0
 	for tree in road_trees:
 		closest_tree_edge_distance = minf(closest_tree_edge_distance, absf((tree as Node3D).position.x / map.tile_size) - 0.105)
-	_assert(closest_tree_edge_distance >= 0.10, "Expected roadside trees to leave the road visually clear")
+	_assert(closest_tree_edge_distance >= 0.08, "Expected roadside trees to stand close to the road without overlapping it")
 
 	_assert(roads.place_tile(Vector2i(4, 3), STRAIGHT, 0), "Expected matching north/south connection to place")
 	_assert(not roads.place_tile(Vector2i(5, 4), STRAIGHT, 1), "Expected invalid east/west mismatch to be rejected")

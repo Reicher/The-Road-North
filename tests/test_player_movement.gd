@@ -46,6 +46,8 @@ func _initialize() -> void:
 	_assert(map.get_node("MapVisuals").get("_selection_highlight") != null, "Expected the selected tile to get a visible outline")
 	_assert(player.get_node("MovementSelection/Label").text == "Straight Road", "Expected the selected road type to be named")
 	_assert(player.get_node("MovementSelection/ConfirmButton").visible, "Expected a reachable road selection to show movement confirmation")
+	_assert(player.get_node("MovementSelection/ConfirmButton").icon != null, "Expected movement confirmation to use the footsteps atlas icon")
+	_assert(player.get_node("MovementSelection/ConfirmButton").pressed_icon != null, "Expected movement confirmation to use the pressed footsteps atlas icon")
 	var route_preview := player.get_node("RoutePreview") as MeshInstance3D
 	_assert(route_preview.visible and route_preview.mesh != null, "Expected a reachable selection to show its road-centered route")
 	_assert(player.confirm_selected_move(), "Expected confirming a reachable road selection to start movement")

@@ -82,6 +82,7 @@ func _initialize() -> void:
 	var fullscreen_mask := sight_fog.get_node("FullscreenMask") as MeshInstance3D
 	var mask_material := (fullscreen_mask.mesh as QuadMesh).material as ShaderMaterial
 	_assert(is_equal_approx(mask_material.get_shader_parameter("fog_color").a, 0.84), "Expected the fullscreen fog mask to darken content outside Sight by 84 percent")
+	_assert(mask_material.render_priority == 126, "Expected Sight fog to leave the final transparent render layer for connection warnings")
 	_assert(mask_material.shader.code.contains("inside_map && distance_from_player <= sight"), "Expected only playable cells within Sight to bypass fog-of-war")
 	_assert(placement.is_in_sight(Vector2i(3, 7)), "Expected a diagonally adjacent tile to be within Sight 1")
 	_assert(placement.is_placing(), "Expected placement mode to become active")
@@ -95,10 +96,21 @@ func _initialize() -> void:
 	_assert(placement.get_node("PlacementControls").layer > ui.layer, "Expected placement buttons to appear above the hand UI")
 	_assert(placement.get_node("PlacementControls/Buttons").visible, "Expected placement buttons to show before selecting a preview")
 	_assert(placement.get_node("PlacementControls/Buttons/CancelButton").visible, "Expected cancel button to be available before selecting a preview")
-	_assert(placement.get_node("PlacementControls/Buttons/RotateButton").disabled, "Expected rotate button to wait for a preview tile")
+	_assert(placement.get_node("PlacementControls/Buttons/RotateLeftButton").disabled, "Expected left rotate button to wait for a preview tile")
+	_assert(placement.get_node("PlacementControls/Buttons/RotateRightButton").disabled, "Expected right rotate button to wait for a preview tile")
 	_assert(placement.get_node("PlacementControls/Buttons/ConfirmButton").disabled, "Expected confirm button to stay disabled before a preview exists")
 	_assert(placement.get_node("PlacementControls/Buttons/ConfirmButton").text.is_empty(), "Expected confirm to use an icon instead of text")
 	_assert(placement.get_node("PlacementControls/Buttons/CancelButton").text.is_empty(), "Expected cancel to use an icon instead of text")
+	_assert(placement.get_node("PlacementControls/Buttons/ConfirmButton").icon != null, "Expected confirm to load its PNG icon")
+	_assert(placement.get_node("PlacementControls/Buttons/CancelButton").icon != null, "Expected cancel to load its PNG icon")
+	var cancel_action_button := placement.get_node("PlacementControls/Buttons/CancelButton") as PlacementActionButton
+	var initial_cancel_icon := cancel_action_button.icon
+	var cancel_pressed_icon := cancel_action_button.pressed_icon
+	_assert(cancel_pressed_icon != null, "Expected cancel to load its pressed atlas icon")
+	cancel_action_button.call("_show_pressed_icon")
+	_assert(cancel_action_button.icon == cancel_pressed_icon, "Expected button down to show the pressed icon")
+	cancel_action_button.call("_show_normal_icon")
+	_assert(cancel_action_button.icon == initial_cancel_icon, "Expected button up to restore the normal icon")
 	_assert(placement.get_node_or_null("PlacementHint_4_7") == null, "Expected road placement not to reveal valid empty tiles")
 
 	map.tile_pressed.emit(Vector2i(4, 5))
@@ -106,6 +118,12 @@ func _initialize() -> void:
 	_set_initial_preview(placement, Vector2i(4, 5))
 	_assert(not placement.has_valid_preview(), "Expected a preview beyond Sight to be invalid")
 	_assert(_get_hint(placement) == "Too far away", "Expected Sight to be the highest-priority placement hint")
+	_assert(not placement.get_node("PlacementControls/Buttons/RotateLeftButton").visible, "Expected rotation controls to hide beyond Sight")
+	_assert(not placement.get_node("PlacementControls/Buttons/RotateRightButton").visible, "Expected both rotation controls to hide beyond Sight")
+	_assert(not placement.get_node("PlacementControls/Buttons/ConfirmButton").visible, "Expected confirm to hide beyond Sight")
+	var too_far_rotation: int = placement.rotation_steps
+	placement.rotate_preview()
+	_assert(placement.rotation_steps == too_far_rotation, "Expected rotation input to be ignored beyond Sight")
 	hand.set_inactive(true, false)
 	placement.get_node("PlacementControls").call("position_buttons", Vector2i(4, 5), map, hand)
 	var preview_top_edge := map.grid_edge_to_screen_position(Vector2i(4, 5), false)
@@ -127,7 +145,9 @@ func _initialize() -> void:
 	_assert(map.are_cell_trees_visible(Vector2i(4, 5)), "Expected moving preview to restore the previous cell's trees")
 	_assert(not map.are_cell_trees_visible(Vector2i(4, 7)), "Expected preview to hide trees under the proposed road")
 	_assert(not placement.get_node("PlacementControls/PromptLabel").visible, "Expected placement prompt to hide after preview appears")
-	_assert(not placement.get_node("PlacementControls/Buttons/RotateButton").disabled, "Expected rotate button to enable after selecting a preview")
+	_assert(not placement.get_node("PlacementControls/Buttons/RotateLeftButton").disabled, "Expected left rotate button to enable after selecting a preview")
+	_assert(not placement.get_node("PlacementControls/Buttons/RotateRightButton").disabled, "Expected right rotate button to enable after selecting a preview")
+	_assert(placement.get_node("PlacementControls/Buttons/ConfirmButton").visible, "Expected confirm to reappear within Sight")
 	_assert(not placement.get_node("PlacementControls/Buttons/ConfirmButton").disabled, "Expected confirm button to enable for a valid preview")
 	await process_frame
 	var preview_tile := placement.get_node("PreviewTile") as RoadTile
@@ -146,28 +166,54 @@ func _initialize() -> void:
 	_assert(preview_tile.get_node_or_null("Enemy/PowerIcon") == null or not preview_tile.get_node("Enemy/PowerIcon").visible, "Expected enemy road previews to hide the power icon")
 	_assert(preview_tile.get_node_or_null("Enemy/QuestionMark") == null, "Expected enemy previews to use the final model without a question-mark marker")
 	_assert(preview_visuals.get_node_or_null("HighlightNorth") == null, "Expected no second border box around the road preview")
-	var rotate_button := placement.get_node("PlacementControls/Buttons/RotateButton") as Button
+	var rotate_left_button := placement.get_node("PlacementControls/Buttons/RotateLeftButton") as Button
+	var rotate_right_button := placement.get_node("PlacementControls/Buttons/RotateRightButton") as Button
 	var confirm_button := placement.get_node("PlacementControls/Buttons/ConfirmButton") as Button
 	var cancel_button := placement.get_node("PlacementControls/Buttons/CancelButton") as Button
-	placement.get_node("PlacementControls").call("_position_around_preview", Vector2(180.0, 180.0), Vector2(360.0, 500.0), 132.0, 228.0)
-	_assert(rotate_button.position.y < confirm_button.position.y, "Expected rotate above the road preview controls")
+	placement.get_node("PlacementControls").call(
+		"_position_around_preview",
+		Vector2(180.0, 180.0),
+		Vector2(360.0, 500.0),
+		Vector2(132.0, 132.0),
+		Vector2(228.0, 132.0),
+		228.0
+	)
+	_assert(rotate_left_button.position.y < confirm_button.position.y, "Expected left rotate above the road preview controls")
+	_assert(rotate_right_button.position.y == rotate_left_button.position.y, "Expected rotate buttons on the same row")
+	_assert(rotate_left_button.position.x < rotate_right_button.position.x, "Expected counterclockwise rotation in the upper-left corner")
+	_assert(rotate_left_button.size == confirm_button.size, "Expected left rotate to match the confirm button size")
+	_assert(rotate_right_button.size == cancel_button.size, "Expected right rotate to match the cancel button size")
 	_assert(confirm_button.position.y == cancel_button.position.y, "Expected confirm and cancel on the same row below the preview")
 	_assert(confirm_button.position.x < cancel_button.position.x, "Expected confirm to the left of cancel")
-	_assert(is_equal_approx(rotate_button.position.y + rotate_button.size.y * 0.5, 132.0), "Expected rotate centered on the tile's upper edge")
+	_assert(is_equal_approx(rotate_left_button.position.y + rotate_left_button.size.y * 0.5, 132.0), "Expected left rotate centered on the tile's upper edge")
+	_assert(is_equal_approx(rotate_right_button.position.y + rotate_right_button.size.y * 0.5, 132.0), "Expected right rotate centered on the tile's upper edge")
+	_assert(is_equal_approx(rotate_left_button.position.x + rotate_left_button.size.x * 0.5, 132.0), "Expected left rotate centered on the tile's upper-left corner")
+	_assert(is_equal_approx(rotate_right_button.position.x + rotate_right_button.size.x * 0.5, 228.0), "Expected right rotate centered on the tile's upper-right corner")
 	_assert(is_equal_approx(confirm_button.position.y + confirm_button.size.y * 0.5, 228.0), "Expected confirm centered on the tile's lower edge")
 	_assert(cancel_button.position.x - (confirm_button.position.x + confirm_button.size.x) >= 48.0, "Expected a safe gap between confirm and cancel")
+	var original_rotation: int = placement.rotation_steps
+	placement.rotate_preview_left()
+	_assert(placement.rotation_steps == posmod(original_rotation - 1, 4), "Expected the left button to rotate counterclockwise")
+	placement.rotate_preview_right()
+	_assert(placement.rotation_steps == original_rotation, "Expected the right button to rotate clockwise")
 	placement.rotate_preview()
 	_assert(not placement.has_valid_preview(), "Expected rotated mismatch to become invalid")
 	_assert(_get_hint(placement) == "Connect to your tile", "Expected player connection mismatch to explain the invalid rotation")
+	var connection_warnings := placement.get_node("ConnectionWarnings")
+	_assert(connection_warnings.visible, "Expected an invalid road connection to show a warning triangle")
+	_assert(connection_warnings.get_node("Warning0").visible, "Expected the mismatched connection warning to be visible")
+	_assert(connection_warnings.get_node("Warning0").scale == Vector3.ONE, "Expected the connection warning to remain still")
+	var warning_material := (connection_warnings.get_node("Warning0") as MeshInstance3D).material_override as StandardMaterial3D
+	_assert(warning_material.render_priority == 127, "Expected connection warnings to render above Sight fog at diagonal Sight edges")
 	var hint_bottom := prompt_label.position.y + prompt_label.size.y
 	_assert(
-		hint_bottom + 6.0 <= rotate_button.position.y + 0.01,
+		hint_bottom + 6.0 <= rotate_left_button.position.y + 0.01,
 		"Expected placement error text above the rotate button"
 	)
 	placement._process(0.0)
 	hint_bottom = prompt_label.position.y + prompt_label.size.y
 	_assert(
-		hint_bottom + 6.0 <= rotate_button.position.y + 0.01,
+		hint_bottom + 6.0 <= rotate_left_button.position.y + 0.01,
 		"Expected placement error text to remain above the rotate button after repositioning"
 	)
 	_assert(not placement.confirm_placement(), "Expected confirm to stay disabled for invalid rotation")
@@ -176,6 +222,7 @@ func _initialize() -> void:
 	placement.rotate_preview()
 	placement.rotate_preview()
 	_assert(placement.has_valid_preview(), "Expected rotating back to restore valid placement")
+	_assert(not connection_warnings.visible, "Expected connection warnings to hide when every road connection fits")
 	_assert(placement.confirm_placement(), "Expected valid preview to place the road")
 	_assert(not sight_fog.visible, "Expected fog-of-war to disappear after placement")
 	_assert(map.get_tile(Vector2i(4, 7)) != null, "Expected confirmed placement to store map tile")

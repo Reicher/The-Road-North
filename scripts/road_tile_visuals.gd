@@ -3,12 +3,13 @@ extends Node3D
 
 const GROUND_HEIGHT := 0.10
 const ROAD_WIDTH_RATIO := 0.21
-const ROAD_TREE_MARGIN_RATIO := 0.11
-const ROAD_TILE_TREE_COUNT := 4
+const ROAD_TREE_MARGIN_RATIO := 0.08
+const ROAD_TILE_TREE_COUNT := 6
 const ROAD_EDGE_SAMPLES := 6
 const ROAD_EDGE_JITTER_RATIO := 0.009
 const ENCOUNTER_PLAZA_DIAMETER_RATIO := 0.48
 const ENCOUNTER_PLAZA_HEIGHT_RATIO := 0.012
+const LANTERN_COLOR := Color(1.0, 0.58, 0.24)
 const RoadPath = preload("res://scripts/road_path.gd")
 const ModelAssets = preload("res://scripts/model_assets.gd")
 const VisualPalette = preload("res://scripts/map_visual_palette.gd")
@@ -260,6 +261,37 @@ func _add_house(openings: Dictionary, tile_size: float) -> void:
 	var model := ModelAssets.instantiate_model(ModelAssets.HOUSE_MODEL, "House", Vector3(0.0, GROUND_HEIGHT, z_offset), tile_size)
 	if model != null:
 		add_child(model)
+	_add_house_lantern(tile_size, z_offset)
+
+
+func _add_house_lantern(tile_size: float, z_offset: float) -> void:
+	var lantern_position := Vector3(0.0, GROUND_HEIGHT + tile_size * 0.23, z_offset - tile_size * 0.15)
+	var light := OmniLight3D.new()
+	light.name = "LanternLight"
+	light.position = Vector3(lantern_position.x, GROUND_HEIGHT + tile_size * 0.75, lantern_position.z)
+	light.light_color = LANTERN_COLOR
+	light.light_energy = 15.0
+	light.omni_range = tile_size * 2.25
+	light.omni_attenuation = 0.72
+	add_child(light)
+
+	var glow_mesh := SphereMesh.new()
+	glow_mesh.radius = tile_size * 0.025
+	glow_mesh.height = tile_size * 0.05
+	glow_mesh.radial_segments = 8
+	glow_mesh.rings = 4
+	var glow := MeshInstance3D.new()
+	glow.name = "LanternGlow"
+	glow.mesh = glow_mesh
+	glow.position = lantern_position
+	glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var glow_material := StandardMaterial3D.new()
+	glow_material.albedo_color = LANTERN_COLOR
+	glow_material.emission_enabled = true
+	glow_material.emission = LANTERN_COLOR
+	glow_material.emission_energy_multiplier = 3.0
+	glow.material_override = glow_material
+	add_child(glow)
 
 
 func _get_house_z_offset(openings: Dictionary, tile_size: float) -> float:
@@ -381,13 +413,13 @@ func _add_roadside_decorations(openings: Dictionary, tile_size: float, tree_posi
 			continue
 		var blocked := false
 		for tree_position in tree_positions:
-			if slot.distance_to(tree_position) < 0.18:
+			if slot.distance_to(tree_position) < 0.15:
 				blocked = true
 				break
 		if blocked:
 			continue
 		for decoration_position in decoration_positions:
-			if slot.distance_to(decoration_position) < 0.18:
+			if slot.distance_to(decoration_position) < 0.15:
 				blocked = true
 				break
 		if blocked:

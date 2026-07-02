@@ -24,16 +24,9 @@ const POWER_POTION_PRICE := 8
 const MAX_HEALTH_POTION_PRICE := 10
 const REMOVAL_BASE_PRICE := 12
 const REMOVAL_PRICE_STEP := 6
-const SLOT_SIZE := Vector2(93.0, 93.0)
-const SLOT_FILL := Color(1.0, 0.94, 0.78)
-const SLOT_HOVER_FILL := Color(1.0, 0.86, 0.56)
-const SLOT_PRESSED_FILL := Color(0.90, 0.72, 0.40)
-const SLOT_DISABLED_FILL := Color(0.86, 0.80, 0.66)
-const SHOP_WOOD_FILL := Color(0.17, 0.10, 0.055, 1.0)
-const SHELF_FILL := Color(0.24, 0.17, 0.105, 0.98)
-const SHELF_BORDER := Color(0.52, 0.36, 0.20, 1.0)
+const SLOT_SIZE := Vector2(82.0, 82.0)
 const SHELF_TITLE := Color(0.96, 0.82, 0.53, 1.0)
-const CARD_OFFER_SIZE := Vector2(178.0, 256.0)
+const CARD_OFFER_SIZE := Vector2(174.0, 250.0)
 const OFFER_ICON_SIZE := 42
 const STAT_ICON_PATHS := GameConstants.STAT_ICON_PATHS
 const PROTECTED_ROAD_TYPES := ["Straight Road", "Corner", "T-Junction"]
@@ -60,6 +53,13 @@ const HEAL_OFFERS: Array[Dictionary] = [
 	{"name": "Bandage", "amount": 1, "price": 1},
 	{"name": "Medic Kit", "amount": 5, "price": 3},
 ]
+const CONSUMABLE_TEXTURE_PATHS := {
+	"Bread": "res://assets/images/shop/food_bread.png",
+	"Kebab": "res://assets/images/shop/food_kebab.png",
+	"Chicken": "res://assets/images/shop/food_chicken.png",
+	"Bandage": "res://assets/images/shop/life_bandage.png",
+	"Medic Kit": "res://assets/images/shop/life_medikit.png",
+}
 const SPECIAL_CARD_CATALOG: Array[Dictionary] = [
 	{"title": "Clear Path", "detail": "Remove an encounter from a road.", "category": GameConstants.EVENT_CATEGORY, "event_type": GameConstants.EVENT_CLEAR_PATH, "price": 8},
 	{
@@ -134,6 +134,13 @@ var _confirmation_confirm_button: Button
 var _confirmation_cancel_button: Button
 var _confirmation_callback: Callable
 var _item_details_popup
+var _card_offer_popup: Control
+var _card_offer_title: Label
+var _card_offer_type: Label
+var _card_offer_detail: Label
+var _card_offer_cost: Label
+var _card_offer_buy_button: Button
+var _selected_card_offer_index := -1
 
 
 func _ready() -> void:
@@ -365,6 +372,10 @@ func _configure_compact_section_layout() -> void:
 	if _compact_rows_configured:
 		return
 	_compact_rows_configured = true
+	_summary_panel.custom_minimum_size.y = 135.0
+	_summary_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_play_next_button.custom_minimum_size.y = 90.0
+	_play_next_button.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var insert_index := _summary_panel.get_index() + 1
 	_food_offer_row = HBoxContainer.new()
 	_life_offer_row = HBoxContainer.new()
@@ -381,6 +392,17 @@ func _configure_compact_section_layout() -> void:
 		bottom_spacer.visible = false
 	_group_title_with_content("CardsSection", "CardsTitle", _card_row, 3)
 	_group_title_with_content("DeckSection", "DeckTitle", _remove_button.get_parent() as Control, 3)
+	_card_row.add_theme_constant_override("separation", 18)
+	_card_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var cards_title := get_node_or_null("ShopScroll/ShopMargin/ShopStack/CardsSectionShelf/CardsSection/CardsTitle") as Label
+	if cards_title != null:
+		cards_title.visible = false
+	var deck_title := get_node_or_null("ShopScroll/ShopMargin/ShopStack/DeckSectionShelf/DeckSection/DeckTitle") as Label
+	if deck_title != null:
+		deck_title.visible = false
+	var deck_row := _remove_button.get_parent() as HBoxContainer
+	deck_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	deck_row.add_theme_constant_override("separation", 32)
 
 
 func _add_compact_section_row(index: int, title: String, content_row: HBoxContainer) -> void:
@@ -391,23 +413,33 @@ func _add_compact_section_row(index: int, title: String, content_row: HBoxContai
 	row.alignment = BoxContainer.ALIGNMENT_BEGIN
 	row.add_theme_constant_override("separation", 10)
 	var label := Label.new()
-	label.custom_minimum_size = Vector2(190.0, 0.0)
+	label.custom_minimum_size = Vector2(170.0, 0.0)
 	label.size_flags_horizontal = Control.SIZE_FILL
 	label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 26)
+	label.add_theme_font_size_override("font_size", 24)
 	label.add_theme_color_override("font_color", SHELF_TITLE)
 	label.text = title
 	content_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	content_row.alignment = BoxContainer.ALIGNMENT_END
-	content_row.add_theme_constant_override("separation", 4)
+	content_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	content_row.add_theme_constant_override("separation", 18)
 	var old_parent := content_row.get_parent()
 	if old_parent != null:
 		old_parent.remove_child(content_row)
 	row.add_child(label)
 	row.add_child(content_row)
-	var shelf := _shelf_panel("%sShelf" % row.name, row)
+	var shelf_content: Control = row
+	if title in ["Food", "Life"]:
+		var lift_margin := MarginContainer.new()
+		lift_margin.name = "%sLift" % title
+		lift_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lift_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		lift_margin.add_theme_constant_override("margin_bottom", 26 if title == "Life" else 16)
+		lift_margin.add_child(row)
+		shelf_content = lift_margin
+	var shelf := _shelf_panel("%sShelf" % row.name, shelf_content)
+	shelf.custom_minimum_size.y = 120.0
 	_shop_stack.add_child(shelf)
 	_shop_stack.move_child(shelf, index)
 
@@ -434,6 +466,7 @@ func _group_title_with_content(section_name: String, title_node_name: String, co
 	section.add_child(title)
 	section.add_child(content)
 	var shelf := _shelf_panel("%sShelf" % section_name, section)
+	shelf.custom_minimum_size.y = 285.0 if section_name == "CardsSection" else 110.0
 	_shop_stack.add_child(shelf)
 	_shop_stack.move_child(shelf, original_index)
 
@@ -443,13 +476,12 @@ func _shelf_panel(panel_name: String, content: Control) -> PanelContainer:
 	panel.name = panel_name
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var style := UIStyle.rounded_box(self, SHELF_FILL, SHELF_BORDER, 3, 1)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
 	style.content_margin_left = 8.0
 	style.content_margin_right = 8.0
 	style.content_margin_top = 2.0
 	style.content_margin_bottom = 2.0
-	# The heavier lower edge reads as the front lip of an old wooden shelf.
-	style.border_width_bottom = 4
 	panel.add_theme_stylebox_override("panel", style)
 	panel.add_child(content)
 	return panel
@@ -472,8 +504,9 @@ func _hide_original_shop_sections() -> void:
 
 
 func _apply_styles() -> void:
-	($Background as ColorRect).color = SHOP_WOOD_FILL
-	_summary_panel.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, UIStyle.panel_fill(self), UIStyle.panel_border(self)))
+	var transparent_panel := StyleBoxFlat.new()
+	transparent_panel.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	_summary_panel.add_theme_stylebox_override("panel", transparent_panel)
 	_sell_zone.add_theme_stylebox_override("normal", UIStyle.elevated_box(self, Color(0.56, 0.22, 0.16), Color(0.94, 0.62, 0.30), 12, 3))
 	_sell_zone.visible = false
 	_configure_fixed_deck_button(_remove_button)
@@ -484,6 +517,11 @@ func _apply_styles() -> void:
 	_apply_button_icon(_buy_max_health_button, "health")
 	_apply_button_icon(_remove_button, "deck")
 	_apply_button_icon(_view_deck_button, "deck")
+	var transparent_button := StyleBoxFlat.new()
+	transparent_button.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	transparent_button.content_margin_top = 8.0
+	transparent_button.content_margin_bottom = 8.0
+	_play_next_button.add_theme_stylebox_override("normal", transparent_button)
 
 
 func _layout_shop() -> void:
@@ -525,16 +563,15 @@ func _refresh_inventory_slots() -> void:
 		inventory.append({})
 	progression["inventory"] = inventory
 	for index in InventoryUI.SLOT_COUNT:
+		var item: Dictionary = inventory[index]
+		if item.is_empty():
+			continue
 		var slot := ITEM_SLOT_SCENE.instantiate() as ItemSlot
 		slot.slot_size = SLOT_SIZE
-		var item: Dictionary = inventory[index]
 		slot.configure(item, index)
 		_apply_slot_style(slot)
-		if not item.is_empty():
-			slot.pressed.connect(_show_sell_item_popup.bind(index))
-			_slot_row.add_child(_priced_slot(slot, "+%d" % (_sell_price(item) * _inventory_gold_multiplier())))
-		else:
-			_slot_row.add_child(_priced_slot(slot, ""))
+		slot.pressed.connect(_show_sell_item_popup.bind(index))
+		_slot_row.add_child(_priced_slot(slot, "+%d" % (_sell_price(item) * _inventory_gold_multiplier()), index))
 
 
 func _refresh_survival_offers() -> void:
@@ -542,82 +579,75 @@ func _refresh_survival_offers() -> void:
 		return
 	_clear_children(_food_offer_row)
 	_clear_children(_life_offer_row)
-	for offer in FOOD_OFFERS:
+	for index in FOOD_OFFERS.size():
+		var offer := FOOD_OFFERS[index]
 		var food_offer := offer.duplicate(true)
-		var food_button := _shop_action_slot(
-			str(food_offer["name"]),
+		var food_button := _floating_consumable_offer(
+			food_offer,
 			int(food_offer["price"]),
-			"food",
-			int(food_offer["amount"]),
-			"",
-			_confirm_buy_food.bind(food_offer)
+			_confirm_buy_food.bind(food_offer),
+			index
 		)
-		_food_offer_row.add_child(_priced_slot(food_button, "%d" % int(food_offer["price"])))
-	for offer in HEAL_OFFERS:
+		_food_offer_row.add_child(food_button)
+	for index in HEAL_OFFERS.size():
+		var offer := HEAL_OFFERS[index]
 		var heal_offer := offer.duplicate(true)
-		var slot_button := _shop_action_slot(
-			str(heal_offer["name"]),
+		var slot_button := _floating_consumable_offer(
+			heal_offer,
 			int(heal_offer["price"]),
-			"health",
-			int(heal_offer["amount"]),
-			"",
-			_confirm_buy_heal.bind(heal_offer)
+			_confirm_buy_heal.bind(heal_offer),
+			index + FOOD_OFFERS.size()
 		)
 		slot_button.disabled = slot_button.disabled or int(progression.get("health", 0)) >= int(progression.get("max_health", 1))
-		_life_offer_row.add_child(_priced_slot(slot_button, "%d" % int(heal_offer["price"])))
+		_life_offer_row.add_child(slot_button)
 
 
 func _refresh_offers() -> void:
 	_clear_children(_item_row)
-	for index in InventoryUI.SLOT_COUNT:
-		if index < item_offers.size():
-			var offer := item_offers[index]
-			var button := ITEM_SLOT_SCENE.instantiate() as ItemSlot
-			button.name = "ItemOffer%d" % (index + 1)
-			button.slot_size = SLOT_SIZE
-			button.configure(offer, index)
-			_apply_slot_style(button)
-			ItemIconLibrary.update_size_badge(button, offer)
-			button.disabled = index in _purchased_item_offers
-			button.pressed.connect(_show_buy_item_popup.bind(index))
-			_item_row.add_child(_priced_slot(button, "%d" % int(offer["price"])))
-		else:
-			var empty := ITEM_SLOT_SCENE.instantiate() as ItemSlot
-			empty.slot_size = SLOT_SIZE
-			empty.configure({}, index)
-			_apply_slot_style(empty)
-			empty.disabled = true
-			empty.text = "-"
-			_item_row.add_child(_priced_slot(empty, ""))
+	for index in item_offers.size():
+		if index in _purchased_item_offers:
+			continue
+		var offer := item_offers[index]
+		var button := ITEM_SLOT_SCENE.instantiate() as ItemSlot
+		button.name = "ItemOffer%d" % (index + 1)
+		button.slot_size = SLOT_SIZE
+		button.configure(offer, index)
+		_apply_slot_style(button)
+		ItemIconLibrary.update_size_badge(button, offer)
+		button.pressed.connect(_show_buy_item_popup.bind(index))
+		_item_row.add_child(_priced_slot(button, "%d" % int(offer["price"]), index + InventoryUI.SLOT_COUNT))
 	_clear_children(_card_row)
 	for index in card_offers.size():
 		var offer := card_offers[index]
-		var offer_stack := VBoxContainer.new()
+		var offer_stack := Control.new()
 		offer_stack.name = "CardOffer%d" % (index + 1)
-		offer_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		offer_stack.alignment = BoxContainer.ALIGNMENT_CENTER
-		offer_stack.add_theme_constant_override("separation", 4)
+		offer_stack.custom_minimum_size = Vector2(CARD_OFFER_SIZE.x + 18.0, CARD_OFFER_SIZE.y + 20.0)
+		offer_stack.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		var card := CARD_SCENE.instantiate() as CardView
 		card.name = "Card"
 		card.custom_minimum_size = CARD_OFFER_SIZE
 		card.size = CARD_OFFER_SIZE
+		var card_offset := Vector2(float(index - 1) * 7.0, 4.0 if index == 0 else 0.0)
+		card.position = Vector2(9.0, -3.0) + card_offset
+		card.z_index = 1
 		card.pivot_offset = CARD_OFFER_SIZE * 0.5
+		card.hand_presentation = true
 		card.configure(offer)
-		card.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		card.pointer_released.connect(func(_card: CardView, _position: Vector2) -> void:
-			buy_special_card(index)
-		)
-		var buy_button := _button("Buy / %dg" % int(offer["price"]), buy_special_card.bind(index))
+		(card.get_node("TouchButton") as Button).mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var buy_button := Button.new()
 		buy_button.name = "BuyButton"
-		buy_button.add_theme_font_size_override("font_size", 24)
-		_apply_button_icon(buy_button, "gold")
+		buy_button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		buy_button.z_index = 2
+		buy_button.tooltip_text = "View %s" % str(offer.get("title", "card"))
+		buy_button.pressed.connect(_show_card_offer_popup.bind(index))
+		_apply_floating_button_style(buy_button)
 		buy_button.disabled = index in _purchased_card_offers
 		if buy_button.disabled:
 			card.modulate = Color(0.55, 0.55, 0.55, 0.72)
-			(card.get_node("TouchButton") as Button).disabled = true
 		offer_stack.add_child(card)
 		offer_stack.add_child(buy_button)
 		_card_row.add_child(offer_stack)
+		_start_offer_bob.call_deferred(card, index + InventoryUI.SLOT_COUNT * 2)
 
 
 func _roll_card_offers() -> void:
@@ -813,6 +843,124 @@ func _show_buy_item_popup(offer_index: int) -> void:
 	_item_details_popup.show_item(offer, "Buy  %dg" % int(offer.get("price", 0)), buy_item.bind(offer_index), can_buy)
 
 
+func _show_card_offer_popup(offer_index: int) -> void:
+	if offer_index < 0 or offer_index >= card_offers.size():
+		return
+	_ensure_card_offer_popup()
+	_selected_card_offer_index = offer_index
+	var offer := card_offers[offer_index]
+	_card_offer_title.text = str(offer.get("title", "Special card"))
+	_card_offer_type.text = _card_offer_type_text(offer)
+	_card_offer_detail.text = str(offer.get("detail", "Add this special card to your deck."))
+	var price := int(offer.get("price", 0))
+	_card_offer_cost.text = "Cost: %dg" % price
+	_card_offer_buy_button.disabled = offer_index in _purchased_card_offers or int(progression.get("gold", 0)) < price
+	_card_offer_buy_button.text = "Purchased" if offer_index in _purchased_card_offers else "Buy"
+	_card_offer_popup.visible = true
+
+
+func _card_offer_type_text(offer: Dictionary) -> String:
+	if str(offer.get("category", "")) == GameConstants.ROAD_CATEGORY:
+		var encounter: Dictionary = offer.get("encounter", {})
+		if str(encounter.get("type", "")) in GameConstants.REUSABLE_ENCOUNTER_TYPES:
+			return "ROAD SPECIAL"
+		return "SPECIAL ROAD"
+	return "SPECIAL EVENT"
+
+
+func _buy_selected_card_offer() -> void:
+	if _selected_card_offer_index >= 0 and buy_special_card(_selected_card_offer_index):
+		_hide_card_offer_popup()
+
+
+func _hide_card_offer_popup() -> void:
+	_selected_card_offer_index = -1
+	if _card_offer_popup != null:
+		_card_offer_popup.visible = false
+
+
+func _ensure_card_offer_popup() -> void:
+	if _card_offer_popup != null:
+		return
+	_card_offer_popup = Control.new()
+	_card_offer_popup.name = "CardOfferPopup"
+	_card_offer_popup.visible = false
+	_card_offer_popup.z_index = 210
+	_card_offer_popup.mouse_filter = Control.MOUSE_FILTER_STOP
+	_card_offer_popup.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_card_offer_popup)
+
+	var shade := ColorRect.new()
+	shade.color = Color(0.08, 0.07, 0.05, 0.72)
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_card_offer_popup.add_child(shade)
+
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card_offer_popup.add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(470.0, 0.0)
+	panel.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, UIStyle.panel_fill(self), UIStyle.panel_border(self), 12, 3))
+	center.add_child(panel)
+
+	var margin := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		margin.add_theme_constant_override("margin_%s" % side, 24)
+	panel.add_child(margin)
+
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 12)
+	margin.add_child(stack)
+
+	_card_offer_title = Label.new()
+	_card_offer_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_card_offer_title.add_theme_font_size_override("font_size", 32)
+	_card_offer_title.add_theme_color_override("font_color", UIStyle.text(self))
+	stack.add_child(_card_offer_title)
+
+	_card_offer_type = Label.new()
+	_card_offer_type.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_card_offer_type.add_theme_font_size_override("font_size", 18)
+	_card_offer_type.add_theme_color_override("font_color", UIStyle.muted_text(self))
+	stack.add_child(_card_offer_type)
+
+	_card_offer_detail = Label.new()
+	_card_offer_detail.custom_minimum_size.y = 64.0
+	_card_offer_detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_card_offer_detail.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_card_offer_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_card_offer_detail.add_theme_font_size_override("font_size", 23)
+	_card_offer_detail.add_theme_color_override("font_color", UIStyle.text(self))
+	stack.add_child(_card_offer_detail)
+
+	_card_offer_cost = Label.new()
+	_card_offer_cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_card_offer_cost.add_theme_font_size_override("font_size", 25)
+	_card_offer_cost.add_theme_color_override("font_color", Color(0.73, 0.42, 0.10))
+	stack.add_child(_card_offer_cost)
+
+	var buttons := HBoxContainer.new()
+	buttons.add_theme_constant_override("separation", 12)
+	stack.add_child(buttons)
+	var close_button := Button.new()
+	close_button.custom_minimum_size = Vector2(0.0, 58.0)
+	close_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	close_button.text = "Close"
+	close_button.add_theme_font_size_override("font_size", 24)
+	close_button.pressed.connect(_hide_card_offer_popup)
+	buttons.add_child(close_button)
+	_card_offer_buy_button = Button.new()
+	_card_offer_buy_button.custom_minimum_size = Vector2(0.0, 58.0)
+	_card_offer_buy_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_card_offer_buy_button.text = "Buy"
+	_card_offer_buy_button.add_theme_font_size_override("font_size", 24)
+	_card_offer_buy_button.pressed.connect(_buy_selected_card_offer)
+	buttons.add_child(_card_offer_buy_button)
+
+
 func _confirm_buy_food(offer: Dictionary) -> void:
 	_show_confirmation("Buy %s: +%d food for %dg?" % [str(offer["name"]), int(offer["amount"]), int(offer["price"])], buy_food_bundle.bind(int(offer["amount"]), int(offer["price"])))
 
@@ -952,7 +1100,9 @@ func _slot_at(position: Vector2) -> int:
 	for index in _slot_row.get_child_count():
 		var slot_stack := _slot_row.get_child(index) as Control
 		if slot_stack.get_global_rect().has_point(position):
-			return index
+			for child in slot_stack.get_children():
+				if child is ItemSlot:
+					return (child as ItemSlot).slot_index
 	return -1
 
 
@@ -1041,20 +1191,94 @@ func _shop_action_slot(title: String, price: int, icon_name: String, amount: int
 	return button
 
 
-func _priced_slot(slot_button: Button, price_text: String) -> VBoxContainer:
-	var stack := VBoxContainer.new()
-	stack.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	stack.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	stack.add_theme_constant_override("separation", 2)
-	stack.add_child(slot_button)
-	stack.add_child(_price_chip(price_text))
-	return stack
+func _floating_consumable_offer(offer: Dictionary, price: int, callback: Callable, animation_index: int) -> Button:
+	var button := Button.new()
+	button.name = "%sOffer" % str(offer["name"]).replace(" ", "")
+	button.custom_minimum_size = Vector2(132.0, 108.0)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	button.focus_mode = Control.FOCUS_ALL
+	button.tooltip_text = "%s: +%d" % [str(offer["name"]), int(offer["amount"])]
+	button.disabled = int(progression.get("gold", 0)) < price
+	button.pressed.connect(callback)
+	_apply_floating_button_style(button)
+
+	var art := TextureRect.new()
+	art.name = "FloatingArt"
+	art.texture = load(str(CONSUMABLE_TEXTURE_PATHS.get(str(offer["name"]), ""))) as Texture2D
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art.z_index = 1
+	art.offset_left = -7.0
+	art.offset_top = 12.0
+	art.offset_right = SLOT_SIZE.x + 7.0
+	art.offset_bottom = 98.0
+	button.add_child(art)
+
+	var price_chip := _price_chip(str(price))
+	price_chip.name = "TopPrice"
+	price_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	price_chip.position = Vector2(50.0, 68.0)
+	price_chip.z_index = 2
+	button.add_child(price_chip)
+	_start_offer_bob.call_deferred(art, animation_index)
+	_start_offer_bob.call_deferred(price_chip, animation_index)
+	return button
+
+
+func _apply_floating_button_style(button: Button) -> void:
+	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(1.0, 0.84, 0.36, 0.12) if state in ["hover", "focus"] else Color(0.0, 0.0, 0.0, 0.0)
+		style.set_corner_radius_all(12)
+		button.add_theme_stylebox_override(state, style)
+
+
+func _start_offer_bob(art: Control, animation_index: int) -> void:
+	if not is_instance_valid(art) or not art.is_inside_tree():
+		return
+	var base_y := art.position.y
+	var tween := art.create_tween().set_loops()
+	tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	if animation_index > 0:
+		tween.tween_interval(float(animation_index) * 0.11)
+	tween.tween_property(art, "position:y", base_y - 4.0, 0.72)
+	tween.tween_property(art, "position:y", base_y + 2.0, 0.72)
+
+
+func _priced_slot(slot_button: Button, price_text: String, animation_index := 0) -> Control:
+	var group := Control.new()
+	group.name = "FloatingPriceGroup"
+	group.custom_minimum_size = Vector2(132.0, SLOT_SIZE.y + 26.0)
+	group.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	group.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var price_chip := _price_chip(price_text)
+	price_chip.name = "OverlapPrice"
+	price_chip.position = Vector2(50.0, 70.0)
+	price_chip.z_index = 2
+	group.add_child(price_chip)
+	slot_button.position = Vector2(0.0, 18.0)
+	slot_button.z_index = 1
+	group.add_child(slot_button)
+	var hit_area := Button.new()
+	hit_area.name = "GroupHitArea"
+	hit_area.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	hit_area.z_index = 3
+	hit_area.disabled = slot_button.disabled
+	hit_area.tooltip_text = slot_button.tooltip_text
+	hit_area.pressed.connect(func() -> void: slot_button.pressed.emit())
+	_apply_floating_button_style(hit_area)
+	group.add_child(hit_area)
+	if not price_text.is_empty():
+		_start_offer_bob.call_deferred(slot_button, animation_index)
+		_start_offer_bob.call_deferred(price_chip, animation_index)
+	return group
 
 
 func _price_chip(price_text: String) -> HBoxContainer:
 	var chip := HBoxContainer.new()
 	chip.name = "PriceChip"
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	chip.custom_minimum_size = Vector2(SLOT_SIZE.x, 30.0)
 	chip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	chip.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1072,6 +1296,7 @@ func _price_chip(price_text: String) -> HBoxContainer:
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var label := Label.new()
 	label.name = "PriceLabel"
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_font_size_override("font_size", 24)
 	label.add_theme_color_override("font_color", Color(1.0, 0.86, 0.48, 1.0))
 	label.text = price_text
@@ -1132,17 +1357,13 @@ func _add_slot_content(slot_button: Button, title: String, icon_name: String, am
 func _configure_fixed_deck_button(button: Button) -> void:
 	if button == null:
 		return
-	button.custom_minimum_size = Vector2(0.0, 56.0)
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.custom_minimum_size = Vector2(240.0, 56.0)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 
 func _apply_slot_style(slot_button: Button) -> void:
-	var border := UIStyle.panel_border(self)
-	slot_button.add_theme_stylebox_override("normal", UIStyle.rounded_box(self, SLOT_FILL, border, 10, 2))
-	slot_button.add_theme_stylebox_override("hover", UIStyle.rounded_box(self, SLOT_HOVER_FILL, border, 10, 2))
-	slot_button.add_theme_stylebox_override("pressed", UIStyle.rounded_box(self, SLOT_PRESSED_FILL, border, 10, 2))
-	slot_button.add_theme_stylebox_override("disabled", UIStyle.rounded_box(self, SLOT_DISABLED_FILL, border, 10, 2))
+	_apply_floating_button_style(slot_button)
 	slot_button.add_theme_constant_override("icon_max_width", int(SLOT_SIZE.x))
 	slot_button.expand_icon = true
 

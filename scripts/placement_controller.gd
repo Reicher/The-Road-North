@@ -10,6 +10,7 @@ signal encounter_changed(grid_position: Vector2i, card: CardView)
 
 const VALID_COLOR := Color(0.18, 0.88, 0.34, 0.82)
 const INVALID_COLOR := Color(0.96, 0.16, 0.12, 0.86)
+const CONNECTION_WARNING_COLOR := Color(1.0, 0.08, 0.045, 0.92)
 const MODE_NONE := ""
 const MODE_ROAD_PLACEMENT := "road_placement"
 const MODE_DESTROY_TARGETING := "destroy_targeting"
@@ -138,7 +139,9 @@ class SightFog extends Node3D:
 		shader.code = SIGHT_MASK_SHADER
 		_mask_material = ShaderMaterial.new()
 		_mask_material.shader = shader
-		_mask_material.render_priority = 127
+		# Connection warnings use the final transparent priority so their tips
+		# remain readable when they extend from a clear Sight cell into fog.
+		_mask_material.render_priority = 126
 		var quad := QuadMesh.new()
 		quad.size = Vector2(2.0, 2.0)
 		quad.material = _mask_material
@@ -153,6 +156,66 @@ class SightFog extends Node3D:
 	func _grid_distance(from: Vector2i, to: Vector2i) -> int:
 		var delta := to - from
 		return maxi(absi(delta.x), absi(delta.y))
+
+
+class ConnectionWarnings extends Node3D:
+	var _markers: Array[MeshInstance3D] = []
+	var _tile_size := 96.0
+
+
+	func show_directions(direction_names: Array[String], tile_size: float) -> void:
+		_tile_size = tile_size
+		_ensure_marker_count(direction_names.size())
+		for index in _markers.size():
+			var marker := _markers[index]
+			marker.visible = index < direction_names.size()
+			if marker.visible:
+				_configure_marker(marker, GameConstants.DIRECTIONS[direction_names[index]])
+		visible = not direction_names.is_empty()
+
+
+	func hide_warnings() -> void:
+		visible = false
+
+
+	func _ensure_marker_count(count: int) -> void:
+		while _markers.size() < count:
+			var marker := MeshInstance3D.new()
+			marker.name = "Warning%d" % _markers.size()
+			marker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var material := StandardMaterial3D.new()
+			material.albedo_color = CONNECTION_WARNING_COLOR
+			material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			material.emission_enabled = true
+			material.emission = CONNECTION_WARNING_COLOR
+			material.emission_energy_multiplier = 0.75
+			material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			material.cull_mode = BaseMaterial3D.CULL_DISABLED
+			material.no_depth_test = true
+			material.render_priority = 127
+			marker.material_override = material
+			add_child(marker)
+			_markers.append(marker)
+
+
+	func _configure_marker(marker: MeshInstance3D, grid_direction: Vector2i) -> void:
+		var direction := Vector2(grid_direction).normalized()
+		var side := Vector2(-direction.y, direction.x)
+		var edge_center := direction * _tile_size * 0.5
+		var tip := edge_center + direction * _tile_size * 0.12
+		var half_width := _tile_size * RoadTileVisuals.ROAD_WIDTH_RATIO * 0.5
+		var marker_height := RoadTileVisuals.GROUND_HEIGHT + 0.025
+		var vertices := PackedVector3Array([
+			Vector3(tip.x, marker_height, tip.y),
+			Vector3(edge_center.x + side.x * half_width, marker_height, edge_center.y + side.y * half_width),
+			Vector3(edge_center.x - side.x * half_width, marker_height, edge_center.y - side.y * half_width),
+		])
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = vertices
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		marker.mesh = mesh
 
 
 @export var map_path: NodePath
@@ -180,6 +243,7 @@ var _deck_controller: DeckController
 var _validator: PlacementValidator
 var _preview_tile: RoadTile
 var _target_preview: TargetPreview
+var _connection_warnings: ConnectionWarnings
 var _sight_fog: SightFog
 var _controls_layer: PlacementControlsUI
 var _placement_valid := false
@@ -321,16 +385,30 @@ func _begin_mode(card: CardView, mode: String, definition: Resource = null) -> v
 
 
 func rotate_preview() -> void:
+	_rotate_preview_by(1)
+
+
+func rotate_preview_left() -> void:
+	_rotate_preview_by(-1)
+
+
+func rotate_preview_right() -> void:
+	_rotate_preview_by(1)
+
+
+func _rotate_preview_by(direction: int) -> void:
 	if active_card == null:
 		return
 	if active_mode == MODE_ROTATE_TARGETING:
-		_rotate_selected_target()
+		_rotate_selected_target(direction)
 		return
 	if active_mode != MODE_ROAD_PLACEMENT:
 		return
+	if not is_in_sight(preview_position):
+		return
 	if active_card.rotation_locked:
 		return
-	rotation_steps = posmod(rotation_steps + 1, 4)
+	rotation_steps = posmod(rotation_steps + direction, 4)
 	_refresh_preview()
 
 
@@ -468,10 +546,20 @@ func _refresh_preview() -> void:
 	var connections: Dictionary = tile_data.get("connections", {})
 	var invalid_hint := _get_road_placement_hint(preview_position, connections)
 	_placement_valid = invalid_hint.is_empty()
+	_show_connection_warnings(_validator.get_invalid_road_connections(preview_position, connections))
 	_preview_tile.tile_tint = Color(1.08, 1.08, 1.04, 0.98)
 	_preview_tile.set_highlight(true, VALID_COLOR if _placement_valid else INVALID_COLOR)
 	if not _card_drag_in_progress:
-		_controls_layer.show_preview_controls(preview_position, _map, _hand, _placement_valid, not active_card.rotation_locked, invalid_hint)
+		var preview_in_sight := is_in_sight(preview_position)
+		_controls_layer.show_preview_controls(
+			preview_position,
+			_map,
+			_hand,
+			_placement_valid,
+			preview_in_sight and not active_card.rotation_locked,
+			invalid_hint,
+			preview_in_sight
+		)
 	else:
 		_controls_layer.show_hint(invalid_hint, _hand, preview_position, _map)
 	set_process(true)
@@ -593,11 +681,22 @@ func _hide_preview() -> void:
 		_preview_tile.visible = false
 	if _target_preview != null:
 		_target_preview.visible = false
+	if _connection_warnings != null:
+		_connection_warnings.hide_warnings()
 	if _sight_fog != null:
 		_sight_fog.hide_fog()
 	if _controls_layer != null:
 		_controls_layer.hide_all()
 	set_process(false)
+
+
+func _show_connection_warnings(direction_names: Array[String]) -> void:
+	if _connection_warnings == null:
+		_connection_warnings = ConnectionWarnings.new()
+		_connection_warnings.name = "ConnectionWarnings"
+		add_child(_connection_warnings)
+	_connection_warnings.position = _map.grid_to_world(preview_position)
+	_connection_warnings.show_directions(direction_names, _map.tile_size)
 
 
 func _show_sight_fog() -> void:
@@ -629,7 +728,7 @@ func _ensure_controls() -> void:
 		_controls_layer = controls_scene.instantiate() as PlacementControlsUI
 		add_child(_controls_layer)
 
-	_controls_layer.bind_actions(rotate_preview, confirm_placement, cancel_placement)
+	_controls_layer.bind_actions(rotate_preview_left, rotate_preview_right, confirm_placement, cancel_placement)
 
 
 func _show_prompt() -> void:
@@ -694,7 +793,7 @@ func _capture_rotate_target() -> void:
 	rotation_steps = _rotate_original_rotation
 
 
-func _rotate_selected_target() -> void:
+func _rotate_selected_target(direction := 1) -> void:
 	if active_mode != MODE_ROTATE_TARGETING or not _validator.is_valid_rotate_target(preview_position):
 		return
 	_capture_rotate_target()
@@ -702,7 +801,7 @@ func _rotate_selected_target() -> void:
 	var next_index := 0
 	for index in valid_rotations.size():
 		if valid_rotations[index] == rotation_steps:
-			next_index = posmod(index + 1, valid_rotations.size())
+			next_index = posmod(index + direction, valid_rotations.size())
 			break
 	rotation_steps = valid_rotations[next_index]
 	_apply_rotate_target_rotation(rotation_steps)

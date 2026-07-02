@@ -91,6 +91,7 @@ func add_card(card_data: Dictionary, animate := true) -> CardView:
 		return null
 	var card := card_scene.instantiate() as CardView
 	card.set_display_size(card_size)
+	card.hand_presentation = true
 	card.configure(card_data)
 	card.pointer_pressed.connect(_on_card_pointer_pressed)
 	card.pointer_moved.connect(_on_card_pointer_moved)
@@ -289,6 +290,7 @@ func _cancel_drag_visual() -> void:
 func _show_drag_ghost(card: CardView, canvas_position: Vector2) -> void:
 	_drag_ghost = card_scene.instantiate() as CardView
 	_drag_ghost.set_display_size(card_size)
+	_drag_ghost.hand_presentation = true
 	_drag_ghost.configure(card.get_card_data())
 	_drag_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_drag_ghost.modulate.a = 0.88
