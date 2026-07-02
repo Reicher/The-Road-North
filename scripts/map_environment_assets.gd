@@ -44,6 +44,41 @@ static func add_mountain(parent: Node3D, tile_size: float, variant := 0) -> Node
 	return mountain
 
 
+static func create_rock_cluster(tile_size: float, offset: Vector3, variant := 0, scale_factor := 1.0) -> Node3D:
+	var cluster := Node3D.new()
+	cluster.name = "RockCluster"
+	cluster.position = offset
+	cluster.rotation_degrees.y = float(posmod(variant * 53, 360))
+	var rock_count := 1 + posmod(variant, 2)
+	for index in rock_count:
+		var angle := float(index) * TAU / float(rock_count) + float(posmod(variant, 7)) * 0.19
+		var distance := tile_size * 0.035 * float(index)
+		var width := tile_size * (0.064 + 0.010 * float(posmod(variant + index * 3, 3))) * scale_factor
+		var height := width * (0.65 + 0.10 * float(posmod(variant + index, 3)))
+		var rock := _add_boulder(
+			cluster,
+			"Rock%d" % index,
+			width,
+			height,
+			Vector3(cos(angle) * distance, height * 0.44, sin(angle) * distance),
+			VisualPalette.STONE.lightened(0.025 * float(posmod(variant + index, 3)))
+		)
+		rock.rotation_degrees = Vector3(float(posmod(variant + index * 17, 13)) - 6.0, float(posmod(variant * 31 + index * 47, 360)), float(posmod(variant + index * 11, 11)) - 5.0)
+	return cluster
+
+
+static func create_small_bush(tile_size: float, offset: Vector3, variant := 0) -> Node3D:
+	var bush := Node3D.new()
+	bush.name = "SmallBush"
+	bush.position = offset
+	bush.rotation_degrees.y = float(posmod(variant * 67, 360))
+	var base_color := VisualPalette.FOLIAGE.lightened(0.04 + float(posmod(variant, 3)) * 0.025)
+	_add_shrub_lobe(bush, "BushCenter", tile_size * 0.047, Vector3(0.0, tile_size * 0.042, 0.0), base_color)
+	_add_shrub_lobe(bush, "BushLeft", tile_size * 0.036, Vector3(-tile_size * 0.038, tile_size * 0.032, tile_size * 0.012), base_color.darkened(0.07))
+	_add_shrub_lobe(bush, "BushRight", tile_size * 0.034, Vector3(tile_size * 0.036, tile_size * 0.030, -tile_size * 0.010), base_color.lightened(0.05))
+	return bush
+
+
 static func add_river(parent: Node3D, tile_size: float, rotation_steps: int) -> Node3D:
 	var river := Node3D.new()
 	river.name = "River"
@@ -110,6 +145,40 @@ static func _add_cone(parent: Node3D, node_name: String, radius: float, height: 
 	instance.mesh = mesh
 	instance.position = position
 	instance.material_override = VisualPalette.make_material(color)
+	parent.add_child(instance)
+	return instance
+
+
+static func _add_boulder(parent: Node3D, node_name: String, radius: float, height: float, position: Vector3, color: Color) -> MeshInstance3D:
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = height
+	mesh.radial_segments = 7
+	mesh.rings = 4
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	instance.mesh = mesh
+	instance.position = position
+	instance.scale = Vector3(1.0, 1.0, 0.78)
+	instance.material_override = VisualPalette.make_rock_material(color)
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	parent.add_child(instance)
+	return instance
+
+
+static func _add_shrub_lobe(parent: Node3D, node_name: String, radius: float, position: Vector3, color: Color) -> MeshInstance3D:
+	var mesh := SphereMesh.new()
+	mesh.radius = radius
+	mesh.height = radius * 1.35
+	mesh.radial_segments = 6
+	mesh.rings = 3
+	var instance := MeshInstance3D.new()
+	instance.name = node_name
+	instance.mesh = mesh
+	instance.position = position
+	instance.scale = Vector3(1.0, 0.78, 0.82)
+	instance.material_override = VisualPalette.make_material(color)
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	parent.add_child(instance)
 	return instance
 

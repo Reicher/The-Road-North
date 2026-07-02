@@ -47,7 +47,9 @@ func render(
 		var reserved_bush_positions: Array[Vector2] = []
 		if _encounter_type(encounter_data) == GameMap.ENCOUNTER_BERRY_BUSH:
 			reserved_bush_positions = _berry_bush_positions(openings)
-		_add_road_tile_trees(openings, tile_size, reserved_bush_positions)
+		var tree_positions := _add_road_tile_trees(openings, tile_size, reserved_bush_positions)
+		if encounter_data.is_empty():
+			_add_roadside_decorations(openings, tile_size, tree_positions)
 
 	var road_anchor := RoadPath.get_anchor_offset(openings, tile_size)
 	var encounter_offset := enemy_offset + Vector3(road_anchor.x, 0.0, road_anchor.y)
@@ -345,8 +347,9 @@ func _add_graveyard(tile_size: float, encounter_offset: Vector3) -> void:
 	_add_box("GraveCrossBar", Vector3(tile_size * 0.17, tile_size * 0.045, tile_size * 0.045), cross_center + Vector3(0.0, tile_size * 0.20, 0.0), Color(0.25, 0.19, 0.13))
 
 
-func _add_road_tile_trees(openings: Dictionary, tile_size: float, reserved_positions: Array[Vector2] = []) -> void:
+func _add_road_tile_trees(openings: Dictionary, tile_size: float, reserved_positions: Array[Vector2] = []) -> Array[Vector2]:
 	var added := 0
+	var used_positions: Array[Vector2] = []
 	var seed := _tree_layout_seed(openings, tile_size)
 	var slots := _road_tree_slots(seed)
 	for slot in slots:
@@ -363,9 +366,41 @@ func _add_road_tile_trees(openings: Dictionary, tile_size: float, reserved_posit
 		var width_factor := 0.86 + float(posmod(seed + added * 3, 5)) * 0.055
 		var rotation_y := float(posmod(seed * 13 + added * 71, 360))
 		_add_tree(tile_size, Vector3(slot.x * tile_size, 0.0, slot.y * tile_size), scale_factor, width_factor, rotation_y)
+		used_positions.append(slot)
 		added += 1
 		if added >= ROAD_TILE_TREE_COUNT:
-			return
+			break
+	return used_positions
+
+
+func _add_roadside_decorations(openings: Dictionary, tile_size: float, tree_positions: Array[Vector2]) -> void:
+	var seed := _tree_layout_seed(openings, tile_size) + 23
+	var decoration_positions: Array[Vector2] = []
+	for slot in _road_tree_slots(seed):
+		if _point_touches_road(slot, openings, ROAD_WIDTH_RATIO):
+			continue
+		var blocked := false
+		for tree_position in tree_positions:
+			if slot.distance_to(tree_position) < 0.18:
+				blocked = true
+				break
+		if blocked:
+			continue
+		for decoration_position in decoration_positions:
+			if slot.distance_to(decoration_position) < 0.18:
+				blocked = true
+				break
+		if blocked:
+			continue
+		decoration_positions.append(slot)
+		if decoration_positions.size() >= 2:
+			break
+	if not decoration_positions.is_empty():
+		var bush_position := decoration_positions[0]
+		add_child(EnvironmentAssets.create_small_bush(tile_size, Vector3(bush_position.x * tile_size, GROUND_HEIGHT, bush_position.y * tile_size), seed))
+	if decoration_positions.size() >= 2 and posmod(seed, 2) == 0:
+		var rock_position := decoration_positions[1]
+		add_child(EnvironmentAssets.create_rock_cluster(tile_size, Vector3(rock_position.x * tile_size, GROUND_HEIGHT, rock_position.y * tile_size), seed, 0.72))
 
 
 func _road_tree_slots(seed: int) -> Array[Vector2]:

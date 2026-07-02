@@ -1,17 +1,17 @@
 class_name MapVisualPalette
 extends RefCounted
 
-const GRASS := Color(0.52, 0.63, 0.41)
-const GRASS_DARK := Color(0.36, 0.48, 0.32)
-const ROAD := Color(0.39, 0.30, 0.22)
-const ROAD_EDGE := Color(0.33, 0.26, 0.20)
-const WOOD_DARK := Color(0.30, 0.17, 0.09)
-const WOOD := Color(0.54, 0.33, 0.16)
-const STONE := Color(0.42, 0.44, 0.41)
-const STONE_LIGHT := Color(0.65, 0.68, 0.63)
-const WATER := Color(0.12, 0.34, 0.49)
-const WATER_CURRENT := Color(0.62, 0.84, 0.86)
-const FOLIAGE := Color(0.16, 0.39, 0.21)
+const GRASS := Color(0.40, 0.58, 0.27)
+const GRASS_DARK := Color(0.23, 0.40, 0.19)
+const ROAD := Color(0.38, 0.27, 0.17)
+const ROAD_EDGE := Color(0.29, 0.20, 0.13)
+const WOOD_DARK := Color(0.27, 0.13, 0.055)
+const WOOD := Color(0.58, 0.31, 0.11)
+const STONE := Color(0.34, 0.38, 0.32)
+const STONE_LIGHT := Color(0.58, 0.64, 0.54)
+const WATER := Color(0.07, 0.32, 0.52)
+const WATER_CURRENT := Color(0.48, 0.82, 0.88)
+const FOLIAGE := Color(0.08, 0.33, 0.13)
 const BERRY := Color(0.67, 0.10, 0.18)
 const ENEMY := Color(0.78, 0.12, 0.10)
 const PLAYER := Color(0.38, 0.72, 0.86)
@@ -86,12 +86,29 @@ render_mode cull_disabled;
 uniform vec4 base_color : source_color;
 varying vec3 map_position;
 void vertex() { map_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz; }
-float grain(vec2 point) { return fract(sin(dot(point, vec2(12.9898, 78.233))) * 43758.5453); }
+float hash21(vec2 point) {
+	point = fract(point * vec2(123.34, 456.21));
+	point += dot(point, point + 45.32);
+	return fract(point.x * point.y);
+}
+float value_noise(vec2 point) {
+	vec2 cell = floor(point);
+	vec2 local = fract(point);
+	local = local * local * (3.0 - 2.0 * local);
+	return mix(
+		mix(hash21(cell), hash21(cell + vec2(1.0, 0.0)), local.x),
+		mix(hash21(cell + vec2(0.0, 1.0)), hash21(cell + vec2(1.0, 1.0)), local.x),
+		local.y
+	);
+}
 void fragment() {
-	float broad = grain(floor(map_position.xz * 0.055));
-	float fine = grain(floor(map_position.xz * 0.16));
-	float variation = mix(0.90, 1.10, broad * 0.58 + fine * 0.42);
-	ALBEDO = base_color.rgb * variation;
+	float broad = value_noise(map_position.xz * 0.018);
+	float medium = value_noise(map_position.xz * 0.052 + vec2(17.3, -8.7));
+	float fine = value_noise(map_position.xz * 0.14 + vec2(-4.1, 23.9));
+	float variation = broad * 0.52 + medium * 0.32 + fine * 0.16;
+	vec3 cool_grass = base_color.rgb * vec3(0.82, 0.93, 0.76);
+	vec3 warm_grass = base_color.rgb * vec3(1.12, 1.05, 0.82);
+	ALBEDO = mix(cool_grass, warm_grass, smoothstep(0.18, 0.82, variation));
 	ROUGHNESS = 1.0;
 }
 """

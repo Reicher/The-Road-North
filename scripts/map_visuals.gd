@@ -279,13 +279,21 @@ func _add_bridge(map: GameMap, parent: Node3D, rotation_steps: int) -> void:
 func _add_cell_trees(map: GameMap, parent: Node3D, grid_position: Vector2i) -> void:
 	var seed := grid_position.x * 11 + grid_position.y * 7
 	var count := 6 + posmod(seed, 3)
+	var occupied_slots: Dictionary = {}
 	for index in count:
 		var slot_index := posmod(index * 4 + seed, TREE_SLOTS.size())
+		occupied_slots[slot_index] = true
 		var offset: Vector2 = TREE_SLOTS[slot_index]
 		var scale_factor := 0.70 + float(posmod(seed + index * 5, 7)) * 0.055
 		var width_factor := 0.86 + float(posmod(seed + index * 3, 5)) * 0.055
 		var rotation_y := float(posmod(seed * 13 + index * 71, 360))
 		_add_tree(map, parent, Vector3(offset.x * map.tile_size, 0.0, offset.y * map.tile_size), scale_factor, width_factor, rotation_y)
+	if posmod(seed, 3) != 1:
+		var rock_slot := _find_unoccupied_slot(occupied_slots, seed)
+		_add_rock_cluster(map, parent, grid_position, seed, TREE_SLOTS[rock_slot])
+	else:
+		var bush_slot := _find_unoccupied_slot(occupied_slots, seed)
+		_add_small_bush(map, parent, grid_position, seed, TREE_SLOTS[bush_slot])
 
 
 func _add_outside_forest_trees(map: GameMap, parent: Node3D, grid_position: Vector2i) -> void:
@@ -303,6 +311,32 @@ func _add_outside_forest_trees(map: GameMap, parent: Node3D, grid_position: Vect
 func _add_tree(map: GameMap, parent: Node3D, offset: Vector3, scale_factor: float = 1.0, width_factor: float = 1.0, rotation_y := 0.0) -> void:
 	var variant := parent.get_index() + parent.get_child_count()
 	parent.add_child(EnvironmentAssets.create_tree(map.tile_size, offset, scale_factor, width_factor, rotation_y, variant))
+
+
+func _find_unoccupied_slot(occupied_slots: Dictionary, seed: int) -> int:
+	for offset_index in TREE_SLOTS.size():
+		var slot_index := posmod(seed + offset_index, TREE_SLOTS.size())
+		if not occupied_slots.has(slot_index):
+			return slot_index
+	return 0
+
+
+func _add_rock_cluster(map: GameMap, parent: Node3D, grid_position: Vector2i, seed: int, offset: Vector2) -> void:
+	var scale_factor := 0.85 + float(posmod(seed, 4)) * 0.08
+	parent.add_child(EnvironmentAssets.create_rock_cluster(
+		map.tile_size,
+		Vector3(offset.x * map.tile_size, 0.0, offset.y * map.tile_size),
+		seed + grid_position.x * 29 + grid_position.y * 43,
+		scale_factor
+	))
+
+
+func _add_small_bush(map: GameMap, parent: Node3D, grid_position: Vector2i, seed: int, offset: Vector2) -> void:
+	parent.add_child(EnvironmentAssets.create_small_bush(
+		map.tile_size,
+		Vector3(offset.x * map.tile_size, 0.0, offset.y * map.tile_size),
+		seed + grid_position.x * 19 + grid_position.y * 31
+	))
 
 
 func _add_box(parent: Node3D, node_name: String, size: Vector3, local_position: Vector3, color: Color) -> MeshInstance3D:
