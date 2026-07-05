@@ -8,6 +8,7 @@ signal start_zoom_finished
 @export var reserved_bottom_path: NodePath
 @export var initial_visible_tile_width := 5.5
 @export var zoom_in_visible_tile_width := 4.0
+@export var play_start_zoom_sequence := true
 @export_range(0.0, 10.0, 0.1) var start_zoom_hold_duration := 2.0
 @export_range(0.0, 5.0, 0.05) var start_zoom_duration := 0.85
 @export_range(0.0, 2.0, 0.01) var move_focus_duration := 0.50
@@ -49,11 +50,13 @@ func _ready() -> void:
 	if _player != null and not _player.move_failed.is_connected(_on_player_moved):
 		_player.move_failed.connect(_on_player_moved)
 	if _map != null:
-		size = _get_zoom_out_limit()
-		_target_xz = _world_to_xz(_get_full_map_position())
+		size = _get_zoom_out_limit() if play_start_zoom_sequence else _get_initial_zoom_target()
+		var initial_position := _get_full_map_position() if play_start_zoom_sequence else _get_start_focus_position()
+		_target_xz = _get_clamped_target_for_world_position(initial_position, size)
 		_clamp_target()
 		_apply_camera_transform()
-		call_deferred("_play_start_zoom_sequence")
+		if play_start_zoom_sequence:
+			call_deferred("_play_start_zoom_sequence")
 
 
 func _process(_delta: float) -> void:

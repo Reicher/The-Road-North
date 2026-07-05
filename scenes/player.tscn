@@ -27,7 +27,7 @@ script = ExtResource("1_x4v0h")
 [node name="LanternLight" type="OmniLight3D" parent="."]
 position = Vector3(0, 72, 0)
 light_color = Color(1, 0.58, 0.25, 1)
-light_energy = 18.0
+light_energy = 23.0
 omni_range = 250.0
 omni_attenuation = 0.72
 

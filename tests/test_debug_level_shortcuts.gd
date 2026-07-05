@@ -15,11 +15,13 @@ func run() -> void:
 	_send_key(main, KEY_D)
 	await process_frame
 	_assert((main.get_node("Level/Map") as GameMap).playable_width == 5, "Expected debug mode to start on level 1")
+	_assert_debug_intro_skipped(main.get_node("Level"))
 
 	_send_key(main, KEY_3)
 	await process_frame
 	var third_level := main.get_node("Level")
 	_assert((third_level.get_node("Map") as GameMap).playable_width == 9, "Expected key 3 to load level 3")
+	_assert_debug_intro_skipped(third_level)
 
 	_send_key(main, KEY_4)
 	await process_frame
@@ -46,6 +48,17 @@ func _send_key(target: Node, keycode: int) -> void:
 	event.physical_keycode = keycode
 	event.pressed = true
 	target.call("_input", event)
+
+
+func _assert_debug_intro_skipped(level: Node) -> void:
+	var player := level.get_node("Player") as GamePlayer
+	var hand := level.get_node("UI/Hand") as HandUI
+	var camera := level.get_node("Camera3D") as Camera3D
+	_assert(not bool(level.get("play_intro_sequence")), "Expected debug levels to disable the UI intro")
+	_assert(player.visible, "Expected the player to be visible immediately in debug mode")
+	_assert(hand.visible and hand.interaction_enabled, "Expected cards to be playable immediately in debug mode")
+	_assert(not bool(camera.get("play_start_zoom_sequence")), "Expected debug levels to skip the map zoom intro")
+	_assert(camera.get("_start_zoom_tween") == null, "Expected no start zoom tween in debug mode")
 
 
 func _assert(condition: bool, message: String) -> void:

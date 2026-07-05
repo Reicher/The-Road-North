@@ -295,7 +295,10 @@ func _test_draw_two_event() -> void:
 	deck_controller.drawn_count = 0
 
 	var draw_card = hand.cards[0]
+	var activated_events: Array[Dictionary] = []
+	deck_controller.event_card_activated.connect(func(card_data: Dictionary) -> void: activated_events.append(card_data))
 	_assert(deck_controller.play_immediate_event(draw_card), "Expected draw-two to be a playable immediate event")
+	_assert(activated_events.size() == 1 and activated_events[0].get("event_type", "") == GameConstants.EVENT_DRAW_TWO, "Expected playing an event to announce its activation")
 	_assert(not hand.cards.has(draw_card), "Expected draw-two card to be consumed")
 	_assert(hand.cards.size() == 3, "Expected draw-two to draw replacement plus two extra cards")
 	_assert(deck_controller.cards_remaining() == 0, "Expected draw-two to draw whatever remains when the deck is short")

@@ -25,6 +25,7 @@ enum RunState {
 @export var chapter_title := ""
 @export var level_number := 1
 @export var level_name := ""
+@export var play_intro_sequence := true
 @export_range(0.0, 8.0, 0.1) var level_name_hold_after_zoom_started := 2.0
 @export_range(0.0, 2.0, 0.05) var level_name_fade_duration := 0.45
 @export_range(0.0, 2.0, 0.05) var intro_ui_reveal_duration := 0.28
@@ -103,7 +104,7 @@ func _level_intro_text() -> String:
 
 func _should_play_intro_sequence() -> bool:
 	var parent := get_parent()
-	return parent != null and parent.name == "Main"
+	return play_intro_sequence and parent != null and parent.name == "Main"
 
 
 func _chapter_roman() -> String:

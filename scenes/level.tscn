@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=21 format=3]
 
 [ext_resource type="Script" path="res://scripts/map.gd" id="1_1fs71"]
 [ext_resource type="Script" path="res://scripts/level.gd" id="1_y88x2"]
@@ -17,6 +17,7 @@
 [ext_resource type="Script" path="res://scripts/hud_background.gd" id="13_hudbg"]
 [ext_resource type="PackedScene" path="res://ui/settings_menu.tscn" id="14_settings"]
 [ext_resource type="Shader" path="res://shaders/hud_parchment.gdshader" id="15_hud_shader"]
+[ext_resource type="Script" path="res://scripts/event_activation_fx.gd" id="16_event_fx"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_hud"]
 shader = ExtResource("15_hud_shader")
@@ -27,7 +28,7 @@ background_color = Color(0.025, 0.04, 0.065, 1)
 background_energy_multiplier = 0.45
 ambient_light_source = 3
 ambient_light_color = Color(0.25, 0.34, 0.46, 1)
-ambient_light_energy = 0.22
+ambient_light_energy = 0.28
 reflected_light_source = 2
 
 [node name="Level" type="Node"]
@@ -76,7 +77,7 @@ environment = SubResource("Environment_moonlit")
 [node name="Moonlight" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.707107, -0.353553, 0.612372, 0, 0.866025, 0.5, -0.707107, -0.353553, 0.612372, 0, 0, 0)
 light_color = Color(0.48, 0.62, 0.82, 1)
-light_energy = 0.42
+light_energy = 0.55
 shadow_enabled = true
 
 [node name="UI" type="CanvasLayer" parent="."]
@@ -128,6 +129,17 @@ player_path = NodePath("../../Player")
 deck_controller_path = NodePath("../../DeckController")
 
 [node name="SettingsMenu" parent="UI" instance=ExtResource("14_settings")]
+
+[node name="EventActivationFX" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("16_event_fx")
+deck_controller_path = NodePath("../../DeckController")
 
 [node name="GameOver" parent="UI" instance=ExtResource("3_prl4n")]
 player_path = NodePath("../../Player")

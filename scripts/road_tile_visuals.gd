@@ -270,7 +270,7 @@ func _add_house_lantern(tile_size: float, z_offset: float) -> void:
 	light.name = "LanternLight"
 	light.position = Vector3(lantern_position.x, GROUND_HEIGHT + tile_size * 0.75, lantern_position.z)
 	light.light_color = LANTERN_COLOR
-	light.light_energy = 15.0
+	light.light_energy = 20.0
 	light.omni_range = tile_size * 2.25
 	light.omni_attenuation = 0.72
 	add_child(light)

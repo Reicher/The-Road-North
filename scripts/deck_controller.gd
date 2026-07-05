@@ -3,6 +3,7 @@ extends Node
 
 signal deck_count_changed(cards_remaining: int, total_cards: int)
 signal restart_level_requested
+signal event_card_activated(card_data: Dictionary)
 
 const GameBalance = preload("res://scripts/game_balance.gd")
 
@@ -302,6 +303,16 @@ func consume_card(card: CardView) -> bool:
 	return true
 
 
+func consume_event_card(card: CardView) -> bool:
+	if card == null or card.category != GameConstants.EVENT_CATEGORY:
+		return false
+	var card_data := card.get_card_data()
+	if not consume_card(card):
+		return false
+	event_card_activated.emit(card_data)
+	return true
+
+
 func _check_exhaustion() -> void:
 	if _hand == null or _player == null:
 		return
@@ -321,22 +332,22 @@ func _on_card_drag_finished(card: CardView, canvas_position: Vector2, activated:
 
 func play_immediate_event(card: CardView) -> bool:
 	if card.event_type == GameConstants.EVENT_DRAW_TWO:
-		if consume_card(card):
+		if consume_event_card(card):
 			draw_extra_cards(2)
 			_hand.set_inactive(false)
 			return true
 	elif card.event_type == GameConstants.EVENT_LUCKY_FIND:
-		if consume_card(card):
+		if consume_event_card(card):
 			_apply_lucky_find()
 			_hand.set_inactive(false)
 			return true
 	elif card.event_type == GameConstants.EVENT_SLEEP:
-		if consume_card(card):
+		if consume_event_card(card):
 			_discard_and_refill_hand()
 			_hand.set_inactive(false)
 			return true
 	elif card.event_type == GameConstants.EVENT_RESTART_LEVEL:
-		if consume_card(card):
+		if consume_event_card(card):
 			_hand.set_inactive(false)
 			restart_level_requested.emit()
 			return true

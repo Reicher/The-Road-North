@@ -116,6 +116,7 @@ func _load_level(level_index: int) -> void:
 	assert(level_scene != null, "Every configured level needs a PackedScene")
 	_current_level = level_scene.instantiate()
 	_current_level.name = "Level"
+	_configure_level_intro()
 	add_child(_current_level)
 	if not _level_start_progression.is_empty():
 		_apply_progression(_level_start_progression)
@@ -123,6 +124,14 @@ func _load_level(level_index: int) -> void:
 	_sync_stats_without_feedback()
 	_level_start_progression = _capture_progression_with_extras(_level_start_progression)
 	_configure_level_end_screen()
+
+
+func _configure_level_intro() -> void:
+	if _current_level is Level:
+		(_current_level as Level).play_intro_sequence = not _debug_mode_enabled
+	var camera := _current_level.get_node_or_null("Camera3D") as Camera3D
+	if camera != null:
+		camera.set("play_start_zoom_sequence", not _debug_mode_enabled)
 
 
 func _configure_level_end_screen() -> void:

@@ -587,7 +587,7 @@ func _confirm_destroy_target() -> bool:
 	var destroyed_position := preview_position
 	_roads.remove_tile(destroyed_position)
 	if _deck_controller != null:
-		_deck_controller.consume_card(destroyed_card)
+		_deck_controller.consume_event_card(destroyed_card)
 	else:
 		_hand.remove_card(destroyed_card)
 	_end_placement()
@@ -602,7 +602,7 @@ func _confirm_rotate_target() -> bool:
 		_refresh_tile_target()
 		return false
 	if _deck_controller != null:
-		_deck_controller.consume_card(rotated_card)
+		_deck_controller.consume_event_card(rotated_card)
 	else:
 		_hand.remove_card(rotated_card)
 	_end_placement()
@@ -622,7 +622,7 @@ func _confirm_encounter_target() -> bool:
 		_refresh_tile_target()
 		return false
 	if _deck_controller != null:
-		_deck_controller.consume_card(event_card)
+		_deck_controller.consume_event_card(event_card)
 	else:
 		_hand.remove_card(event_card)
 	_end_placement()
