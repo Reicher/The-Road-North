@@ -4,9 +4,9 @@ extends Control
 const UIStyle = preload("res://scripts/ui_style.gd")
 const HUD_FRAME_TEXTURE := preload("res://assets/images/ui/frames/hud_wood_frame_strip.png")
 
-const HUD_FILL := Color(0.12, 0.075, 0.04, 0.98)
-const HUD_FRAME_SHADOW := Color(0.055, 0.032, 0.018, 0.96)
-const HUD_FRAME_BRASS := Color(0.68, 0.48, 0.20, 0.95)
+const HUD_FILL := Color(0.285, 0.155, 0.065, 0.98)
+const HUD_FRAME_SHADOW := Color(0.105, 0.055, 0.022, 0.84)
+const HUD_FRAME_BRASS := Color(0.88, 0.62, 0.24, 0.96)
 
 @export var margin := 0.0
 @export var top_bar_height := 68.0

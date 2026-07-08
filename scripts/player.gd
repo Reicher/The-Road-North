@@ -15,6 +15,10 @@ signal move_failed(grid_position: Vector2i)
 signal permanent_encounter_reached(grid_position: Vector2i, encounter: Dictionary)
 signal game_over(reason: String)
 signal run_won
+signal combat_started(grid_position: Vector2i, enemy_data: Dictionary)
+signal combat_won(grid_position: Vector2i, enemy_data: Dictionary)
+signal combat_retreat(grid_position: Vector2i, enemy_data: Dictionary)
+signal reward_collected(kind: String, entry: Dictionary)
 
 @export var map_path: NodePath
 @export var inventory_path: NodePath
@@ -570,9 +574,11 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previou
 	if _combat_overlay == null:
 		return
 	_combat_overlay.open_preview(player_power, enemy_power, get_combat_risk_level(enemy_power))
+	combat_started.emit(target_position, enemy_data.duplicate(true))
 	while is_inside_tree() and health > 0:
 		var action: String = await _wait_for_combat_action()
 		if action == "retreat":
+			combat_retreat.emit(target_position, enemy_data.duplicate(true))
 			_combat_overlay.close()
 			await _retreat_from_enemy(origin_position, previous_input_enabled)
 			return
@@ -588,6 +594,7 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previou
 		var player_score := player_power + rolls.x
 		var enemy_score := enemy_power + rolls.y
 		if player_score > enemy_score:
+			combat_won.emit(target_position, enemy_data.duplicate(true))
 			_combat_overlay.show_round_result(rolls.x, rolls.y, "Victory", true)
 			var gold_reward := await _finish_enemy_victory(target_position, enemy_data, combat_direction)
 			_combat_overlay.enable_ok(gold_reward)
@@ -766,13 +773,20 @@ func _resolve_reward_encounter_at(target_position: Vector2i) -> void:
 		return
 	var encounter := _map.get_encounter(target_position)
 	if str(encounter.get("type", "")) in GameConstants.REUSABLE_ENCOUNTER_TYPES:
+		if str(encounter.get("type", "")) == GameMap.ENCOUNTER_GRAVEYARD:
+			reward_collected.emit("graveyard", encounter.duplicate(true))
 		permanent_encounter_reached.emit(target_position, encounter.duplicate(true))
 		return
 	if _rewards.collect_reward_at(target_position):
+		var reward_kind := "reward"
 		if str(encounter.get("type", "")) == GameMap.ENCOUNTER_BERRY_BUSH:
+			reward_kind = "berry"
 			_set_visual_encounter_data(target_position, {"type": GameMap.ENCOUNTER_BERRY_BUSH, "depleted": true})
 		else:
+			if str(encounter.get("type", "")) == GameMap.ENCOUNTER_CACHE:
+				reward_kind = "cache"
 			_clear_visual_encounter_data(target_position)
+		reward_collected.emit(reward_kind, encounter.duplicate(true))
 
 
 func trigger_game_over(reason: String) -> void:

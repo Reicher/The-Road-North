@@ -10,6 +10,7 @@ signal item_drag_started(slot_index: int, item: Dictionary, source_button: Butto
 signal item_drag_moved(canvas_position: Vector2)
 signal item_drag_finished(slot_index: int, item: Dictionary, source_button: Button, canvas_position: Vector2)
 signal stats_changed
+signal item_added(item: Dictionary)
 
 const SLOT_COUNT := 3
 const NORMAL_SLOT_TINT := Color.WHITE
@@ -224,6 +225,7 @@ func add_item(item: Dictionary) -> bool:
 		return false
 	items[slot_index] = normalized_item
 	_refresh_slots()
+	item_added.emit(normalized_item.duplicate(true))
 	stats_changed.emit()
 	return true
 
@@ -239,6 +241,8 @@ func replace_item_at_slot(slot_index: int, item: Dictionary) -> Dictionary:
 		return normalized_item
 	items[slot_index] = normalized_item
 	_refresh_slots()
+	if previous.is_empty() and not normalized_item.is_empty():
+		item_added.emit(normalized_item.duplicate(true))
 	stats_changed.emit()
 	return previous
 

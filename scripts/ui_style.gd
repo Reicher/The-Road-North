@@ -105,17 +105,17 @@ static func menu_panel_style() -> StyleBoxTexture:
 
 
 static func apply_menu_button_style(button: Button) -> void:
-	button.add_theme_stylebox_override("normal", _menu_button_style(Color.WHITE, 9.0, 7.0))
-	button.add_theme_stylebox_override("hover", _menu_button_style(Color(1.08, 1.05, 0.92, 1.0), 9.0, 7.0))
-	button.add_theme_stylebox_override("pressed", _menu_button_style(Color(0.78, 0.68, 0.48, 1.0), 12.0, 4.0))
-	button.add_theme_stylebox_override("disabled", _menu_button_style(Color(0.52, 0.52, 0.52, 0.72), 9.0, 7.0))
+	button.add_theme_stylebox_override("normal", _menu_button_style(Color(1.22, 1.12, 0.86, 1.0), 9.0, 7.0))
+	button.add_theme_stylebox_override("hover", _menu_button_style(Color(1.32, 1.22, 0.94, 1.0), 9.0, 7.0))
+	button.add_theme_stylebox_override("pressed", _menu_button_style(Color(1.02, 0.83, 0.52, 1.0), 12.0, 4.0))
+	button.add_theme_stylebox_override("disabled", _menu_button_style(Color(0.72, 0.70, 0.62, 0.78), 9.0, 7.0))
 	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	button.add_theme_color_override("font_color", Color(0.96, 0.88, 0.68))
-	button.add_theme_color_override("font_hover_color", Color(1.0, 0.94, 0.72))
-	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.82, 0.42))
-	button.add_theme_color_override("font_disabled_color", Color(0.72, 0.68, 0.58))
-	button.add_theme_color_override("font_outline_color", Color(0.04, 0.025, 0.015, 0.9))
-	button.add_theme_constant_override("outline_size", 2)
+	button.add_theme_color_override("font_color", Color(1.0, 0.92, 0.68))
+	button.add_theme_color_override("font_hover_color", Color(1.0, 0.98, 0.78))
+	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.86, 0.48))
+	button.add_theme_color_override("font_disabled_color", Color(0.78, 0.72, 0.60))
+	button.add_theme_color_override("font_outline_color", Color(0.045, 0.022, 0.008, 0.96))
+	button.add_theme_constant_override("outline_size", 3)
 
 
 static func _menu_button_style(modulate: Color, top_margin: float, bottom_margin: float) -> StyleBoxTexture:

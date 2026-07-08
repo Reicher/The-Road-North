@@ -8,5 +8,5 @@ display_name = "Start Camp"
 opens_north = true
 opens_east = true
 opens_west = true
-terrain_color = Color(0.60, 0.66, 0.48, 1)
+terrain_color = Color(0.67, 0.75, 0.48, 1)
 visual_identity = "house"

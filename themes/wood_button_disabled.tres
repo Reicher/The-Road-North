@@ -13,6 +13,6 @@ content_margin_top = 8.0
 content_margin_right = 12.0
 content_margin_bottom = 8.0
 region_rect = Rect2(45, 90, 422, 78)
-modulate_color = Color(0.58, 0.56, 0.52, 0.88)
+modulate_color = Color(0.72, 0.70, 0.62, 0.84)
 axis_stretch_horizontal = 0
 axis_stretch_vertical = 0

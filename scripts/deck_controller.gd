@@ -4,6 +4,8 @@ extends Node
 signal deck_count_changed(cards_remaining: int, total_cards: int)
 signal restart_level_requested
 signal event_card_activated(card_data: Dictionary)
+signal card_consumed(card_data: Dictionary)
+signal cards_drawn(count: int)
 
 const GameBalance = preload("res://scripts/game_balance.gd")
 
@@ -226,6 +228,8 @@ func draw_cards(count: int) -> Array[Dictionary]:
 		if card.is_empty():
 			break
 		drawn_cards.append(card)
+	if not drawn_cards.is_empty():
+		cards_drawn.emit(drawn_cards.size())
 	return drawn_cards
 
 
@@ -233,11 +237,17 @@ func refill_hand() -> void:
 	if _hand == null:
 		return
 
+	var drawn := 0
 	while _hand.cards.size() < get_minimum_hand_size():
 		var card: Dictionary = draw_card()
 		if card.is_empty():
+			if drawn > 0:
+				cards_drawn.emit(drawn)
 			return
 		_hand.add_card(card)
+		drawn += 1
+	if drawn > 0:
+		cards_drawn.emit(drawn)
 
 
 func get_minimum_hand_size() -> int:
@@ -256,6 +266,8 @@ func draw_extra_cards(count: int) -> int:
 			break
 		_hand.add_card(card)
 		drawn += 1
+	if drawn > 0:
+		cards_drawn.emit(drawn)
 	return drawn
 
 
@@ -296,8 +308,10 @@ func show_debug_hand(kind: String) -> bool:
 func consume_card(card: CardView) -> bool:
 	if _hand == null:
 		return false
+	var card_data := card.get_card_data() if card != null else {}
 	if not _hand.remove_card(card):
 		return false
+	card_consumed.emit(card_data)
 	refill_hand()
 	_check_exhaustion()
 	return true
@@ -372,6 +386,7 @@ func _discard_and_refill_hand() -> void:
 		if card.is_empty():
 			break
 		_hand.add_card(card)
+		cards_drawn.emit(1)
 	_check_exhaustion()
 
 

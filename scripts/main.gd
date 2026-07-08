@@ -16,7 +16,10 @@ const LEVELS: Array[Dictionary] = [
 ]
 const SHOP_SCENE := preload("res://ui/shop.tscn")
 const START_SCREEN_SCENE := preload("res://ui/start_screen.tscn")
+const EXPEDITION_NAME_POPUP_SCENE := preload("res://ui/expedition_name_popup.tscn")
 const TouchFeedback = preload("res://scripts/touch_feedback.gd")
+const RunStats = preload("res://scripts/run_stats.gd")
+const RunStatsTrackerScript = preload("res://scripts/run_stats_tracker.gd")
 
 const DEBUG_OVERLAY_SCENE := preload("res://ui/debug_overlay.tscn")
 const DEBUG_LABEL_TEXT := "Debug"
@@ -36,7 +39,10 @@ var _debug_layer: CanvasLayer
 var _debug_label: Label
 var _shop: Control
 var _shop_layer: CanvasLayer
+var _shop_start_gold := 0
 var _start_screen: StartScreen
+var _expedition_popup: CanvasLayer
+var _run_stats_tracker := RunStatsTrackerScript.new()
 var _transition_layer: CanvasLayer
 var _transition_shade: ColorRect
 var _transition_label: Label
@@ -45,6 +51,8 @@ var _transition_running := false
 const FOREST_TRANSITION_COLOR := Color(0.045, 0.10, 0.075, 1.0)
 const SHOP_TRANSITION_COLOR := Color.BLACK
 const SHOP_TRANSITION_HOLD := 1.4
+const LEVEL_COMPLETION_GOLD_REWARD := 5
+const LEVEL_COMPLETE_TEXT := "Road complete!\n+%d Gold" % LEVEL_COMPLETION_GOLD_REWARD
 
 
 func _ready() -> void:
@@ -52,6 +60,8 @@ func _ready() -> void:
 	assert(not LEVELS.is_empty(), "At least one level must be configured")
 	_ensure_debug_overlay()
 	_ensure_transition_layer()
+	_run_stats_tracker.name = "RunStatsTracker"
+	add_child(_run_stats_tracker)
 	_show_start_screen()
 
 
@@ -63,7 +73,7 @@ func _input(event: InputEvent) -> void:
 		var enabling_debug := not _debug_mode_enabled
 		_set_debug_mode_enabled(enabling_debug)
 		if enabling_debug:
-			_start_new_game()
+			_begin_new_run(RunStats.DEFAULT_EXPEDITION_NAME)
 		get_viewport().set_input_as_handled()
 		return
 
@@ -106,6 +116,7 @@ func _debug_level_index_from_event(event: InputEvent) -> int:
 
 func _load_level(level_index: int) -> void:
 	_dismiss_start_screen()
+	_dismiss_expedition_popup()
 	_close_shop()
 	if _current_level != null:
 		remove_child(_current_level)
@@ -124,6 +135,7 @@ func _load_level(level_index: int) -> void:
 	_sync_stats_without_feedback()
 	_level_start_progression = _capture_progression_with_extras(_level_start_progression)
 	_configure_level_end_screen()
+	_run_stats_tracker.attach_level(_current_level, _current_level_index + 1)
 
 
 func _configure_level_intro() -> void:
@@ -140,6 +152,7 @@ func _configure_level_end_screen() -> void:
 		return
 	end_screen.has_next_level = _current_level_index < LEVELS.size() - 1
 	end_screen.show_level_complete_prompt = false
+	end_screen.run_stats_tracker = _run_stats_tracker
 	if not end_screen.next_level_requested.is_connected(_on_next_level_requested):
 		end_screen.next_level_requested.connect(_on_next_level_requested)
 	if not end_screen.restart_level_requested.is_connected(_on_restart_level_requested):
@@ -216,7 +229,29 @@ func _dismiss_start_screen() -> void:
 
 
 func _start_new_game() -> void:
+	_show_expedition_popup()
+
+
+func _show_expedition_popup() -> void:
+	if _expedition_popup != null:
+		return
 	_level_start_progression.clear()
+	_expedition_popup = EXPEDITION_NAME_POPUP_SCENE.instantiate() as CanvasLayer
+	add_child(_expedition_popup)
+	_expedition_popup.expedition_named.connect(_begin_new_run)
+
+
+func _dismiss_expedition_popup() -> void:
+	if _expedition_popup == null:
+		return
+	_expedition_popup.queue_free()
+	_expedition_popup = null
+
+
+func _begin_new_run(expedition_name: String) -> void:
+	_dismiss_expedition_popup()
+	_level_start_progression.clear()
+	_run_stats_tracker.start_new_run(expedition_name)
 	_transition_to_level(0, _level_transition_text(0))
 
 
@@ -264,13 +299,17 @@ func _on_goal_arrival_finished() -> void:
 
 
 func _on_restart_level_requested() -> void:
+	if _current_level != null:
+		var end_screen := _current_level.get_node_or_null("UI/GameOver") as GameOverUI
+		if end_screen != null and end_screen.visible:
+			_run_stats_tracker.start_new_run(_run_stats_tracker.stats.expedition_name)
 	_transition_to_level(_current_level_index, _level_transition_text(_current_level_index))
 
 
 func _on_restart_game_requested() -> void:
 	_close_shop()
 	_level_start_progression.clear()
-	_transition_to_level(0, _level_transition_text(0))
+	_show_expedition_popup()
 
 
 func _capture_progression() -> Dictionary:
@@ -362,7 +401,9 @@ func _open_shop() -> void:
 	progression.erase("active_power_bonus")
 	progression.erase("active_max_health_bonus")
 	progression.erase("removed_base_card_this_shop")
-	progression["gold"] = int(progression.get("gold", 0)) + 5
+	progression["gold"] = int(progression.get("gold", 0)) + LEVEL_COMPLETION_GOLD_REWARD
+	_run_stats_tracker.stats.gold_gained += LEVEL_COMPLETION_GOLD_REWARD
+	_shop_start_gold = int(progression.get("gold", 0))
 	var deck_controller := _current_level.get_node_or_null("DeckController") as DeckController
 	var available_base_cards: Array = deck_controller.deck_components.get(DeckBuilder.DECK_SOURCE_BASE, []) if deck_controller != null else []
 	var next_level: Dictionary = LEVELS[_current_level_index + 1]
@@ -378,10 +419,18 @@ func _open_shop() -> void:
 	_shop.play_next_requested.connect(_on_shop_play_next_requested)
 	var level_ui := _current_level.get_node_or_null("UI") as CanvasLayer
 	if level_ui != null:
+		var hand := level_ui.get_node_or_null("Hand") as Control
+		if hand != null:
+			hand.visible = false
 		level_ui.visible = false
 
 
 func _on_shop_play_next_requested(progression: Dictionary) -> void:
+	var next_gold := int(progression.get("gold", 0))
+	if next_gold < _shop_start_gold:
+		_run_stats_tracker.stats.gold_spent += _shop_start_gold - next_gold
+	elif next_gold > _shop_start_gold:
+		_run_stats_tracker.stats.gold_gained += next_gold - _shop_start_gold
 	_level_start_progression = progression.duplicate(true)
 	_close_shop()
 	_transition_to_level(_current_level_index + 1, _level_transition_text(_current_level_index + 1))
@@ -421,14 +470,14 @@ func _open_shop_with_transition() -> void:
 	if _transition_running:
 		return
 	_transition_running = true
-	_begin_transition_cover("Level complete", SHOP_TRANSITION_COLOR)
+	_begin_transition_cover(LEVEL_COMPLETE_TEXT, SHOP_TRANSITION_COLOR)
 	_open_shop()
 	_transition_running = false
 	_finish_transition_async(SHOP_TRANSITION_HOLD)
 
 
 func _open_shop_with_transition_async() -> void:
-	await _fade_transition_in("Level complete", SHOP_TRANSITION_COLOR)
+	await _fade_transition_in(LEVEL_COMPLETE_TEXT, SHOP_TRANSITION_COLOR)
 	if not is_inside_tree():
 		return
 	_open_shop()

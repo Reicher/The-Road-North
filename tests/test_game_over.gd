@@ -49,8 +49,11 @@ func run() -> void:
 	await process_frame
 	_assert(overlay.visible, "Expected running out of food to show game over")
 	_assert(not player.input_enabled, "Expected game over to disable player input")
-	_assert(overlay.get_node("Prompt/ContentMargin/Stack/Title").text == "You lose — Starvation", "Expected loss overlay to use loss copy")
-	_assert(overlay.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Restart level", "Expected loss overlay to restart the level")
+	_assert(overlay.get_node("Prompt/ContentMargin/Stack/Title").text == "The Räsers Expedition", "Expected loss overlay to show expedition report title")
+	_assert(overlay.get_node("Prompt/ContentMargin/Stack/Reward").text == "Ended by starvation on Level 1", "Expected report to explain starvation")
+	_assert(overlay.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Try Again", "Expected report to offer try again")
+	_assert(overlay.get_node("Prompt/ContentMargin/Stack/NewExpeditionButton").text == "New Expedition", "Expected report to offer a new expedition")
+	_assert(overlay.get_node("Prompt/ContentMargin/Stack/StatGrid").get_child_count() == 8, "Expected report to include a fixed mobile stat set")
 	_assert(overlay.get_node("Prompt/ContentMargin/Stack/RestartButton") != null, "Expected restart button under game-over prompt")
 
 	var second_player = PLAYER_SCENE.instantiate() as GamePlayer
