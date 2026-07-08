@@ -40,6 +40,7 @@ func run() -> void:
 	var play_button := shop.find_child("PlayNextButton", true, false) as Button
 	var remove_button := shop.find_child("RemoveButton", true, false) as Button
 	var view_deck_button := shop.find_child("ViewDeckButton", true, false) as Button
+	var title := shop.find_child("Title", true, false) as Label
 	var cards_title := shop.find_child("CardsTitle", true, false) as Label
 	var deck_section_title := shop.find_child("DeckTitle", true, false) as Label
 	var inventory_slots := shop._slot_row as HBoxContainer
@@ -49,11 +50,17 @@ func run() -> void:
 	var card_row := shop.find_child("CardOffers", true, false) as HBoxContainer
 	var deck_row := remove_button.get_parent() as HBoxContainer
 	var summary_panel := shop.find_child("SummaryPanel", true, false) as PanelContainer
+	var background := shop.get_node("Background") as Control
 	_assert(shop.size.is_equal_approx(get_root().get_visible_rect().size), "Expected shop root to fill the viewport")
+	_assert(background != null and not (background is TextureRect) and background.has_method("set_shelf_nodes"), "Expected the shop background to be drawn dynamically from shelf layout instead of a fixed image")
+	_assert(title.get_theme_font_size("font_size") >= 44 and title.get_theme_constant("outline_size") >= 4, "Expected the shop title to stay readable on the wood background")
+	_assert((shop._gold_chip.get_node("Value") as Label).get_theme_font_size("font_size") >= 31, "Expected shop resource numbers to be larger and readable")
+	_assert((shop._gold_chip.get_node("Value") as Label).get_theme_constant("outline_size") >= 4, "Expected shop resource numbers to use a dark outline")
 	_assert(shop_scroll.size.x > shop.size.x * 0.9 and shop_scroll.size.y > shop.size.y * 0.9, "Expected shop scroll area to use nearly the full screen")
 	_assert(shop_stack.size.x > shop_scroll.size.x * 0.9, "Expected shop controls to expand across the available width")
 	_assert(shop._shop_margin.get_combined_minimum_size().y <= shop_scroll.size.y, "Expected the complete shop to fit the 720x1280 Android viewport without vertical scrolling")
 	_assert(play_button.global_position.y > shop.size.y * 0.75, "Expected Play next map to use the lower part of a tall screen")
+	_assert(play_button.custom_minimum_size.y >= 72.0 and play_button.has_theme_stylebox_override("normal"), "Expected Play next map to remain visible as a styled bottom button")
 	_assert(remove_button.custom_minimum_size.y == 56.0 and view_deck_button.custom_minimum_size.y == 56.0, "Expected deck buttons to keep a fixed normal height")
 	_assert(remove_button.size_flags_vertical == Control.SIZE_SHRINK_CENTER and view_deck_button.size_flags_vertical == Control.SIZE_SHRINK_CENTER, "Expected deck buttons not to stretch vertically")
 	_assert(summary_panel != null, "Expected a styled summary panel")

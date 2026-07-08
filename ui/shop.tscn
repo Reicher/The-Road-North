@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" path="res://ui/stat_chip.tscn" id="2_chip"]
 [ext_resource type="PackedScene" path="res://ui/deck_overlay.tscn" id="3_overlay"]
 [ext_resource type="PackedScene" path="res://ui/item_details_popup.tscn" id="4_popup"]
-[ext_resource type="Texture2D" path="res://assets/images/backgrounds/shop_background.png" id="5_background"]
+[ext_resource type="Script" path="res://scripts/shop_background.gd" id="5_background"]
 
 [node name="Shop" type="Control"]
 anchors_preset = 15
@@ -16,7 +16,7 @@ script = ExtResource("1_shop")
 
 [node name="ItemDetailsPopup" parent="." instance=ExtResource("4_popup")]
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -24,9 +24,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("5_background")
-expand_mode = 1
-stretch_mode = 6
+z_index = -10
+script = ExtResource("5_background")
 
 [node name="ShopScroll" type="ScrollContainer" parent="."]
 layout_mode = 1

@@ -4,6 +4,7 @@ extends Control
 signal play_requested
 
 const TouchFeedback = preload("res://scripts/touch_feedback.gd")
+const UIStyle = preload("res://scripts/ui_style.gd")
 
 const AUTHOR_TEXT := "A game by Robin Reicher"
 const GAME_TITLE := "Road to Karlskoga"
@@ -21,6 +22,7 @@ var _intro_finished := false
 
 
 func _ready() -> void:
+	_apply_menu_frame_styles()
 	_author_label.text = AUTHOR_TEXT
 	$Content/Title.text = GAME_TITLE
 	$Content/MenuButtons/PlayButton.pressed.connect(play_requested.emit)
@@ -30,6 +32,14 @@ func _ready() -> void:
 	$Content/Information/Margin/Stack/BackButton.pressed.connect(_hide_information)
 	TouchFeedback.apply_to_tree(self)
 	_start_intro()
+
+
+func _apply_menu_frame_styles() -> void:
+	_information.add_theme_stylebox_override("panel", UIStyle.menu_panel_style())
+	for child in _menu_buttons.get_children():
+		if child is Button:
+			UIStyle.apply_menu_button_style(child as Button)
+	UIStyle.apply_menu_button_style($Content/Information/Margin/Stack/BackButton as Button)
 
 
 func _input(event: InputEvent) -> void:

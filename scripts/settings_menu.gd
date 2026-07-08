@@ -26,12 +26,15 @@ func _ready() -> void:
 	_settings_button.add_theme_color_override("font_pressed_color", Color(0.91, 0.67, 0.28))
 	_settings_button.add_theme_color_override("font_outline_color", Color(0.04, 0.10, 0.08, 0.9))
 	_settings_button.add_theme_constant_override("outline_size", 3)
-	_settings_button.add_theme_stylebox_override("normal", _transparent_stylebox())
-	_settings_button.add_theme_stylebox_override("hover", UIStyle.rounded_box(self, Color(1.0, 0.94, 0.78, 0.45), Color(0, 0, 0, 0), 12, 0))
-	_settings_button.add_theme_stylebox_override("pressed", UIStyle.rounded_box(self, Color(0.90, 0.72, 0.40, 0.52), Color(0, 0, 0, 0), 12, 0))
+	_settings_button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	_settings_button.add_theme_stylebox_override("hover", UIStyle.rounded_box(self, Color(1.0, 0.94, 0.78, 0.20), Color(0, 0, 0, 0), 10, 0))
+	_settings_button.add_theme_stylebox_override("pressed", UIStyle.rounded_box(self, Color(0.90, 0.72, 0.40, 0.28), Color(0, 0, 0, 0), 10, 0))
+	_settings_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	_settings_button.pressed.connect(_toggle_menu)
 
-	_menu_panel.add_theme_stylebox_override("panel", UIStyle.elevated_box(self, UIStyle.panel_fill(self), Color(0, 0, 0, 0), 16, 0))
+	_menu_panel.add_theme_stylebox_override("panel", UIStyle.menu_panel_style())
+	UIStyle.apply_menu_button_style(_resume_button)
+	$SettingsPanel/Margin/Stack/Title.add_theme_color_override("font_color", Color(0.96, 0.88, 0.68))
 	_resume_button.pressed.connect(_close_menu)
 
 	resized.connect(_layout_settings)
@@ -58,12 +61,3 @@ func _layout_settings() -> void:
 		clampf(viewport_size.x - right_margin - menu_size.x, 8.0, viewport_size.x - menu_size.x - 8.0),
 		top_margin + button_size.y + 8.0
 	)
-
-
-func _transparent_stylebox() -> StyleBoxFlat:
-	var stylebox := StyleBoxFlat.new()
-	stylebox.bg_color = Color(0, 0, 0, 0)
-	stylebox.border_color = Color(0, 0, 0, 0)
-	stylebox.set_corner_radius_all(0)
-	stylebox.set_border_width_all(0)
-	return stylebox

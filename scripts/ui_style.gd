@@ -17,6 +17,11 @@ const DEFAULT_CORNER_RADIUS := 14
 const DEFAULT_BORDER_WIDTH := 3
 const DEFAULT_SHADOW_SIZE := 7
 
+const MENU_FRAME_TEXTURE := preload("res://assets/images/ui/frames/wood_frame_9patch.png")
+const MENU_BUTTON_FRAME_TEXTURE := preload("res://assets/images/ui/frames/wood_button_frame_9patch.png")
+
+const MENU_PANEL_FRAME_MARGIN := 26.0
+
 
 static func color(control: Control, name: StringName, fallback: Color) -> Color:
 	if control != null and control.has_theme_color(name, CUSTOM_TYPE):
@@ -93,6 +98,53 @@ static func elevated_box(
 
 static func draw_panel(control: Control, rect: Rect2, fill: Color, border: Color) -> void:
 	control.draw_style_box(rounded_box(control, fill, border), rect)
+
+
+static func menu_panel_style() -> StyleBoxTexture:
+	return _menu_frame_style(MENU_FRAME_TEXTURE, Color.WHITE, 20.0, 18.0, -1.0, -1.0, MENU_PANEL_FRAME_MARGIN, MENU_PANEL_FRAME_MARGIN)
+
+
+static func apply_menu_button_style(button: Button) -> void:
+	button.add_theme_stylebox_override("normal", _menu_button_style(Color.WHITE, 9.0, 7.0))
+	button.add_theme_stylebox_override("hover", _menu_button_style(Color(1.08, 1.05, 0.92, 1.0), 9.0, 7.0))
+	button.add_theme_stylebox_override("pressed", _menu_button_style(Color(0.78, 0.68, 0.48, 1.0), 12.0, 4.0))
+	button.add_theme_stylebox_override("disabled", _menu_button_style(Color(0.52, 0.52, 0.52, 0.72), 9.0, 7.0))
+	button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	button.add_theme_color_override("font_color", Color(0.96, 0.88, 0.68))
+	button.add_theme_color_override("font_hover_color", Color(1.0, 0.94, 0.72))
+	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.82, 0.42))
+	button.add_theme_color_override("font_disabled_color", Color(0.72, 0.68, 0.58))
+	button.add_theme_color_override("font_outline_color", Color(0.04, 0.025, 0.015, 0.9))
+	button.add_theme_constant_override("outline_size", 2)
+
+
+static func _menu_button_style(modulate: Color, top_margin: float, bottom_margin: float) -> StyleBoxTexture:
+	return _menu_frame_style(MENU_BUTTON_FRAME_TEXTURE, modulate, 18.0, 6.0, top_margin, bottom_margin, 16.0, 12.0)
+
+
+static func _menu_frame_style(
+	texture: Texture2D,
+	modulate: Color,
+	horizontal_content_margin: float,
+	vertical_content_margin: float,
+	pressed_top_margin := -1.0,
+	pressed_bottom_margin := -1.0,
+	horizontal_texture_margin := MENU_PANEL_FRAME_MARGIN,
+	vertical_texture_margin := MENU_PANEL_FRAME_MARGIN
+) -> StyleBoxTexture:
+	var style_box := StyleBoxTexture.new()
+	style_box.texture = texture
+	style_box.draw_center = true
+	style_box.modulate_color = modulate
+	style_box.texture_margin_left = horizontal_texture_margin
+	style_box.texture_margin_top = vertical_texture_margin
+	style_box.texture_margin_right = horizontal_texture_margin
+	style_box.texture_margin_bottom = vertical_texture_margin
+	style_box.content_margin_left = horizontal_content_margin
+	style_box.content_margin_right = horizontal_content_margin
+	style_box.content_margin_top = pressed_top_margin if pressed_top_margin >= 0.0 else vertical_content_margin
+	style_box.content_margin_bottom = pressed_bottom_margin if pressed_bottom_margin >= 0.0 else vertical_content_margin
+	return style_box
 
 
 static func _resolved_corner_radius(control: Control, override: int) -> int:

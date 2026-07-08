@@ -114,6 +114,7 @@ var _drag_ghost: TextureRect
 var _shop_scroll: ScrollContainer
 var _shop_margin: MarginContainer
 var _shop_stack: VBoxContainer
+var _background: Control
 var _summary_panel: PanelContainer
 var _compact_rows_configured := false
 var _buy_food_button: Button
@@ -332,6 +333,7 @@ func _finish_card_removal() -> void:
 
 
 func _bind_scene_nodes() -> void:
+	_background = $Background as Control
 	_shop_scroll = $ShopScroll as ScrollContainer
 	_shop_margin = $ShopScroll/ShopMargin as MarginContainer
 	_shop_stack = $ShopScroll/ShopMargin/ShopStack as VBoxContainer
@@ -403,6 +405,7 @@ func _configure_compact_section_layout() -> void:
 	var deck_row := _remove_button.get_parent() as HBoxContainer
 	deck_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	deck_row.add_theme_constant_override("separation", 32)
+	_update_dynamic_background()
 
 
 func _add_compact_section_row(index: int, title: String, content_row: HBoxContainer) -> void:
@@ -517,11 +520,8 @@ func _apply_styles() -> void:
 	_apply_button_icon(_buy_max_health_button, "health")
 	_apply_button_icon(_remove_button, "deck")
 	_apply_button_icon(_view_deck_button, "deck")
-	var transparent_button := StyleBoxFlat.new()
-	transparent_button.bg_color = Color(0.0, 0.0, 0.0, 0.0)
-	transparent_button.content_margin_top = 8.0
-	transparent_button.content_margin_bottom = 8.0
-	_play_next_button.add_theme_stylebox_override("normal", transparent_button)
+	_configure_play_next_button()
+	_configure_header_text()
 
 
 func _layout_shop() -> void:
@@ -534,6 +534,7 @@ func _layout_shop() -> void:
 		maxf(1.0, available_size.x),
 		maxf(_shop_margin.get_combined_minimum_size().y, available_size.y)
 	)
+	_update_dynamic_background()
 
 
 func _refresh() -> void:
@@ -554,6 +555,19 @@ func _refresh() -> void:
 	_refresh_offers()
 	_remove_button.text = "Remove card / %dg" % _removal_price()
 	_remove_button.disabled = bool(progression.get("removed_base_card_this_shop", false)) or int(progression.get("gold", 0)) < _removal_price()
+	_update_dynamic_background()
+
+
+func _update_dynamic_background() -> void:
+	if _background == null:
+		return
+	var shelves: Array[Control] = []
+	for node in _shop_stack.find_children("*Shelf", "PanelContainer", true, false):
+		var shelf := node as Control
+		if shelf != null:
+			shelves.append(shelf)
+	_background.call("set_shelf_nodes", shelves)
+	_background.call_deferred("set_shelf_nodes", shelves)
 
 
 func _refresh_inventory_slots() -> void:
@@ -1360,6 +1374,47 @@ func _configure_fixed_deck_button(button: Button) -> void:
 	button.custom_minimum_size = Vector2(240.0, 56.0)
 	button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+
+
+func _configure_play_next_button() -> void:
+	if _play_next_button == null:
+		return
+	_play_next_button.custom_minimum_size = Vector2(560.0, 76.0)
+	_play_next_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_play_next_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_play_next_button.add_theme_font_size_override("font_size", 28)
+	UIStyle.apply_menu_button_style(_play_next_button)
+
+
+func _configure_header_text() -> void:
+	var title := get_node_or_null("ShopScroll/ShopMargin/ShopStack/SummaryPanel/SummaryMargin/SummaryStack/Title") as Label
+	if title != null:
+		title.add_theme_font_size_override("font_size", 44)
+		title.add_theme_color_override("font_color", Color(1.0, 0.83, 0.42, 1.0))
+		title.add_theme_color_override("font_shadow_color", Color(0.02, 0.01, 0.005, 0.92))
+		title.add_theme_constant_override("shadow_offset_x", 0)
+		title.add_theme_constant_override("shadow_offset_y", 3)
+		title.add_theme_color_override("font_outline_color", Color(0.02, 0.01, 0.005, 0.95))
+		title.add_theme_constant_override("outline_size", 4)
+	for chip in [_gold_chip, _food_chip, _health_chip, _power_chip]:
+		_configure_header_stat_chip(chip)
+
+
+func _configure_header_stat_chip(chip: StatChip) -> void:
+	if chip == null:
+		return
+	chip.custom_minimum_size = Vector2(120.0, 48.0)
+	chip.icon_size = Vector2(46.0, 46.0)
+	var value := chip.get_node_or_null("Value") as Label
+	if value == null:
+		return
+	value.add_theme_font_size_override("font_size", 31)
+	value.add_theme_color_override("font_color", Color(1.0, 0.91, 0.66, 1.0))
+	value.add_theme_color_override("font_outline_color", Color(0.025, 0.012, 0.006, 0.96))
+	value.add_theme_constant_override("outline_size", 4)
+	value.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.75))
+	value.add_theme_constant_override("shadow_offset_x", 0)
+	value.add_theme_constant_override("shadow_offset_y", 2)
 
 
 func _apply_slot_style(slot_button: Button) -> void:
