@@ -266,6 +266,23 @@ func sell_inventory_slot(slot_index: int) -> bool:
 		return false
 	var sale_price := int(item.get("sell_price", maxi(1, int(item.get("item_score", 1)) * 2)))
 	progression["gold"] = int(progression.get("gold", 0)) + sale_price * _inventory_gold_multiplier()
+	return _remove_inventory_slot(slot_index, item)
+
+
+func discard_inventory_slot(slot_index: int) -> bool:
+	var inventory: Array = progression.get("inventory", [])
+	if slot_index < 0 or slot_index >= inventory.size():
+		return false
+	var item: Dictionary = inventory[slot_index]
+	if item.is_empty():
+		return false
+	return _remove_inventory_slot(slot_index, item)
+
+
+func _remove_inventory_slot(slot_index: int, item: Dictionary) -> bool:
+	var inventory: Array = progression.get("inventory", [])
+	if slot_index < 0 or slot_index >= inventory.size():
+		return false
 	var max_health_bonus := ItemCatalog.get_stat(item, ItemCatalog.STAT_MAX_HEALTH)
 	if max_health_bonus > 0:
 		progression["max_health"] = maxi(1, int(progression.get("max_health", 1)) - max_health_bonus)
@@ -841,7 +858,13 @@ func _show_sell_item_popup(slot_index: int) -> void:
 	if item.is_empty():
 		return
 	var sale_price := _sell_price(item) * _inventory_gold_multiplier()
-	_item_details_popup.show_item(item, "Sell  +%dg" % sale_price, sell_inventory_slot.bind(slot_index))
+	_item_details_popup.show_item(
+		item,
+		"Sell  +%dg" % sale_price,
+		sell_inventory_slot.bind(slot_index),
+		true,
+		discard_inventory_slot.bind(slot_index)
+	)
 
 
 func _show_buy_item_popup(offer_index: int) -> void:

@@ -5,6 +5,7 @@ signal closed
 
 const UIStyle = preload("res://scripts/ui_style.gd")
 const ItemIconLibrary = preload("res://scripts/item_icon_library.gd")
+const ItemCatalog = preload("res://scripts/item_catalog.gd")
 const ITEM_SLOT_SCENE := preload("res://ui/item_slot.tscn")
 const FULL_INVENTORY_FLASH_COLOR := Color(1.0, 0.32, 0.28)
 const FULL_INVENTORY_FLASH_DURATION := 0.28
@@ -35,6 +36,7 @@ var _backpack_drag_slot_index := -1
 var _drag_ghost: TextureRect
 var _ready_completed := false
 var _full_inventory_flash_tween: Tween
+var _active_loot_index := -1
 
 
 func _ready() -> void:
@@ -74,17 +76,20 @@ func open_loot(new_loot: Array) -> void:
 				continue
 			loot.append(entry_copy)
 	visible = not loot.is_empty()
-	mouse_filter = Control.MOUSE_FILTER_STOP if not loot.is_empty() else Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if not loot.is_empty() and _inventory != null:
 		_inventory.set_inventory_open(true)
 		_inventory.set_outside_close_enabled(false)
 	_refresh_loot()
 	_layout_loot()
+	if not loot.is_empty():
+		_show_found_item_details(0)
 
 
 func close_loot() -> void:
 	var was_visible := visible
 	loot.clear()
+	_active_loot_index = -1
 	_reset_full_inventory_flash()
 	_cancel_drag()
 	_cancel_backpack_drag()
@@ -107,6 +112,7 @@ func take_all() -> void:
 	_hide_tooltip()
 	if not _can_take_all():
 		_flash_inventory_full()
+		_show_found_item_details(_first_item_loot_index())
 		return
 	for index in range(loot.size() - 1, -1, -1):
 		var entry := loot[index]
@@ -117,6 +123,8 @@ func take_all() -> void:
 		if _inventory != null:
 			_inventory.set_inventory_open(false)
 		close_loot()
+	else:
+		_show_found_item_details(_first_item_loot_index())
 
 
 func _bind_scene_nodes() -> void:
@@ -300,6 +308,57 @@ func _collect_loot_entry(entry: Dictionary) -> bool:
 	return false
 
 
+func _take_loot_item(item_index: int) -> bool:
+	_resolve_paths()
+	if item_index < 0 or item_index >= loot.size() or _inventory == null:
+		return false
+	var entry := loot[item_index]
+	if not _is_item_loot(entry):
+		return false
+	if not _inventory.add_item(entry.get("item", {}).duplicate(true)):
+		_show_found_item_details(item_index)
+		return false
+	loot.remove_at(item_index)
+	_after_loot_item_resolved()
+	return true
+
+
+func _replace_large_loot_item(item_index: int) -> bool:
+	_resolve_paths()
+	if item_index < 0 or item_index >= loot.size() or _inventory == null:
+		return false
+	var large_slot_index := _get_first_large_inventory_slot()
+	if large_slot_index < 0:
+		return false
+	var item: Dictionary = loot[item_index].get("item", {}).duplicate(true)
+	var previous := _inventory.replace_item_at_slot(large_slot_index, item)
+	if previous == item:
+		_show_found_item_details(item_index)
+		return false
+	loot.remove_at(item_index)
+	_after_loot_item_resolved()
+	return true
+
+
+func _ignore_loot_item(item_index: int) -> void:
+	if item_index < 0 or item_index >= loot.size():
+		return
+	loot.remove_at(item_index)
+	_after_loot_item_resolved()
+
+
+func _after_loot_item_resolved() -> void:
+	_active_loot_index = -1
+	_hide_tooltip()
+	_refresh_loot()
+	if loot.is_empty():
+		if _inventory != null:
+			_inventory.set_inventory_open(false)
+		close_loot()
+	else:
+		call_deferred("_show_found_item_details", _first_item_loot_index())
+
+
 func _collect_resource_entry(entry: Dictionary) -> bool:
 	var kind := str(entry.get("kind", "item"))
 	if kind == "food" or kind == "gold":
@@ -318,6 +377,13 @@ func _can_take_all() -> bool:
 			return false
 		required_slots += 1
 	return required_slots <= _inventory.get_free_slot_count()
+
+
+func _first_item_loot_index() -> int:
+	for index in loot.size():
+		if _is_item_loot(loot[index]):
+			return index
+	return -1
 
 
 func _flash_inventory_full() -> void:
@@ -355,6 +421,8 @@ func _resolve_paths() -> void:
 	if _inventory == null:
 		_inventory = get_node_or_null(inventory_path) as InventoryUI
 		if _inventory != null:
+			if not _inventory.stats_changed.is_connected(_on_inventory_stats_changed):
+				_inventory.stats_changed.connect(_on_inventory_stats_changed)
 			if not _inventory.item_drag_started.is_connected(_start_backpack_drag):
 				_inventory.item_drag_started.connect(_start_backpack_drag)
 			if not _inventory.item_drag_moved.is_connected(_move_backpack_drag):
@@ -393,7 +461,71 @@ func _show_item_details(item_index: int) -> void:
 	if item_index < 0 or item_index >= loot.size() or _inventory == null:
 		return
 	_hide_tooltip()
-	_inventory.show_item_details(loot[item_index].get("item", {}))
+	_show_found_item_details(item_index)
+
+
+func _show_found_item_details(item_index: int) -> void:
+	_resolve_paths()
+	if item_index < 0 or item_index >= loot.size() or _inventory == null:
+		return
+	var popup := _inventory.get_node_or_null("ItemDetailsPopup") as ItemDetailsPopup
+	if popup == null:
+		return
+	var item: Dictionary = loot[item_index].get("item", {})
+	if item.is_empty():
+		return
+	_active_loot_index = item_index
+	_inventory.set_inventory_open(true)
+	_inventory.set_outside_close_enabled(false)
+	var action_label := "Take"
+	var action := _take_loot_item.bind(item_index)
+	var action_enabled := _can_take_item_directly(item)
+	if _should_offer_large_replace(item):
+		action_label = "Replace"
+		action = _replace_large_loot_item.bind(item_index)
+		action_enabled = true
+	popup.show_item(
+		item,
+		action_label,
+		action,
+		action_enabled,
+		Callable(),
+		"Discard",
+		"Found item",
+		"Ignore",
+		_ignore_loot_item.bind(item_index),
+		false
+	)
+
+
+func _on_inventory_stats_changed() -> void:
+	if not is_open() or _active_loot_index < 0:
+		return
+	call_deferred("_show_found_item_details", _active_loot_index)
+
+
+func _can_take_item_directly(item: Dictionary) -> bool:
+	if _inventory == null:
+		return false
+	return _inventory.has_space() and _inventory.can_carry_item(ItemCatalog.normalize_item(item))
+
+
+func _should_offer_large_replace(item: Dictionary) -> bool:
+	var normalized := ItemCatalog.normalize_item(item)
+	return (
+		str(normalized.get("size", ItemCatalog.SIZE_SMALL)) == ItemCatalog.SIZE_LARGE
+		and _get_first_large_inventory_slot() >= 0
+	)
+
+
+func _get_first_large_inventory_slot() -> int:
+	if _inventory == null:
+		return -1
+	var items := _inventory.get_items()
+	for index in items.size():
+		if not items[index].is_empty() and str(items[index].get("size", ItemCatalog.SIZE_SMALL)) == ItemCatalog.SIZE_LARGE:
+			return index
+	return -1
 
 
 func _show_item_tooltip(item_index: int, source_button: Button) -> void:
@@ -458,8 +590,8 @@ func _layout_loot() -> void:
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		return
 	if _dimmer != null:
-		_dimmer.visible = visible and not loot.is_empty()
-	_panel.visible = visible and not loot.is_empty()
+		_dimmer.visible = false
+	_panel.visible = false
 	var content_size := _panel.get_combined_minimum_size()
 	var max_size := Vector2(
 		minf(panel_size.x, viewport_size.x - 28.0),

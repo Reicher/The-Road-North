@@ -67,13 +67,13 @@ func _on_game_over(reason: String) -> void:
 	if run_stats_tracker != null:
 		var death_reason := _normalized_death_reason(reason)
 		run_stats_tracker.finalize_run("died", death_reason)
-		_show_report(run_stats_tracker.stats, LocalRecords.update_with_run(run_stats_tracker.stats), "restart_level")
+		_show_report(run_stats_tracker.stats, LocalRecords.update_with_run(run_stats_tracker.stats), "restart_game")
 		return
 	var stats := RunStats.new()
 	stats.reset(RunStats.DEFAULT_EXPEDITION_NAME)
 	stats.final_result = "died"
 	stats.death_reason = _normalized_death_reason(reason)
-	_show_report(stats, {}, "restart_level")
+	_show_report(stats, {}, "restart_game")
 
 
 func _on_run_won() -> void:
@@ -84,12 +84,12 @@ func _on_run_won() -> void:
 	else:
 		if run_stats_tracker != null:
 			run_stats_tracker.finalize_run("won", "")
-			_show_report(run_stats_tracker.stats, LocalRecords.update_with_run(run_stats_tracker.stats), "restart_level")
+			_show_report(run_stats_tracker.stats, LocalRecords.update_with_run(run_stats_tracker.stats), "restart_game")
 			return
 		var stats := RunStats.new()
 		stats.reset(RunStats.DEFAULT_EXPEDITION_NAME)
 		stats.final_result = "won"
-		_show_report(stats, {}, "restart_level")
+		_show_report(stats, {}, "restart_game")
 
 
 func _show_end_screen(title: String, reward_text: String, button_text: String, action: String) -> void:
@@ -119,11 +119,10 @@ func _show_report(stats: RunStats, new_records: Dictionary, primary_action: Stri
 	_reward_label.visible = true
 	_reward_label.text = _result_line(stats)
 	_populate_stat_cards(stats, new_records)
-	_action_button.text = "Try Again"
+	_action_button.text = "New Expedition"
 	_action = primary_action
-	_secondary_button.text = "New Expedition"
-	_secondary_action = "restart_game"
-	_secondary_button.visible = true
+	_secondary_action = ""
+	_secondary_button.visible = false
 	if _hand != null:
 		_hand.visible = false
 	visible = true

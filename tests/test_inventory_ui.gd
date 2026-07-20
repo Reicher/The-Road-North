@@ -85,9 +85,11 @@ func _initialize() -> void:
 	var popup_name := item_popup.get_node("Center/Panel/Margin/Stack/Header/Heading/ItemName") as Label
 	var popup_meta := item_popup.get_node("Center/Panel/Margin/Stack/Header/Heading/Meta") as Label
 	var popup_stats := item_popup.get_node("Center/Panel/Margin/Stack/Stats") as VBoxContainer
+	var popup_discard := item_popup.get_node("Center/Panel/Margin/Stack/Buttons/DiscardButton") as Button
 	_assert(popup_name.text == "Walking Stick", "Expected item popup to show the item name")
 	_assert(popup_meta.text.contains("BIG ITEM"), "Expected item popup to state that the item is big")
 	_assert(popup_stats.get_child_count() == 1 and (popup_stats.get_child(0).get_child(1) as Label).text == "+1", "Expected item popup to show each stat clearly")
+	_assert(popup_discard.visible and not popup_discard.disabled, "Expected owned item details to include a discard action")
 	_assert(not tooltip.visible, "Expected the old compact tooltip to stay hidden")
 
 	item_popup.call("hide_popup")
@@ -167,6 +169,10 @@ func _initialize() -> void:
 	inventory.replace_item_at_slot(2, ItemCatalog.get_item("Guiding Charm"))
 	_assert(inventory.get_minimum_hand_size_bonus() == 1, "Expected Guiding Charm to increase minimum hand size by one")
 	_assert(ItemIconLibrary.get_icon(ItemCatalog.get_item("Guiding Charm")) != null, "Expected Guiding Charm to have an item icon")
+	inventory.show_item_details(inventory.get_items()[2], 2)
+	popup_discard.pressed.emit()
+	_assert(inventory.get_items()[2].is_empty(), "Expected discard from item details to remove the owned item")
+	_assert(inventory.get_minimum_hand_size_bonus() == 0, "Expected discarding an item to remove its stat bonus")
 	inventory.replace_item_at_slot(2, ItemCatalog.get_item("Field Medic's Bag"))
 	var player := GamePlayer.new()
 	player.gold = 1

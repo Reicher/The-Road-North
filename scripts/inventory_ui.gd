@@ -209,11 +209,14 @@ func get_inventory_frame_global_rect() -> Rect2:
 	return Rect2()
 
 
-func show_item_details(item: Dictionary) -> void:
+func show_item_details(item: Dictionary, owned_slot_index := -1) -> void:
 	if item.is_empty() or _item_details_popup == null:
 		return
 	_hide_tooltip()
-	_item_details_popup.show_item(item)
+	var discard_action := Callable()
+	if owned_slot_index >= 0:
+		discard_action = discard_item_at_slot.bind(owned_slot_index)
+	_item_details_popup.show_item(item, "", Callable(), true, discard_action)
 
 
 func add_item(item: Dictionary) -> bool:
@@ -245,6 +248,17 @@ func replace_item_at_slot(slot_index: int, item: Dictionary) -> Dictionary:
 		item_added.emit(normalized_item.duplicate(true))
 	stats_changed.emit()
 	return previous
+
+
+func discard_item_at_slot(slot_index: int) -> bool:
+	if slot_index < 0 or slot_index >= SLOT_COUNT:
+		return false
+	if items[slot_index].is_empty():
+		return false
+	items[slot_index] = {}
+	_refresh_slots()
+	stats_changed.emit()
+	return true
 
 
 func can_carry_item(item: Dictionary, replacing_slot := -1) -> bool:
@@ -563,7 +577,7 @@ func _on_item_pressed(slot_index: int, slot_button: Button) -> void:
 		return
 	if items[slot_index].is_empty():
 		return
-	show_item_details(items[slot_index])
+	show_item_details(items[slot_index], slot_index)
 
 
 func _hide_tooltip() -> void:

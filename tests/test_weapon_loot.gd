@@ -12,7 +12,7 @@ func _initialize() -> void:
 	_test_dynamic_rarity_groups()
 	_test_rarity_roll_distribution()
 	_test_every_item_is_in_the_starting_loot_pool()
-	_test_cache_loot_is_not_level_specific()
+	_test_cache_loot_caps_weapon_power_to_level_plus_three()
 	_test_shop_enforces_the_large_item_limit()
 	quit()
 
@@ -79,16 +79,15 @@ func _test_every_item_is_in_the_starting_loot_pool() -> void:
 		_assert(seen.has(str(item["name"])), "Expected %s in the loot pool from game start" % item["name"])
 
 
-func _test_cache_loot_is_not_level_specific() -> void:
+func _test_cache_loot_caps_weapon_power_to_level_plus_three() -> void:
 	var builder = DECK_BUILDER_SCRIPT.new()
-	var first_rng := RandomNumberGenerator.new()
-	var late_rng := RandomNumberGenerator.new()
-	first_rng.seed = 24680
-	late_rng.seed = 24680
-	for _index in 100:
-		var first_item: Dictionary = builder._make_reward_encounter(GameMap.ENCOUNTER_CACHE, first_rng, 1)["loot"][0]["item"]
-		var late_item: Dictionary = builder._make_reward_encounter(GameMap.ENCOUNTER_CACHE, late_rng, 9)["loot"][0]["item"]
-		_assert(first_item["name"] == late_item["name"], "Expected cache item rolls to ignore level")
+	for level in [1, 2, 3]:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 24680 + level
+		var max_power: int = level + 3
+		for _index in 200:
+			var item: Dictionary = builder._make_reward_encounter(GameMap.ENCOUNTER_CACHE, rng, level)["loot"][0]["item"]
+			_assert(ItemCatalog.get_stat(item, ItemCatalog.STAT_POWER) <= max_power, "Expected level %d cache weapons to cap at %d Power" % [level, max_power])
 	builder.free()
 
 

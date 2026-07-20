@@ -243,7 +243,9 @@ At game startup, all items are sorted by `item_score` and divided into Common
 (50%), Uncommon (30%), Rare (15%), and Epic (5%) rank percentiles. Small catalog
 rounding keeps the highest-ranked item Epic. A cache first rolls rarity with the
 same 50/30/15/5 distribution, then uniformly chooses an item from that group.
-Every item is available from level 1; cache loot is not level-specific.
+Cache loot may not include an item with more Power than `current level + 3`;
+if the rolled rarity has no valid candidates, the nearest lower rarity with a
+valid candidate is used.
 
 **Inventory:** 3-slot backpack, starts with Walking Stick. Every carried item is
 active and contributes its stats. The backpack may contain at most one `large`
@@ -269,7 +271,7 @@ Guiding Charm +1 Max Hand Size.
 
 Reaching the goal on a non-final level opens the shop. Reaching the goal on level 3 wins the game.
 
-Loss: 0 food remaining after a move, or 0 health. Loss screen restarts the level from captured level-start state. Soft-lock detection deferred.
+Loss: 0 food remaining after a move, or 0 health. Loss ends the run; the loss screen starts a new expedition from level 1. A level can only be restarted by It Was All a Dream or debug controls. Soft-lock detection deferred.
 
 ---
 

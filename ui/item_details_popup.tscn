@@ -93,6 +93,13 @@ size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 24
 text = "Close"
 
+[node name="DiscardButton" type="Button" parent="Center/Panel/Margin/Stack/Buttons"]
+custom_minimum_size = Vector2(0, 62)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 24
+text = "Discard"
+
 [node name="ActionButton" type="Button" parent="Center/Panel/Margin/Stack/Buttons"]
 custom_minimum_size = Vector2(0, 62)
 layout_mode = 2

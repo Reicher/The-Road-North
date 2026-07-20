@@ -35,6 +35,16 @@ func _initialize() -> void:
 	loot_ui.inventory_path = NodePath("../Inventory")
 	root.add_child(loot_ui)
 	loot_ui._ready()
+	(player.get_node("Rewards") as PlayerRewards).setup(player, inventory, loot_ui, map)
+
+	var item_popup := inventory.get_node("ItemDetailsPopup") as ItemDetailsPopup
+	var popup_name := item_popup.get_node("Center/Panel/Margin/Stack/Header/Heading/ItemName") as Label
+	var popup_meta := item_popup.get_node("Center/Panel/Margin/Stack/Header/Heading/Meta") as Label
+	var popup_close := item_popup.get_node("Center/Panel/Margin/Stack/Buttons/CloseButton") as Button
+	var popup_action := item_popup.get_node("Center/Panel/Margin/Stack/Buttons/ActionButton") as Button
+	var popup_discard := item_popup.get_node("Center/Panel/Margin/Stack/Buttons/DiscardButton") as Button
+	var popup_shade := item_popup.get_node("Shade") as ColorRect
+	var loot_panel := loot_ui.get_node("LootPanel") as PanelContainer
 
 	loot_ui.open_loot([
 		{
@@ -43,50 +53,87 @@ func _initialize() -> void:
 		},
 	])
 	await process_frame
-	(player.get_node("Rewards") as PlayerRewards).setup(player, inventory, loot_ui, map)
-	_assert(inventory.is_open(), "Expected opening loot to automatically open the backpack")
-	var overlay := inventory.get_node("InventoryReveal/InventoryOverlay") as PanelContainer
-	var loot_panel := loot_ui.get_node("LootPanel") as PanelContainer
-	var inventory_frame := inventory.get_node("InventoryFrame") as PanelContainer
-	var loot_panel_click := InputEventMouseButton.new()
-	loot_panel_click.button_index = MOUSE_BUTTON_LEFT
-	loot_panel_click.pressed = true
-	loot_panel_click.position = loot_panel.get_global_rect().get_center()
-	inventory._input(loot_panel_click)
-	_assert(inventory.is_open(), "Expected loot screen interaction to keep the backpack open")
+	_assert(loot_ui.is_open(), "Expected item loot to keep the loot flow open")
+	_assert(inventory.is_open(), "Expected item loot to open the backpack for pickup choices")
+	_assert(not loot_panel.visible, "Expected item loot to use the item details popup instead of a separate loot panel")
+	_assert(item_popup.visible, "Expected found item loot to open the shared item details popup")
+	_assert(popup_name.text == "Binoculars", "Expected the found item popup to show the item name")
+	_assert(popup_meta.text.contains("Found item"), "Expected found item popup to say the item was found")
+	_assert(popup_close.text == "Ignore", "Expected found item popup to offer ignoring the item")
+	_assert(popup_action.text == "Take" and not popup_action.disabled, "Expected found item popup to offer taking the item when it fits")
+	_assert(not popup_discard.visible, "Expected unowned found item details not to show discard")
+	_assert(loot_ui.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Expected active loot flow not to block inventory input behind the found item popup")
+	_assert(item_popup.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Expected found item popup root not to block inventory input outside its panel")
+	_assert(not popup_shade.visible and popup_shade.mouse_filter == Control.MOUSE_FILTER_IGNORE, "Expected found item popup not to block inventory clicks behind it")
+	var outside_click := InputEventMouseButton.new()
+	outside_click.button_index = MOUSE_BUTTON_LEFT
+	outside_click.pressed = true
+	outside_click.position = Vector2(8.0, 8.0)
+	item_popup.call("_on_shade_input", outside_click)
+	_assert(loot_ui.is_open() and item_popup.visible, "Expected outside clicks not to ignore or lose found loot")
+	popup_action.pressed.emit()
+	_assert(not loot_ui.is_open(), "Expected taking the only found item to close the loot flow")
+	_assert(inventory.get_carried_items().size() == 2, "Expected Take to add the found item to the backpack")
+	_assert(inventory.get_sight_bonus() == 1, "Expected the taken item to apply its stats")
 
-	var loot_item := loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootItem0") as Button
-	var take_button := loot_ui.get_node("LootPanel/ContentMargin/Stack/ButtonRow/TakeAllButton") as Button
-	_assert(take_button.text == "Take", "Expected the loot action to use the concise Take label")
-	_assert(loot_item.custom_minimum_size.is_equal_approx(inventory.get_slot_size()), "Expected loot item slots to match backpack slot size")
-	_assert(loot_item.text == "", "Expected loot item slots to use icons instead of text")
-	_assert(loot_item.icon != null, "Expected loot item slots to show an item image")
-	_assert(loot_panel.size.x < 230.0, "Expected single-item loot panel to stay horizontally compact")
-	_assert(loot_panel.size.y < 230.0, "Expected single-item loot panel to stay vertically compact")
-	var inventory_frame_rect := inventory_frame.get_global_rect()
-	var loot_panel_rect := loot_panel.get_global_rect()
-	_assert(absf(loot_panel_rect.position.x - inventory_frame_rect.position.x) <= 3.0, "Expected loot panel to align with the open inventory frame within the screen margin")
-	_assert(is_equal_approx(loot_panel_rect.position.y, inventory_frame_rect.position.y + inventory_frame_rect.size.y + 6.0), "Expected loot panel to sit directly below the open inventory frame")
-	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
-	var drag_ghost := loot_ui.get_node("DragGhost") as TextureRect
-	_assert(drag_ghost.visible, "Expected dragging loot to show an item image cursor")
-	_assert(drag_ghost.texture == loot_item.icon, "Expected drag cursor to use the dragged item image")
-	_assert(drag_ghost.size.is_equal_approx(inventory.get_slot_size()), "Expected drag cursor to match item slot size")
-	loot_ui._finish_drag(loot_item.get_global_rect().get_center())
-	var item_popup := inventory.get_node("ItemDetailsPopup") as ItemDetailsPopup
-	var popup_name := item_popup.get_node("Center/Panel/Margin/Stack/Header/Heading/ItemName") as Label
-	_assert(item_popup.visible, "Expected tapping a loot item slot to show the shared item details popup")
-	_assert(popup_name.text == "Binoculars", "Expected loot item details to show the item name")
-	item_popup.hide_popup()
-	await create_timer(inventory.overlay_animation_duration + 0.1).timeout
+	loot_ui.open_loot([
+		{
+			"kind": "item",
+			"item": ItemCatalog.get_item("Dagger"),
+		},
+	])
+	await process_frame
+	_assert(item_popup.visible and popup_name.text == "Dagger", "Expected a new found item popup to appear")
+	popup_close.pressed.emit()
+	_assert(not loot_ui.is_open(), "Expected Ignore to close when it discards the only found item")
+	_assert(inventory.get_carried_items().size() == 2, "Expected Ignore not to add the found item")
 
-	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
-	loot_ui._finish_drag(overlay.get_global_rect().get_center())
-	_assert(not loot_ui.is_open(), "Expected dragging the only loot item into the backpack to close loot")
-	_assert(inventory.get_carried_items().size() == 2, "Expected dragged loot item to move into the backpack")
-	_assert(inventory.get_power_bonus() == 1 and inventory.get_sight_bonus() == 1, "Expected every carried item to apply its stats")
+	inventory.set_items([
+		ItemCatalog.get_item("Walking Stick"),
+		ItemCatalog.get_item("Binoculars"),
+		ItemCatalog.get_item("Dagger"),
+	])
+	loot_ui.open_loot([
+		{
+			"kind": "item",
+			"item": ItemCatalog.get_item("Guiding Charm"),
+		},
+	])
+	await process_frame
+	_assert(item_popup.visible and popup_name.text == "Guiding Charm", "Expected full-backpack loot to show the found item")
+	_assert(popup_action.text == "Take" and popup_action.disabled, "Expected Take to be disabled when a small item has no free slot")
+	var slots := inventory.get_node("InventoryReveal/InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
+	var second_slot := slots.get_child(1) as Button
+	inventory._on_item_pressed(1, second_slot)
+	_assert(item_popup.visible and popup_name.text == "Binoculars", "Expected tapping inventory while loot is open to inspect carried items")
+	_assert(popup_discard.visible, "Expected carried inventory item details to offer discard")
+	popup_discard.pressed.emit()
+	await process_frame
+	_assert(item_popup.visible and popup_name.text == "Guiding Charm", "Expected found item details to return after discarding space")
+	_assert(popup_action.text == "Take" and not popup_action.disabled, "Expected Take to enable after discarding space")
+	popup_action.pressed.emit()
+	_assert(not loot_ui.is_open(), "Expected taking the item after making space to close loot")
+	_assert(inventory.get_minimum_hand_size_bonus() == 1, "Expected the taken Guiding Charm to apply its hand-size bonus")
 
-	var loot := [
+	inventory.set_items([
+		ItemCatalog.get_item("Walking Stick"),
+		{},
+		{},
+	])
+	loot_ui.open_loot([
+		{
+			"kind": "item",
+			"item": ItemCatalog.get_item("Machete"),
+		},
+	])
+	await process_frame
+	_assert(item_popup.visible and popup_name.text == "Machete", "Expected large found item details to appear")
+	_assert(popup_action.text == "Replace" and not popup_action.disabled, "Expected a found big item to offer Replace when a big item is already carried")
+	popup_action.pressed.emit()
+	_assert(not loot_ui.is_open(), "Expected replacing the only found item to close loot")
+	_assert(inventory.get_items()[0]["name"] == "Machete", "Expected Replace to swap the carried big item for the found big item")
+
+	loot_ui.open_loot([
 		{
 			"kind": "food",
 			"amount": 3,
@@ -95,122 +142,10 @@ func _initialize() -> void:
 			"kind": "gold",
 			"amount": 5,
 		},
-		{
-			"kind": "item",
-			"item": ItemCatalog.get_item("Guiding Charm"),
-		},
-	]
-
-	loot_ui.open_loot(loot)
-	_assert(loot_ui.is_open(), "Expected loot screen to open with available loot")
-	_assert(loot_ui.get_node("LootPanel") != null, "Expected loot screen to create a loot panel")
-	_assert(player.food == 5, "Expected food loot to add when the loot screen opens")
-	_assert(player.gold == 6, "Expected gold loot to add when the loot screen opens")
-	_assert(loot_ui.loot.size() == 1, "Expected only item loot to remain in the loot screen")
-	_assert(loot_ui.get_node_or_null("LootPanel/ContentMargin/Stack/LootList/LootResource0") == null, "Expected resource loot to stay out of the item loot list")
-	_assert(loot_ui.get_node_or_null("ResourcePopupLayer") == null, "Expected resource loot not to show floating feedback above the player")
-	var loot_panel_position := loot_panel.position
-	_assert(loot_panel_position.x < root.size.x * 0.33, "Expected loot panel to be offset from the screen center")
-
-	loot_ui.take_all()
-	_assert(not loot_ui.is_open(), "Expected taking all loot to close when everything fits")
-	_assert(not inventory.is_open(), "Expected Take All to close the inventory")
-	_assert(player.food == 5, "Expected Take All not to add already collected food again")
-	_assert(player.gold == 6, "Expected Take All not to add already collected gold again")
-	_assert(inventory.get_carried_items().size() == 3, "Expected item loot to move into a new backpack slot")
-	_assert(inventory.get_carried_items()[0]["name"] == "Walking Stick", "Expected the old walking stick to stay in its slot")
-	_assert(inventory.get_carried_items()[2]["name"] == "Guiding Charm", "Expected the new small item to use another slot")
-	_assert(inventory.get_power_bonus() == 1 and inventory.get_minimum_hand_size_bonus() == 1, "Expected all carried item stats to contribute")
-	var slots := inventory.get_node("InventoryReveal/InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
-	_assert((slots.get_child(0) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected weaker walking stick slot not to be tinted")
-	_assert((slots.get_child(1) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected weaker loot weapon slot not to be tinted")
-	_assert((slots.get_child(2) as Button).self_modulate == InventoryUI.NORMAL_SLOT_TINT, "Expected items not to use an active/inactive tint")
-
-	for index in inventory.get_free_slot_count():
-		_assert(inventory.add_item({
-			"name": "Filler %d" % index,
-			"effect": "",
-			"power_bonus": 0,
-		}), "Expected filler item to occupy a free slot")
-	_assert(not inventory.has_space(), "Expected inventory to report full when every slot has one item")
-
-	loot_ui.open_loot(loot)
-	_assert(player.food == 8, "Expected food loot to add immediately even when item slots are full")
-	_assert(player.gold == 11, "Expected gold loot to add immediately even when item slots are full")
-	_assert(loot_ui.loot.size() == 1, "Expected only item loot to remain after opening full-inventory loot")
-	var inventory_items_before_failed_take_all := inventory.get_items()
-	var loot_before_failed_take_all: Array[Dictionary] = []
-	for entry in loot_ui.loot:
-		loot_before_failed_take_all.append(entry.duplicate(true))
-	loot_ui.take_all()
-	_assert(loot_ui.is_open(), "Expected full inventory to leave item loot behind after Take All")
-	_assert(inventory.is_open(), "Expected failed Take All to keep the inventory open for manual choices")
-	_assert(take_button.self_modulate == LootUI.FULL_INVENTORY_FLASH_COLOR, "Expected failed Take to flash the Take button red")
-	_assert(player.food == 8, "Expected Take All not to add already collected food again")
-	_assert(player.gold == 11, "Expected Take All not to add already collected gold again")
-	_assert(loot_ui.loot == loot_before_failed_take_all, "Expected failed Take All to leave all loot untouched")
-	_assert(inventory.get_items() == inventory_items_before_failed_take_all, "Expected failed Take All to leave the backpack untouched")
-
-	inventory.set_inventory_open(true)
-	loot_item = loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootItem0") as Button
-	slots = inventory.get_node("InventoryReveal/InventoryOverlay/ContentMargin/Stack/Slots") as HBoxContainer
-	var first_backpack_slot := slots.get_child(0) as Button
-	_assert(inventory.get_slot_index_at_canvas_position(first_backpack_slot.get_global_rect().get_center()) == 0, "Expected first backpack slot center to resolve to slot zero")
-	loot_ui._start_drag(0, loot_item, loot_item.get_global_rect().get_center())
-	loot_ui._finish_drag(first_backpack_slot.get_global_rect().get_center())
-	_assert(inventory.get_carried_items()[0]["effect"] == "+1 Max Hand Size", "Expected dropping loot on an occupied backpack slot to replace it")
-	_assert(loot_ui.loot[0]["item"]["effect"] == "+1 Power", "Expected replaced backpack item to move into the loot slot")
-
-	loot_item = loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootItem0") as Button
-	first_backpack_slot = slots.get_child(0) as Button
-	inventory._start_item_drag(0, first_backpack_slot, first_backpack_slot.get_global_rect().get_center())
-	inventory._finish_item_drag(loot_item.get_global_rect().get_center())
-	_assert(inventory.get_carried_items()[0]["effect"] == "+1 Power", "Expected dropping backpack item on occupied loot slot to replace it")
-	_assert(loot_ui.loot[0]["item"]["effect"] == "+1 Max Hand Size", "Expected replaced loot item to move into the backpack slot")
-
-	loot_ui.open_loot([
-		{
-			"kind": "item",
-			"item": {
-				"name": "Dagger",
-				"effect": "+2 Power",
-				"power_bonus": 2,
-			},
-		},
-		{
-			"kind": "item",
-			"item": {
-				"name": "Sword",
-				"effect": "+5 Power",
-				"power_bonus": 5,
-			},
-		},
 	])
-	loot_ui._layout_loot()
-	var first_loot_item := loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootItem0") as Button
-	var second_loot_item := loot_ui.get_node("LootPanel/ContentMargin/Stack/LootList/LootItem1") as Button
-	first_loot_item.position = Vector2.ZERO
-	second_loot_item.position = Vector2(0.0, inventory.get_slot_size().y + inventory.get_slot_spacing())
-	var second_loot_center := second_loot_item.get_global_rect().get_center()
-	_assert(loot_ui.get_loot_item_index_at_canvas_position(second_loot_center) == 1, "Expected second loot slot center to resolve to loot item one")
-	loot_ui._start_drag(0, first_loot_item, first_loot_item.get_global_rect().get_center())
-	loot_ui._finish_drag(second_loot_center)
-	_assert(loot_ui.loot[0]["item"]["name"] == "Sword", "Expected dropping loot on loot to swap the target item back to the source slot")
-	_assert(loot_ui.loot[1]["item"]["name"] == "Dagger", "Expected dropping loot on loot to move the dragged item into the target slot")
-
-	loot_ui.close_loot()
-	_assert(not loot_ui.is_open(), "Expected closing loot to discard remaining loot")
-	_assert(loot_ui.loot.is_empty(), "Expected closing loot to permanently remove leftovers")
-
-	loot_ui.open_loot([
-		{
-			"kind": "food",
-			"amount": 3,
-		},
-	])
-	_assert(not loot_ui.is_open(), "Expected resource-only loot to avoid opening the item loot panel")
-	_assert(player.food == 11, "Expected resource-only food loot to collect immediately")
-	_assert(not loot_ui.visible, "Expected resource-only loot feedback to stay in the player stats HUD")
+	_assert(not loot_ui.is_open(), "Expected resource-only loot to avoid opening item details")
+	_assert(player.food == 5, "Expected resource-only food loot to collect immediately")
+	_assert(player.gold == 6, "Expected resource-only gold loot to collect immediately")
 
 	quit()
 

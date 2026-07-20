@@ -83,10 +83,13 @@ func run() -> void:
 	shop._show_sell_item_popup(0)
 	var item_popup := shop.get_node("ItemDetailsPopup") as Control
 	var item_action := item_popup.get_node("Center/Panel/Margin/Stack/Buttons/ActionButton") as Button
+	var item_discard := item_popup.get_node("Center/Panel/Margin/Stack/Buttons/DiscardButton") as Button
 	_assert(item_popup.visible and item_action.text.begins_with("Sell"), "Expected a shop inventory item to open details with a sell action")
+	_assert(item_discard.visible and not item_discard.disabled, "Expected a shop inventory item to also offer discard")
 	item_popup.call("hide_popup")
 	shop._show_buy_item_popup(0)
 	_assert(item_popup.visible and item_action.text.begins_with("Buy"), "Expected a shop offer to open details with a buy action")
+	_assert(not item_discard.visible, "Expected unowned shop offers not to show discard")
 	item_popup.call("hide_popup")
 	_assert(food_row.get_child_count() == 3, "Expected three food offers")
 	_assert(life_row.get_child_count() == 2, "Expected two life offers")

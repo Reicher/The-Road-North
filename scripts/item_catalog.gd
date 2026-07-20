@@ -93,23 +93,24 @@ static func get_item(item_name: String) -> Dictionary:
 	return {}
 
 
-static func items_for_rarity(rarity: String) -> Array[Dictionary]:
+static func items_for_rarity(rarity: String, max_power := -1) -> Array[Dictionary]:
 	initialize()
 	var result: Array[Dictionary] = []
 	for item in _items:
-		if str(item.get("rarity", "")) == rarity:
+		if str(item.get("rarity", "")) == rarity and _item_allowed_for_power_cap(item, max_power):
 			result.append(item.duplicate(true))
 	return result
 
 
-static func roll_loot_item(rng: RandomNumberGenerator) -> Dictionary:
+static func roll_loot_item(rng: RandomNumberGenerator, level := -1) -> Dictionary:
 	initialize()
 	var rarity := roll_rarity(rng)
-	var candidates := items_for_rarity(rarity)
+	var max_power := level + 3 if level > 0 else -1
+	var candidates := items_for_rarity(rarity, max_power)
 	if candidates.is_empty():
-		# Small catalogs may not fill every percentile. Use the nearest lower group.
+		# Small catalogs or level power caps may not fill every percentile. Use the nearest lower group.
 		for index in range(RARITY_ORDER.find(rarity) - 1, -1, -1):
-			candidates = items_for_rarity(RARITY_ORDER[index])
+			candidates = items_for_rarity(RARITY_ORDER[index], max_power)
 			if not candidates.is_empty():
 				break
 	if candidates.is_empty():
@@ -201,6 +202,10 @@ static func describe_effect(item: Dictionary) -> String:
 
 static func size_symbol(item: Dictionary) -> String:
 	return "▲" if str(item.get("size", SIZE_SMALL)) == SIZE_LARGE else ""
+
+
+static func _item_allowed_for_power_cap(item: Dictionary, max_power: int) -> bool:
+	return max_power < 0 or get_stat(item, STAT_POWER) <= max_power
 
 
 static func _default_size_for_name(item_name: String) -> String:

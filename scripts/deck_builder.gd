@@ -396,7 +396,7 @@ func _make_reward_encounter(kind: Variant, rng: RandomNumberGenerator, level: in
 			"type": kind,
 			"loot": [{"kind": "food", "amount": GameBalance.berry_food(map_size)}],
 		}
-	var item := ItemCatalog.roll_loot_item(rng)
+	var item := ItemCatalog.roll_loot_item(rng, level)
 	return {
 		"type": kind,
 		"loot": [{"kind": "item", "item": item}],

@@ -195,8 +195,13 @@ func run() -> void:
 	_assert(not (second_level.get_node("UI/Hand") as HandUI).visible, "Expected the card hand to hide on the loss screen")
 	_assert(second_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "The Räsers Expedition", "Expected loss report title")
 	_assert(second_screen.get_node("Prompt/ContentMargin/Stack/Reward").text == "Collapsed in the wilderness", "Expected loss report to explain death")
-	_assert(second_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Try Again", "Expected loss button to restart the current level")
+	_assert(second_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "New Expedition", "Expected loss button to start a new expedition")
 	second_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").pressed.emit()
+	await process_frame
+
+	var loss_expedition_popup := main.get_node("ExpeditionNamePopup") as CanvasLayer
+	_assert(loss_expedition_popup != null, "Expected losing to ask for a fresh expedition name")
+	(loss_expedition_popup.get_node("Dimmer/Panel/Margin/Stack/ButtonRow/BeginButton") as Button).pressed.emit()
 	await process_frame
 
 	second_level = main.get_node("Level")
@@ -204,15 +209,25 @@ func run() -> void:
 	second_player = second_level.get_node("Player") as GamePlayer
 	second_screen = second_level.get_node("UI/GameOver") as GameOverUI
 	second_hand = second_level.get_node("UI/Hand") as HandUI
-	_assert(second_map.playable_width == 7 and second_map.playable_height == 7, "Expected Restart level to reload the current 7x7 level")
-	_assert(second_player.food == 4 and second_player.health == 4, "Expected Restart level to restore the resources held at level start")
-	_assert((second_level.get_node("UI/Inventory") as InventoryUI).get_carried_items().size() == 2, "Expected Restart level to restore the backpack held at level start")
+	_assert(second_map.playable_width == 5 and second_map.playable_height == 5, "Expected losing to restart from level 1")
+	_assert(second_player.gold == 0 and second_player.max_health == 4 and second_player.base_power == 0, "Expected losing to reset run progression")
 
 	second_player.grid_position = second_map.get_goal_position()
-	_assert(second_player.check_run_won(), "Expected reaching the second goal to complete the level")
+	_assert(second_player.check_run_won(), "Expected reaching the first goal after loss to complete the level")
 	var second_shop := main.find_child("Shop", true, false) as Control
-	_assert(second_shop != null, "Expected the shop to open before the final level")
+	_assert(second_shop != null, "Expected the shop to open before level 2")
 	(second_shop.find_child("PlayNextButton", true, false) as Button).pressed.emit()
+	await process_frame
+
+	second_level = main.get_node("Level")
+	second_map = second_level.get_node("Map") as GameMap
+	second_player = second_level.get_node("Player") as GamePlayer
+	_assert(second_map.playable_width == 7 and second_map.playable_height == 7, "Expected the first shop after loss to load the second map")
+	second_player.grid_position = second_map.get_goal_position()
+	_assert(second_player.check_run_won(), "Expected reaching the second goal after loss to complete the level")
+	var third_shop := main.find_child("Shop", true, false) as Control
+	_assert(third_shop != null, "Expected the shop to open before level 3")
+	(third_shop.find_child("PlayNextButton", true, false) as Button).pressed.emit()
 	await process_frame
 
 	var third_level := main.get_node("Level")
@@ -237,10 +252,10 @@ func run() -> void:
 	_assert(not final_hand.visible, "Expected the card hand to hide on the final win screen")
 	_assert(final_screen.get_node("Prompt/ContentMargin/Stack/Title").text == "The Räsers Expedition", "Expected final win report title")
 	_assert(final_screen.get_node("Prompt/ContentMargin/Stack/Reward").text == "Reached the final road", "Expected final report victory text")
-	_assert(final_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Try Again", "Expected final report to offer try again")
-	_assert(final_screen.get_node("Prompt/ContentMargin/Stack/NewExpeditionButton").text == "New Expedition", "Expected final report to offer a fresh expedition")
+	_assert(final_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "New Expedition", "Expected final report to offer a fresh expedition")
+	_assert(not final_screen.get_node("Prompt/ContentMargin/Stack/NewExpeditionButton").visible, "Expected final report to avoid replaying the final level")
 
-	final_screen.get_node("Prompt/ContentMargin/Stack/NewExpeditionButton").pressed.emit()
+	final_screen.get_node("Prompt/ContentMargin/Stack/RestartButton").pressed.emit()
 	await process_frame
 	var new_expedition_popup := main.get_node("ExpeditionNamePopup") as CanvasLayer
 	_assert(new_expedition_popup != null, "Expected New Expedition to ask for a fresh expedition name")

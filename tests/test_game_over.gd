@@ -51,8 +51,8 @@ func run() -> void:
 	_assert(not player.input_enabled, "Expected game over to disable player input")
 	_assert(overlay.get_node("Prompt/ContentMargin/Stack/Title").text == "The Räsers Expedition", "Expected loss overlay to show expedition report title")
 	_assert(overlay.get_node("Prompt/ContentMargin/Stack/Reward").text == "Ended by starvation on Level 1", "Expected report to explain starvation")
-	_assert(overlay.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "Try Again", "Expected report to offer try again")
-	_assert(overlay.get_node("Prompt/ContentMargin/Stack/NewExpeditionButton").text == "New Expedition", "Expected report to offer a new expedition")
+	_assert(overlay.get_node("Prompt/ContentMargin/Stack/RestartButton").text == "New Expedition", "Expected report to start a new expedition")
+	_assert(not overlay.get_node("Prompt/ContentMargin/Stack/NewExpeditionButton").visible, "Expected report to avoid a duplicate restart-level action")
 	_assert(overlay.get_node("Prompt/ContentMargin/Stack/StatGrid").get_child_count() == 8, "Expected report to include a fixed mobile stat set")
 	_assert(overlay.get_node("Prompt/ContentMargin/Stack/RestartButton") != null, "Expected restart button under game-over prompt")
 
