@@ -78,6 +78,6 @@ because they are shared by the HUD, shop chips, and in-world enemy labels.
 | ❌ | question_mark.obj | low-poly, ~10 faces | Unrevealed enemy marker (currently thin BoxMesh column) |
 
 All models live in `assets/models/`. Materials are in shared MTL files
-(`road_to_karlskoga_models.mtl`, `player_pawn_lightblue.mtl`). Keep models
+(`the_road_north_models.mtl`, `player_pawn_lightblue.mtl`). Keep models
 low-poly (≤60 faces) and untextured (colour via MTL) to match the existing
 style.

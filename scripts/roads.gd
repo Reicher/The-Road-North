@@ -123,11 +123,16 @@ func _store_and_spawn_tile(grid_position: Vector2i, tile_data: Dictionary) -> bo
 		return false
 
 	var visual_tile := tile_scene.instantiate() as RoadTile
-	visual_tile.definition = tile_data["definition"]
-	visual_tile.rotation_steps = tile_data["rotation_steps"]
-	visual_tile.tile_size = _map.tile_size
-	if tile_data.has("encounter"):
-		visual_tile.encounter_data = tile_data["encounter"]
+	visual_tile.configure_visual_state(
+		tile_data["definition"],
+		tile_data["rotation_steps"],
+		_map.tile_size,
+		Color.WHITE,
+		false,
+		Color(0.25, 0.85, 0.35, 0.38),
+		tile_data.get("encounter", {}),
+		true
+	)
 	visual_tile.position = _map.grid_to_world(grid_position)
 	add_child(visual_tile)
 	_visual_tiles[grid_position] = visual_tile

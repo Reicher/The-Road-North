@@ -21,7 +21,7 @@ if [ ! -f "$SETTINGS_FILE" ]; then
 	exit 1
 fi
 
-if pgrep -f 'Godot.*--editor|Godot.*Road-to-Karlskoga|Godot 2.app/Contents/MacOS/Godot' >/dev/null 2>&1; then
+if pgrep -f 'Godot.*--editor|Godot.*The-Road-North|Godot 2.app/Contents/MacOS/Godot' >/dev/null 2>&1; then
 	printf "Close Godot before running this script; the open editor will overwrite the setting.\n" >&2
 	exit 1
 fi

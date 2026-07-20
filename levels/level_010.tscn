@@ -7,9 +7,9 @@
 [ext_resource type="Resource" path="res://data/road_bridge.tres" id="5_bridge"]
 
 [node name="Level" instance=ExtResource("1_level")]
-chapter_title = "Kapitel IV — Karlskoga"
+chapter_title = "Kapitel IV — Northbound"
 level_number = 10
-level_name = "Karlskoga Gate"
+level_name = "Northern Gate"
 
 [node name="Map" parent="." index="0"]
 playable_width = 11

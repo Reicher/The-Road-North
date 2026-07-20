@@ -12,7 +12,7 @@ const LEVELS: Array[Dictionary] = [
 	{"scene": preload("res://levels/level_007.tscn"), "name": "Berry Trail", "map_size": 7},
 	{"scene": preload("res://levels/level_008.tscn"), "name": "Flooded Stones", "map_size": 9},
 	{"scene": preload("res://levels/level_009.tscn"), "name": "Raider's Road", "map_size": 9},
-	{"scene": preload("res://levels/level_010.tscn"), "name": "Karlskoga Gate", "map_size": 11},
+	{"scene": preload("res://levels/level_010.tscn"), "name": "Northern Gate", "map_size": 11},
 ]
 const SHOP_SCENE := preload("res://ui/shop.tscn")
 const START_SCREEN_SCENE := preload("res://ui/start_screen.tscn")

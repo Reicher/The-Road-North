@@ -89,11 +89,16 @@ class TargetPreview extends Node3D:
 
 
 	func configure(tile_size: float, color: Color) -> void:
+		var previous_color := preview_color
 		preview_color = color
 		if _mesh_instance == null:
 			_mesh_instance = MeshInstance3D.new()
 			_mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			add_child(_mesh_instance)
+
+		var current_mesh := _mesh_instance.mesh as BoxMesh
+		if current_mesh != null and is_equal_approx(current_mesh.size.x, tile_size * 0.88) and previous_color == color:
+			return
 
 		var mesh := BoxMesh.new()
 		mesh.size = Vector3(tile_size * 0.88, tile_size * 0.025, tile_size * 0.88)
@@ -151,6 +156,11 @@ class SightFog extends Node3D:
 		_mask.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_mask.extra_cull_margin = 16384.0
 		add_child(_mask)
+
+
+	func warm_up() -> void:
+		_ensure_mask()
+		visible = false
 
 
 	func _grid_distance(from: Vector2i, to: Vector2i) -> int:
@@ -279,6 +289,7 @@ func _ready() -> void:
 	_validator = PlacementValidator.new()
 	_validator.setup(_map, _player, get_sight)
 	_ensure_controls()
+	_warm_up_placement_visuals()
 	_hide_preview()
 
 	if not _hand.card_drag_moved.is_connected(_on_card_drag_moved):
@@ -533,22 +544,25 @@ func _refresh_preview() -> void:
 
 	_hide_preview_trees(preview_position)
 	_ensure_preview_tile()
-	_preview_tile.definition = active_definition
-	_preview_tile.rotation_steps = rotation_steps
-	_preview_tile.tile_size = _map.tile_size
-	_preview_tile.encounter_power_visible = false
-	_preview_tile.set_preview_encounter_data(_get_preview_encounter_data())
-	_preview_tile.position = _map.grid_to_world(preview_position)
-	_preview_tile.scale = Vector3.ONE
-	_preview_tile.visible = true
-
 	var tile_data := _roads.make_tile_data(active_definition, rotation_steps)
 	var connections: Dictionary = tile_data.get("connections", {})
 	var invalid_hint := _get_road_placement_hint(preview_position, connections)
 	_placement_valid = invalid_hint.is_empty()
 	_show_connection_warnings(_validator.get_invalid_road_connections(preview_position, connections))
-	_preview_tile.tile_tint = Color(1.08, 1.08, 1.04, 0.98)
-	_preview_tile.set_highlight(true, VALID_COLOR if _placement_valid else INVALID_COLOR)
+	_preview_tile.position = _map.grid_to_world(preview_position)
+	_preview_tile.configure_visual_state(
+		active_definition,
+		rotation_steps,
+		_map.tile_size,
+		Color(1.08, 1.08, 1.04, 0.98),
+		true,
+		VALID_COLOR if _placement_valid else INVALID_COLOR,
+		_get_preview_encounter_data(),
+		false,
+		true
+	)
+	_preview_tile.scale = Vector3.ONE
+	_preview_tile.visible = true
 	if not _card_drag_in_progress:
 		var preview_in_sight := is_in_sight(preview_position)
 		_controls_layer.show_preview_controls(
@@ -673,6 +687,17 @@ func _ensure_preview_tile() -> void:
 		_preview_tile = tile_scene.instantiate() as RoadTile
 		_preview_tile.name = "PreviewTile"
 		add_child(_preview_tile)
+
+
+func _warm_up_placement_visuals() -> void:
+	_ensure_preview_tile()
+	if _preview_tile != null:
+		_preview_tile.visible = false
+	if _sight_fog == null:
+		_sight_fog = SightFog.new()
+		_sight_fog.name = "SightFog"
+		add_child(_sight_fog)
+	_sight_fog.warm_up()
 
 
 func _hide_preview() -> void:

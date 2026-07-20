@@ -72,5 +72,5 @@ To install the built APK on a connected phone:
 
 ```sh
 "$HOME/Library/Android/sdk/platform-tools/adb" install -r \
-  build/android/road-to-karlskoga-debug.apk
+  build/android/the-road-north-debug.apk
 ```

@@ -1,4 +1,4 @@
-mtllib road_to_karlskoga_models.mtl
+mtllib the_road_north_models.mtl
 o EnemyPawn
 g Body
 usemtl EnemyBody

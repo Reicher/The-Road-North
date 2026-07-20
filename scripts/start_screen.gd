@@ -7,7 +7,7 @@ const TouchFeedback = preload("res://scripts/touch_feedback.gd")
 const UIStyle = preload("res://scripts/ui_style.gd")
 
 const AUTHOR_TEXT := "A game by Robin Reicher"
-const GAME_TITLE := "Road to Karlskoga"
+const GAME_TITLE := "The Road North"
 
 var _intro_tween: Tween
 var _intro_finished := false
@@ -107,7 +107,7 @@ func _set_menu_enabled(enabled: bool) -> void:
 func _show_how_to_play() -> void:
 	_show_information(
 		"How to play",
-		"Build connected roads from the camp to Karlskoga.\n\nSelect a reachable road tile, then confirm to move. Every step costs 1 food.\n\nPlace cards carefully: roads must connect, and your supplies are limited."
+		"Build connected roads from the camp toward the northern gate.\n\nSelect a reachable road tile, then confirm to move. Every step costs 1 food.\n\nPlace cards carefully: roads must connect, and your supplies are limited."
 	)
 
 
@@ -118,7 +118,7 @@ func _show_settings() -> void:
 func _show_about() -> void:
 	_show_information(
 		"About the game",
-		"Road to Karlskoga is a calm, tactical road-building game about finding a way forward with limited supplies.\n\nDesigned and created by Robin Reicher.\nEarly playable prototype."
+		"The Road North is a calm, tactical road-building game about finding a way forward with limited supplies.\n\nDesigned and created by Robin Reicher.\nEarly playable prototype."
 	)
 
 

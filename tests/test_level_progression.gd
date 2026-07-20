@@ -16,7 +16,7 @@ func run() -> void:
 	_assert(start_screen != null, "Expected the game to open on the start screen")
 	_assert(main.get_node_or_null("Level") == null, "Expected level 1 to wait for Play or debug mode")
 	_assert((start_screen.get_node("AuthorLabel") as Label).text == "A game by Robin Reicher", "Expected the splash credit")
-	_assert((start_screen.get_node("Content/Title") as Label).text == "Road to Karlskoga", "Expected the working title")
+	_assert((start_screen.get_node("Content/Title") as Label).text == "The Road North", "Expected the game title")
 	var intro_click := InputEventMouseButton.new()
 	intro_click.button_index = MOUSE_BUTTON_LEFT
 	intro_click.pressed = true

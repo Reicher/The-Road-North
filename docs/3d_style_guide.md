@@ -23,7 +23,7 @@ readable from the normal portrait-mobile camera and at full-map zoom.
 - The player and every enemy use one consistent pawn scale.
 - Enemy appearance must not reveal strength; power is communicated by UI.
 - Start and goal must have distinct silhouettes. The goal is a generic
-  destination landmark and must not reference Karlskoga or the working title.
+  destination landmark and must not reference the old working title.
 
 ## Geometry and materials
 
@@ -40,4 +40,3 @@ Every tile with an encounter has a shallow round plaza beneath the encounter.
 It uses exactly the tile's `road_color`, so it reads as a small widened,
 well-trodden part of the road rather than a separate marker. The plaza follows
 the road anchor on curved roads and never communicates encounter type or power.
-

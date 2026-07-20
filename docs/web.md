@@ -14,7 +14,7 @@ not allow pages to enter fullscreen automatically.
 The deployed game will be available at:
 
 ```text
-https://reicher.github.io/Road-to-Karlskoga/
+https://reicher.github.io/The-Road-North/
 ```
 
 ## Build locally
