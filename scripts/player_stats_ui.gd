@@ -1,6 +1,7 @@
 class_name PlayerStatsUI
 extends HBoxContainer
 
+const SafeArea = preload("res://scripts/safe_area.gd")
 const STAT_ICON_SIZE := 40.0
 const STAT_VALUE_FONT_SIZE := 32
 const STAT_ROW_HEIGHT := 52.0
@@ -110,17 +111,22 @@ func _get_row_width(stat_name: String) -> float:
 
 
 func _layout_stats() -> void:
-	var viewport_width := 0.0
+	var layout_size := Vector2.ZERO
 	if is_inside_tree():
-		viewport_width = get_viewport_rect().size.x
-	if viewport_width <= 0.0:
+		layout_size = get_viewport_rect().size
+	if layout_size.x <= 0.0 or layout_size.y <= 0.0:
 		var parent_control := get_parent() as Control
 		if parent_control != null:
-			viewport_width = parent_control.size.x
-	if viewport_width <= 0.0:
+			layout_size = parent_control.size
+	if layout_size.x <= 0.0:
 		return
-	var available_width := maxf(1.0, viewport_width - left_margin - right_margin)
-	position = Vector2(left_margin, top_margin)
+	var viewport_width := layout_size.x
+	var safe_insets := SafeArea.get_insets(layout_size)
+	var active_left_margin := left_margin + safe_insets.x
+	var active_top_margin := top_margin + safe_insets.y
+	var active_right_margin := right_margin + safe_insets.z
+	var available_width := maxf(1.0, viewport_width - active_left_margin - active_right_margin)
+	position = Vector2(active_left_margin, active_top_margin)
 	size = Vector2(available_width, row_height)
 	var row_width_total := 0.0
 	for stat_name in ["deck", "food", "gold", "health", "power"]:

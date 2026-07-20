@@ -4,6 +4,7 @@ const INVENTORY_SCENE := preload("res://ui/inventory.tscn")
 const UIStyle := preload("res://scripts/ui_style.gd")
 const ItemIconLibrary := preload("res://scripts/item_icon_library.gd")
 const ItemCatalog := preload("res://scripts/item_catalog.gd")
+const SafeArea := preload("res://scripts/safe_area.gd")
 
 
 func _initialize() -> void:
@@ -33,6 +34,12 @@ func _initialize() -> void:
 	_assert(is_equal_approx(backpack_button.position.x, inventory.left_margin), "Expected backpack button to sit at the left HUD edge")
 	_assert(is_equal_approx(backpack_button.position.y, inventory.top_margin), "Expected backpack button to sit below the resource row")
 	_assert(inventory.top_margin == 73.0, "Expected a small gap between the resource row and backpack image")
+	SafeArea.set_test_insets(Vector4(10.0, 44.0, 18.0, 0.0))
+	inventory._layout_inventory()
+	_assert(is_equal_approx(backpack_button.position.x, inventory.left_margin + 10.0), "Expected backpack button to respect the left mobile safe area")
+	_assert(is_equal_approx(backpack_button.position.y, inventory.top_margin + 44.0), "Expected backpack button to sit below the mobile camera lip safe area")
+	SafeArea.clear_test_insets()
+	inventory._layout_inventory()
 	_assert(is_equal_approx(frame.position.x + frame.size.x, backpack_button.position.x + backpack_button.size.x), "Expected the collapsed extension's right edge to align with the backpack")
 	_assert(is_equal_approx(frame.size.x, 20.0), "Expected the closed inventory extension to remain tucked behind the backpack")
 	_assert(is_equal_approx(frame.size.y, backpack_button.size.y + inventory.frame_top_padding + inventory.frame_bottom_padding), "Expected the inventory extension to share the backpack panel height")

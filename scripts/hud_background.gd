@@ -2,6 +2,7 @@ class_name HudBackground
 extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
+const SafeArea = preload("res://scripts/safe_area.gd")
 const HUD_FRAME_TEXTURE := preload("res://assets/images/ui/frames/hud_wood_frame_strip.png")
 
 const HUD_FILL := Color(0.285, 0.155, 0.065, 0.98)
@@ -118,7 +119,8 @@ func _update_frame_lines(points: PackedVector2Array) -> void:
 
 func _layout_panel() -> void:
 	var viewport_size := get_viewport_rect().size
-	position = Vector2(margin, margin)
+	var safe_insets := SafeArea.get_insets(viewport_size)
+	position = Vector2(margin + safe_insets.x, margin + safe_insets.y)
 	var panel_height := maxf(top_bar_height, top_bar_height - pocket_overlap + backpack_height)
-	size = Vector2(maxf(1.0, viewport_size.x - margin * 2.0), panel_height)
+	size = Vector2(maxf(1.0, viewport_size.x - safe_insets.x - safe_insets.z - margin * 2.0), panel_height)
 	queue_redraw()

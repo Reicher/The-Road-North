@@ -2,6 +2,7 @@ class_name SettingsMenu
 extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
+const SafeArea = preload("res://scripts/safe_area.gd")
 
 @export var top_margin := 62.0
 @export var right_margin := 2.0
@@ -51,13 +52,16 @@ func _close_menu() -> void:
 
 func _layout_settings() -> void:
 	var viewport_size := get_viewport_rect().size
+	var safe_insets := SafeArea.get_insets(viewport_size)
+	var active_right_margin := right_margin + safe_insets.z
+	var active_top_margin := top_margin + safe_insets.y
 	_settings_button.size = button_size
 	_settings_button.position = Vector2(
-		viewport_size.x - right_margin - button_size.x,
-		top_margin
+		viewport_size.x - active_right_margin - button_size.x,
+		active_top_margin
 	)
 	_menu_panel.size = menu_size
 	_menu_panel.position = Vector2(
-		clampf(viewport_size.x - right_margin - menu_size.x, 8.0, viewport_size.x - menu_size.x - 8.0),
-		top_margin + button_size.y + 8.0
+		clampf(viewport_size.x - active_right_margin - menu_size.x, 8.0 + safe_insets.x, viewport_size.x - safe_insets.z - menu_size.x - 8.0),
+		active_top_margin + button_size.y + 8.0
 	)

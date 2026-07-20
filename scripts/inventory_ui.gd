@@ -2,6 +2,7 @@ class_name InventoryUI
 extends Control
 
 const UIStyle = preload("res://scripts/ui_style.gd")
+const SafeArea = preload("res://scripts/safe_area.gd")
 const ItemIconLibrary = preload("res://scripts/item_icon_library.gd")
 const ItemCatalog = preload("res://scripts/item_catalog.gd")
 const BACKPACK_ICON_PATH := "res://assets/images/ui/inventory_backpack.png"
@@ -601,8 +602,12 @@ func _layout_inventory() -> void:
 	if viewport_size.x <= 0.0 or viewport_size.y <= 0.0:
 		return
 
+	var safe_insets := SafeArea.get_insets(viewport_size)
+	var active_left_margin := left_margin + safe_insets.x
+	var active_top_margin := top_margin + safe_insets.y
+	var active_right_margin := right_margin + safe_insets.z
 	var active_button_size := button_size
-	var available_width := maxf(1.0, viewport_size.x - left_margin - 8.0)
+	var available_width := maxf(1.0, viewport_size.x - active_left_margin - active_right_margin - 8.0)
 	var fixed_width := slot_spacing * float(SLOT_COUNT - 1) + overlay_padding * 2.0
 	var available_slot_width := maxf(1.0, available_width - button_size.x - fixed_width)
 	var responsive_scale := minf(1.0, available_slot_width / (slot_size.x * SLOT_COUNT))
@@ -611,8 +616,8 @@ func _layout_inventory() -> void:
 	_backpack_button.custom_minimum_size = active_button_size
 	_backpack_button.size = active_button_size
 	_backpack_button.position = Vector2(
-		left_margin,
-		top_margin
+		active_left_margin,
+		active_top_margin
 	)
 
 	var overlay_width := _active_slot_size.x * SLOT_COUNT + slot_spacing * float(SLOT_COUNT - 1) + overlay_padding * 2.0
@@ -621,8 +626,8 @@ func _layout_inventory() -> void:
 	_overlay.pivot_offset = Vector2(0.0, overlay_height * 0.5)
 	_overlay.position = Vector2.ZERO
 	_reveal.position = Vector2(
-		clampf(_backpack_button.position.x + active_button_size.x + overlay_gap, 8.0, viewport_size.x - overlay_width - 8.0),
-		clampf(_backpack_button.position.y, 8.0, viewport_size.y - overlay_height - 8.0)
+		clampf(_backpack_button.position.x + active_button_size.x + overlay_gap, 8.0 + safe_insets.x, viewport_size.x - safe_insets.z - overlay_width - 8.0),
+		clampf(_backpack_button.position.y, 8.0 + safe_insets.y, viewport_size.y - safe_insets.w - overlay_height - 8.0)
 	)
 	_reveal.size.y = overlay_height
 	if _overlay_tween == null:

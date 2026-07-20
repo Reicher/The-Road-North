@@ -3,10 +3,12 @@ extends SceneTree
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
 const PLAYER_STATS_SCENE := preload("res://ui/player_stats.tscn")
 const MAP_SCENE := preload("res://scenes/map.tscn")
+const SafeArea := preload("res://scripts/safe_area.gd")
 
 
 func _initialize() -> void:
-	var root := Node.new()
+	var root := Control.new()
+	root.size = Vector2(720.0, 1280.0)
 	get_root().add_child(root)
 
 	var map := MAP_SCENE.instantiate() as GameMap
@@ -41,6 +43,12 @@ func _initialize() -> void:
 	_assert(is_equal_approx(stats.row_height, PlayerStatsUI.STAT_ROW_HEIGHT), "Expected larger resources to retain enough vertical spacing")
 	_assert(PlayerStatsUI.STAT_VALUE_FONT_SIZE == 32, "Expected every resource value to use the compact readable HUD font size")
 	_assert((stats.get_node("PowerRow") as StatRow).alignment == BoxContainer.ALIGNMENT_END, "Expected power content to align with the right HUD margin")
+	SafeArea.set_test_insets(Vector4(12.0, 44.0, 20.0, 0.0))
+	stats._layout_stats()
+	_assert(is_equal_approx(stats.position.x, stats.left_margin + 12.0), "Expected resource stats to respect the left mobile safe area")
+	_assert(is_equal_approx(stats.position.y, stats.top_margin + 44.0), "Expected resource stats to sit below the mobile camera lip safe area")
+	SafeArea.clear_test_insets()
+	stats._layout_stats()
 	for stat_name in ["food", "gold", "health", "deck", "power"]:
 		_assert(stats._get_stat_icon(stat_name) != null, "Expected exported stat texture to load for %s" % stat_name)
 	_assert(stats._get_stat_icon("health") == load("res://assets/images/stats/stat_health.png"), "Expected health to use the health icon")
@@ -79,6 +87,7 @@ func _initialize() -> void:
 	_assert(stats._pulse_sign.get("health", 0) == 1, "Expected gained health to use positive feedback")
 
 	deck_controller.free()
+	SafeArea.clear_test_insets()
 	quit()
 
 
