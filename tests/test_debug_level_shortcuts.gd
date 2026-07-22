@@ -16,6 +16,40 @@ func run() -> void:
 	await process_frame
 	_assert((main.get_node("Level/Map") as GameMap).playable_width == 5, "Expected debug mode to start on level 1")
 	_assert_debug_intro_skipped(main.get_node("Level"))
+	_assert((main.get_node("DebugOverlay/DebugLabel") as Label).visible, "Expected debug mode to show the Debug label")
+
+	var first_level := main.get_node("Level")
+	var first_hand := first_level.get_node("UI/Hand") as HandUI
+	_send_key(main, KEY_Q)
+	await process_frame
+	_assert(first_hand.cards.size() == 4, "Expected debug Q to show the most likely normal-sized hand")
+
+	_send_key(main, KEY_W)
+	await process_frame
+	_assert(first_hand.cards.size() == 5, "Expected debug W to show every plain road type")
+	_assert(_all_cards_match(first_hand.cards, "Road", ""), "Expected debug W hand to contain plain road cards")
+
+	_send_key(main, KEY_E)
+	await process_frame
+	_assert(first_hand.cards.size() == 5, "Expected debug E to show every enemy road type")
+	_assert(_all_cards_match(first_hand.cards, "Road", GameConstants.ENCOUNTER_ENEMY), "Expected debug E hand to contain enemy road cards")
+
+	_send_key(main, KEY_R)
+	await process_frame
+	_assert(first_hand.cards.size() == 10, "Expected debug R to ignore max hand size and show every road with both reward types")
+	_assert(_count_encounters(first_hand.cards, GameConstants.ENCOUNTER_BERRY_BUSH) == 5, "Expected debug R hand to include berry roads")
+	_assert(_count_encounters(first_hand.cards, GameConstants.ENCOUNTER_CACHE) == 5, "Expected debug R hand to include cache roads")
+
+	_send_key(main, KEY_T)
+	await process_frame
+	_assert(first_hand.cards.size() == 8, "Expected debug T to show a full event-card debug hand")
+	_assert(_all_cards_match(first_hand.cards, "Event", ""), "Expected debug T hand to contain event cards")
+	_assert(_event_types(first_hand.cards).size() == 5, "Expected debug T hand to contain only generated event types")
+
+	_send_key(main, KEY_ENTER)
+	await process_frame
+	_assert(main.find_child("Shop", true, false) != null, "Expected debug Enter to open the between-level shop")
+	_assert((first_level.get_node("Player") as GamePlayer).grid_position == (first_level.get_node("Map") as GameMap).get_goal_position(), "Expected debug Enter to use the normal goal completion state")
 
 	_send_key(main, KEY_3)
 	await process_frame
@@ -59,6 +93,32 @@ func _assert_debug_intro_skipped(level: Node) -> void:
 	_assert(hand.visible and hand.interaction_enabled, "Expected cards to be playable immediately in debug mode")
 	_assert(not bool(camera.get("play_start_zoom_sequence")), "Expected debug levels to skip the map zoom intro")
 	_assert(camera.get("_start_zoom_tween") == null, "Expected no start zoom tween in debug mode")
+
+
+func _all_cards_match(cards: Array[CardView], category: String, encounter_type: String) -> bool:
+	for card in cards:
+		if card.category != category:
+			return false
+		if not encounter_type.is_empty() and str(card.encounter_data.get("type", "")) != encounter_type:
+			return false
+		if encounter_type.is_empty() and category == "Road" and not card.encounter_data.is_empty():
+			return false
+	return true
+
+
+func _count_encounters(cards: Array[CardView], encounter_type: String) -> int:
+	var count := 0
+	for card in cards:
+		if str(card.encounter_data.get("type", "")) == encounter_type:
+			count += 1
+	return count
+
+
+func _event_types(cards: Array[CardView]) -> Dictionary:
+	var event_types := {}
+	for card in cards:
+		event_types[card.event_type] = true
+	return event_types
 
 
 func _assert(condition: bool, message: String) -> void:

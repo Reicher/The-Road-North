@@ -64,75 +64,6 @@ func run() -> void:
 	await process_frame
 	_assert(not first_screen.visible, "Expected Enter to do nothing before debug mode is enabled")
 
-	var level_before_debug := first_level
-	_send_key(main, KEY_D)
-	await process_frame
-	first_level = main.get_node("Level")
-	first_map = first_level.get_node("Map") as GameMap
-	first_player = first_level.get_node("Player") as GamePlayer
-	first_screen = first_level.get_node("UI/GameOver") as GameOverUI
-	first_hand = first_level.get_node("UI/Hand") as HandUI
-	_assert(debug_label.visible, "Expected D to enable debug mode")
-	_assert(debug_label.text == "Debug", "Expected debug mode to show a clear Debug label")
-	_assert(first_level != level_before_debug, "Expected entering debug mode to restart at level 1")
-	_assert(first_map.playable_width == 5 and first_map.playable_height == 5, "Expected D to start level 1")
-
-	_send_key(main, KEY_Q)
-	await process_frame
-	_assert(first_hand.cards.size() == 4, "Expected debug Q to show the most likely normal-sized hand")
-
-	_send_key(main, KEY_W)
-	await process_frame
-	_assert(first_hand.cards.size() == 5, "Expected debug W to show every plain road type")
-	_assert(_all_cards_match(first_hand.cards, "Road", ""), "Expected debug W hand to contain plain road cards")
-
-	_send_key(main, KEY_E)
-	await process_frame
-	_assert(first_hand.cards.size() == 5, "Expected debug E to show every enemy road type")
-	_assert(_all_cards_match(first_hand.cards, "Road", GameMap.ENCOUNTER_ENEMY), "Expected debug E hand to contain enemy road cards")
-
-	_send_key(main, KEY_R)
-	await process_frame
-	_assert(first_hand.cards.size() == 10, "Expected debug R to ignore max hand size and show every road with both reward types")
-	_assert(_count_encounters(first_hand.cards, GameMap.ENCOUNTER_BERRY_BUSH) == 5, "Expected debug R hand to include berry roads")
-	_assert(_count_encounters(first_hand.cards, GameMap.ENCOUNTER_CACHE) == 5, "Expected debug R hand to include cache roads")
-
-	_send_key(main, KEY_T)
-	await process_frame
-	_assert(first_hand.cards.size() == 8, "Expected debug T to show a full event-card debug hand")
-	_assert(_all_cards_match(first_hand.cards, "Event", ""), "Expected debug T hand to contain event cards")
-	_assert(_event_types(first_hand.cards).size() == 5, "Expected debug T hand to contain only generated event types")
-	_send_key(main, KEY_ENTER)
-	await process_frame
-	_assert(main.find_child("Shop", true, false) != null, "Expected debug Enter to open the between-level shop")
-	_assert(first_player.grid_position == first_map.get_goal_position(), "Expected debug Enter to use the normal goal completion state")
-
-	_send_key(main, KEY_3)
-	await process_frame
-	var debug_third_level := main.get_node("Level")
-	_assert((debug_third_level.get_node("Map") as GameMap).playable_width == 9, "Expected debug key 3 to load the third level")
-	_send_key(main, KEY_4)
-	await process_frame
-	var debug_fourth_level := main.get_node("Level")
-	_assert(debug_fourth_level != debug_third_level and (debug_fourth_level.get_node("Map") as GameMap).playable_width == 7, "Expected debug key 4 to load the fourth level")
-
-	_send_key(main, KEY_2)
-	await process_frame
-	var debug_second_level := main.get_node("Level")
-	_assert((debug_second_level.get_node("Map") as GameMap).playable_width == 7, "Expected debug key 2 to load the second level")
-	_send_key(main, KEY_2)
-	await process_frame
-	_assert(main.get_node("Level") != debug_second_level, "Expected debug key 2 to reload the second level when already active")
-
-	_send_key(main, KEY_1)
-	await process_frame
-	first_level = main.get_node("Level")
-	first_map = first_level.get_node("Map") as GameMap
-	first_player = first_level.get_node("Player") as GamePlayer
-	first_screen = first_level.get_node("UI/GameOver") as GameOverUI
-	first_hand = first_level.get_node("UI/Hand") as HandUI
-	_assert(first_map.playable_width == 5 and first_map.playable_height == 5, "Expected debug key 1 to load the first level")
-
 	first_player.food = 4
 	first_player.gold = 7
 	first_player.set_max_health(5)
@@ -238,6 +169,8 @@ func run() -> void:
 	_assert(third_player.check_run_won(), "Expected reaching the third goal to complete the level")
 	_assert(main.find_child("Shop", true, false) != null, "Expected the shop to open after level 3 because the run now has ten levels")
 
+	_send_key(main, KEY_D)
+	await process_frame
 	_send_key(main, KEY_0)
 	await process_frame
 	var final_level := main.get_node("Level")
@@ -284,32 +217,6 @@ func _feedback_values_are_zero(values: Dictionary) -> bool:
 		if absf(float(value)) > 0.001:
 			return false
 	return true
-
-
-func _all_cards_match(cards: Array[CardView], category: String, encounter_type: String) -> bool:
-	for card in cards:
-		if card.category != category:
-			return false
-		if not encounter_type.is_empty() and str(card.encounter_data.get("type", "")) != encounter_type:
-			return false
-		if encounter_type.is_empty() and category == "Road" and not card.encounter_data.is_empty():
-			return false
-	return true
-
-
-func _count_encounters(cards: Array[CardView], encounter_type: String) -> int:
-	var count := 0
-	for card in cards:
-		if str(card.encounter_data.get("type", "")) == encounter_type:
-			count += 1
-	return count
-
-
-func _event_types(cards: Array[CardView]) -> Dictionary:
-	var event_types := {}
-	for card in cards:
-		event_types[card.event_type] = true
-	return event_types
 
 
 func _send_key(target: Node, keycode: int) -> void:

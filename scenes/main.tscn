@@ -1,6 +1,41 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_b6byy"]
+[ext_resource type="PackedScene" path="res://ui/debug_overlay.tscn" id="2_debug"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_b6byy")
+
+[node name="DebugOverlay" parent="." instance=ExtResource("2_debug")]
+
+[node name="ShopLayer" type="CanvasLayer" parent="."]
+layer = 50
+
+[node name="TransitionLayer" type="CanvasLayer" parent="."]
+layer = 100
+
+[node name="ForestFade" type="ColorRect" parent="TransitionLayer"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.045, 0.1, 0.075, 0)
+
+[node name="TransitionLabel" type="Label" parent="TransitionLayer/ForestFade"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.96, 0.88, 0.68, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.82)
+theme_override_constants/shadow_offset_x = 3
+theme_override_constants/shadow_offset_y = 5
+theme_override_font_sizes/font_size = 34
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2

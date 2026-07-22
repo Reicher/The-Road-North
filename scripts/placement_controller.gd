@@ -559,6 +559,7 @@ func _refresh_preview() -> void:
 		VALID_COLOR if _placement_valid else INVALID_COLOR,
 		_get_preview_encounter_data(),
 		false,
+		true,
 		true
 	)
 	_preview_tile.scale = Vector3.ONE

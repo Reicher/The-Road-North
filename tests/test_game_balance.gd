@@ -13,7 +13,7 @@ func _initialize() -> void:
 
 func _test_starting_values() -> void:
 	_assert(GameBalance.STARTING_HEALTH == 4, "Expected run starting health to be four")
-	_assert(GameBalance.BASE_POWER == 1, "Expected run base power to be one")
+	_assert(GameBalance.BASE_POWER == 0, "Expected run base power to start at zero before item bonuses")
 	_assert(GameBalance.STARTING_FOOD == 10, "Expected run starting food to be ten")
 
 

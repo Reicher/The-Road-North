@@ -24,6 +24,7 @@ signal reward_collected(kind: String, entry: Dictionary)
 @export var inventory_path: NodePath
 @export var loot_ui_path: NodePath
 @export var rewards_path: NodePath = NodePath("Rewards")
+@export var combat_path: NodePath = NodePath("Combat")
 @export var start_position := Vector2i(-1, -1)
 @export var starting_food := GameBalance.STARTING_FOOD
 @export var starting_gold := 0
@@ -51,6 +52,7 @@ var _map: GameMap
 var _inventory: InventoryUI
 var _loot_ui: LootUI
 var _rewards: PlayerRewards
+var _combat: PlayerCombat
 var _moving := false
 var _move_target := Vector2i.ZERO
 var _route_destination := Vector2i.ZERO
@@ -72,6 +74,7 @@ func _ready() -> void:
 	_inventory = get_node_or_null(inventory_path) as InventoryUI
 	_loot_ui = get_node_or_null(loot_ui_path) as LootUI
 	_rewards = get_node_or_null(rewards_path) as PlayerRewards
+	_combat = get_node_or_null(combat_path) as PlayerCombat
 	_combat_overlay = get_node_or_null("CombatPopupLayer/CombatPopup") as Control
 	_movement_selection = get_node_or_null("MovementSelection") as MovementSelectionUI
 	_route_preview = get_node_or_null("RoutePreview")
@@ -79,7 +82,11 @@ func _ready() -> void:
 	if _rewards == null:
 		push_warning("Player needs a Rewards child at rewards_path.")
 		return
+	if _combat == null:
+		push_warning("Player needs a PlayerCombat child at combat_path.")
+		return
 	_rewards.setup(self, _inventory, _loot_ui, _map)
+	_combat.setup(self, _map)
 	if _inventory != null and not _inventory.stats_changed.is_connected(_on_inventory_stats_changed):
 		_inventory.stats_changed.connect(_on_inventory_stats_changed)
 	if _loot_ui != null and not _loot_ui.closed.is_connected(continue_route_after_encounter):
@@ -623,7 +630,7 @@ func _move_into_enemy(target_position: Vector2i, enemy_data: Dictionary, previou
 
 
 func _finish_enemy_victory(target_position: Vector2i, enemy_data: Dictionary, combat_direction: Vector3) -> int:
-	_map.clear_encounter(target_position)
+	_combat.clear_enemy_at(target_position)
 	await _play_enemy_defeat(target_position, combat_direction)
 	if not is_inside_tree():
 		return 0
@@ -825,19 +832,9 @@ func check_run_won() -> bool:
 
 
 func _get_enemy_data(target_position: Vector2i) -> Dictionary:
-	if _map == null:
-		return {}
-	var tile_data: Variant = _map.get_tile(target_position)
-	if not (tile_data is Dictionary):
-		return {}
-	var encounter: Dictionary = tile_data.get("encounter", {})
-	if str(encounter.get("type", "")) != GameMap.ENCOUNTER_ENEMY:
-		return {}
-	return encounter
+	return _combat.get_enemy_data(target_position) if _combat != null else {}
 
 
 func _reveal_enemy_at(target_position: Vector2i, enemy_data: Dictionary) -> void:
-	if _map == null:
-		return
-	enemy_data["revealed"] = true
-	_map.update_encounter_data(target_position, enemy_data)
+	if _combat != null:
+		_combat.reveal_enemy_at(target_position, enemy_data)

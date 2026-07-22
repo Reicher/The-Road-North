@@ -32,7 +32,8 @@ func render(
 	encounter_data: Dictionary,
 	encounter_plaza_visible: bool,
 	enemy_offset: Vector3,
-	encounter_power_visible: bool
+	encounter_power_visible: bool,
+	lightweight_preview := false
 ) -> void:
 	for child in get_children():
 		child.free()
@@ -45,12 +46,13 @@ func render(
 
 	if definition != null:
 		_draw_visual_identity(str(definition.get("visual_identity")), openings, tile_size)
-		var reserved_bush_positions: Array[Vector2] = []
-		if _encounter_type(encounter_data) == GameMap.ENCOUNTER_BERRY_BUSH:
-			reserved_bush_positions = _berry_bush_positions(openings)
-		var tree_positions := _add_road_tile_trees(openings, tile_size, reserved_bush_positions)
-		if encounter_data.is_empty():
-			_add_roadside_decorations(openings, tile_size, tree_positions)
+		if not lightweight_preview:
+			var reserved_bush_positions: Array[Vector2] = []
+			if _encounter_type(encounter_data) == GameMap.ENCOUNTER_BERRY_BUSH:
+				reserved_bush_positions = _berry_bush_positions(openings)
+			var tree_positions := _add_road_tile_trees(openings, tile_size, reserved_bush_positions)
+			if encounter_data.is_empty():
+				_add_roadside_decorations(openings, tile_size, tree_positions)
 
 	var road_anchor := RoadPath.get_anchor_offset(openings, tile_size)
 	var encounter_offset := enemy_offset + Vector3(road_anchor.x, 0.0, road_anchor.y)
@@ -59,7 +61,7 @@ func render(
 	if not encounter_data.is_empty():
 		var encounter_type := _encounter_type(encounter_data)
 		if encounter_type != GameMap.ENCOUNTER_ENEMY:
-			_draw_reward_encounter(encounter_data, tile_size, encounter_offset, openings)
+			_draw_reward_encounter(encounter_data, tile_size, encounter_offset, openings, lightweight_preview)
 
 	if highlight_enabled:
 		_add_highlight(tile_size, highlight_color)
@@ -317,10 +319,10 @@ func _add_encounter_plaza(tile_size: float, offset: Vector3, road_color: Color) 
 	add_child(plaza)
 
 
-func _draw_reward_encounter(encounter: Dictionary, tile_size: float, encounter_offset: Vector3, openings: Dictionary) -> void:
+func _draw_reward_encounter(encounter: Dictionary, tile_size: float, encounter_offset: Vector3, openings: Dictionary, lightweight_preview := false) -> void:
 	var kind := str(encounter.get("type", ""))
 	if kind == GameMap.ENCOUNTER_BERRY_BUSH:
-		_add_berry_bushes(tile_size, openings, encounter.get("depleted", false) != true)
+		_add_berry_bushes(tile_size, openings, encounter.get("depleted", false) != true, lightweight_preview)
 	elif kind == GameMap.ENCOUNTER_CACHE:
 		_add_box("Cache", Vector3(tile_size * 0.28, tile_size * 0.16, tile_size * 0.20), encounter_offset + Vector3(0.0, GROUND_HEIGHT + tile_size * 0.08, 0.0), VisualPalette.WOOD)
 	elif kind == GameMap.ENCOUNTER_CAMPFIRE:
@@ -503,11 +505,21 @@ func _add_bush(tile_size: float, offset: Vector3, berries := false, prefix := "B
 		_add_berry("%sBerryF" % prefix, tile_size * 0.020, offset + Vector3(-tile_size * 0.015, GROUND_HEIGHT + tile_size * 0.145, tile_size * 0.005), VisualPalette.BERRY.lightened(0.15))
 
 
-func _add_berry_bushes(tile_size: float, openings: Dictionary, berries: bool) -> void:
+func _add_berry_bushes(tile_size: float, openings: Dictionary, berries: bool, lightweight_preview := false) -> void:
 	var positions := _berry_bush_positions(openings)
-	for index in positions.size():
+	var max_bushes := mini(2, positions.size()) if lightweight_preview else positions.size()
+	for index in max_bushes:
 		var position_2d := positions[index]
-		_add_bush(tile_size, Vector3(position_2d.x * tile_size, 0.0, position_2d.y * tile_size), berries, "BerryBush%d" % index)
+		if lightweight_preview:
+			_add_lightweight_bush(tile_size, Vector3(position_2d.x * tile_size, 0.0, position_2d.y * tile_size), berries, "BerryBush%d" % index)
+		else:
+			_add_bush(tile_size, Vector3(position_2d.x * tile_size, 0.0, position_2d.y * tile_size), berries, "BerryBush%d" % index)
+
+
+func _add_lightweight_bush(tile_size: float, offset: Vector3, berries := false, prefix := "Bush") -> void:
+	_add_low_poly_sphere("%sPreviewCore" % prefix, tile_size * 0.095, offset + Vector3(0.0, GROUND_HEIGHT + tile_size * 0.075, 0.0), VisualPalette.FOLIAGE.lightened(0.04))
+	if berries:
+		_add_berry("%sPreviewBerry" % prefix, tile_size * 0.035, offset + Vector3(tile_size * 0.030, GROUND_HEIGHT + tile_size * 0.150, -tile_size * 0.025), VisualPalette.BERRY)
 
 
 func _berry_bush_positions(openings: Dictionary) -> Array[Vector2]:

@@ -58,6 +58,13 @@ extends Node3D
 		encounter_power_visible = value
 		_refresh_visuals()
 
+var preview_lightweight := false:
+	set(value):
+		if preview_lightweight == value:
+			return
+		preview_lightweight = value
+		_refresh_visuals()
+
 var enemy_data := {}:
 	get:
 		return encounter_data if _encounter_type() == GameMap.ENCOUNTER_ENEMY else {}
@@ -103,7 +110,8 @@ func configure_visual_state(
 	new_highlight_color: Color,
 	new_encounter_data: Dictionary,
 	new_encounter_power_visible: bool,
-	preview_encounter := false
+	preview_encounter := false,
+	new_preview_lightweight := false
 ) -> void:
 	_refresh_suspended = true
 	definition = new_definition
@@ -113,6 +121,7 @@ func configure_visual_state(
 	highlight_color = new_highlight_color
 	highlight_enabled = new_highlight_enabled
 	encounter_power_visible = new_encounter_power_visible
+	preview_lightweight = new_preview_lightweight
 	if preview_encounter:
 		set_preview_encounter_data(new_encounter_data)
 	else:
@@ -158,7 +167,8 @@ func _refresh_visuals() -> void:
 		encounter_data,
 		_encounter_plaza_visible,
 		enemy_offset if enemy_offset is Vector3 else Vector3.ZERO,
-		encounter_power_visible
+		encounter_power_visible,
+		preview_lightweight
 	)
 
 

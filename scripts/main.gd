@@ -1,19 +1,6 @@
 extends Node
 
 const ItemCatalog = preload("res://scripts/item_catalog.gd")
-
-const LEVELS: Array[Dictionary] = [
-	{"scene": preload("res://levels/level_001.tscn"), "name": "First Bend", "map_size": 5},
-	{"scene": preload("res://levels/level_002.tscn"), "name": "Twin Crossings", "map_size": 7},
-	{"scene": preload("res://levels/level_003.tscn"), "name": "Guarded Cut", "map_size": 9},
-	{"scene": preload("res://levels/level_004.tscn"), "name": "Crossroads", "map_size": 7},
-	{"scene": preload("res://levels/level_005.tscn"), "name": "Crooked Vale", "map_size": 9},
-	{"scene": preload("res://levels/level_006.tscn"), "name": "Still Fields", "map_size": 9},
-	{"scene": preload("res://levels/level_007.tscn"), "name": "Berry Trail", "map_size": 7},
-	{"scene": preload("res://levels/level_008.tscn"), "name": "Flooded Stones", "map_size": 9},
-	{"scene": preload("res://levels/level_009.tscn"), "name": "Raider's Road", "map_size": 9},
-	{"scene": preload("res://levels/level_010.tscn"), "name": "Northern Gate", "map_size": 11},
-]
 const SHOP_SCENE := preload("res://ui/shop.tscn")
 const START_SCREEN_SCENE := preload("res://ui/start_screen.tscn")
 const EXPEDITION_NAME_POPUP_SCENE := preload("res://ui/expedition_name_popup.tscn")
@@ -21,7 +8,6 @@ const TouchFeedback = preload("res://scripts/touch_feedback.gd")
 const RunStats = preload("res://scripts/run_stats.gd")
 const RunStatsTrackerScript = preload("res://scripts/run_stats_tracker.gd")
 
-const DEBUG_OVERLAY_SCENE := preload("res://ui/debug_overlay.tscn")
 const DEBUG_LABEL_TEXT := "Debug"
 const DEBUG_HAND_ACTIONS := {
 	"debug_hand_likely": "likely",
@@ -31,11 +17,16 @@ const DEBUG_HAND_ACTIONS := {
 	"debug_hand_events": "events",
 }
 
+@export var level_catalog: Resource = preload("res://data/level_catalog.tres")
+@export var debug_label_path: NodePath = NodePath("DebugOverlay/DebugLabel")
+@export var shop_layer_path: NodePath = NodePath("ShopLayer")
+@export var transition_shade_path: NodePath = NodePath("TransitionLayer/ForestFade")
+@export var transition_label_path: NodePath = NodePath("TransitionLayer/ForestFade/TransitionLabel")
+
 var _current_level_index := 0
 var _current_level: Node
 var _level_start_progression: Dictionary = {}
 var _debug_mode_enabled := false
-var _debug_layer: CanvasLayer
 var _debug_label: Label
 var _shop: Control
 var _shop_layer: CanvasLayer
@@ -43,7 +34,6 @@ var _shop_start_gold := 0
 var _start_screen: StartScreen
 var _expedition_popup: CanvasLayer
 var _run_stats_tracker := RunStatsTrackerScript.new()
-var _transition_layer: CanvasLayer
 var _transition_shade: ColorRect
 var _transition_label: Label
 var _transition_running := false
@@ -57,9 +47,8 @@ const LEVEL_COMPLETE_TEXT := "Road complete!\n+%d Gold" % LEVEL_COMPLETION_GOLD_
 
 func _ready() -> void:
 	ItemCatalog.initialize()
-	assert(not LEVELS.is_empty(), "At least one level must be configured")
-	_ensure_debug_overlay()
-	_ensure_transition_layer()
+	assert(level_catalog != null and level_catalog.size() > 0, "At least one level must be configured")
+	_bind_scene_nodes()
 	_run_stats_tracker.name = "RunStatsTracker"
 	add_child(_run_stats_tracker)
 	_show_start_screen()
@@ -105,13 +94,13 @@ func _debug_level_index_from_event(event: InputEvent) -> int:
 	var key_event := event as InputEventKey
 	var keycode := key_event.keycode
 	if keycode == KEY_0 or key_event.physical_keycode == KEY_0:
-		return 9 if LEVELS.size() >= 10 else -1
+		return 9 if _level_count() >= 10 else -1
 	if keycode < KEY_1 or keycode > KEY_9:
 		keycode = key_event.physical_keycode
 	if keycode < KEY_1 or keycode > KEY_9:
 		return -1
 	var level_index := int(keycode - KEY_1)
-	return level_index if level_index < LEVELS.size() else -1
+	return level_index if level_index < _level_count() else -1
 
 
 func _load_level(level_index: int) -> void:
@@ -122,8 +111,8 @@ func _load_level(level_index: int) -> void:
 		remove_child(_current_level)
 		_current_level.queue_free()
 
-	_current_level_index = clampi(level_index, 0, LEVELS.size() - 1)
-	var level_scene := LEVELS[_current_level_index].get("scene") as PackedScene
+	_current_level_index = clampi(level_index, 0, _level_count() - 1)
+	var level_scene := _level_data(_current_level_index).get("scene") as PackedScene
 	assert(level_scene != null, "Every configured level needs a PackedScene")
 	_current_level = level_scene.instantiate()
 	_current_level.name = "Level"
@@ -150,7 +139,7 @@ func _configure_level_end_screen() -> void:
 	var end_screen := _current_level.get_node_or_null("UI/GameOver") as GameOverUI
 	if end_screen == null:
 		return
-	end_screen.has_next_level = _current_level_index < LEVELS.size() - 1
+	end_screen.has_next_level = _current_level_index < _level_count() - 1
 	end_screen.show_level_complete_prompt = false
 	end_screen.run_stats_tracker = _run_stats_tracker
 	if not end_screen.next_level_requested.is_connected(_on_next_level_requested):
@@ -166,44 +155,17 @@ func _configure_level_end_screen() -> void:
 		_current_level.connect("goal_arrival_finished", Callable(self, "_on_goal_arrival_finished"))
 
 
-func _ensure_debug_overlay() -> void:
-	if _debug_layer != null:
-		return
-	_debug_layer = DEBUG_OVERLAY_SCENE.instantiate() as CanvasLayer
-	add_child(_debug_layer)
-	_debug_label = _debug_layer.get_node("DebugLabel") as Label
-
-
-func _ensure_transition_layer() -> void:
-	if _transition_layer != null:
-		return
-	_transition_layer = CanvasLayer.new()
-	_transition_layer.name = "TransitionLayer"
-	_transition_layer.layer = 100
-	add_child(_transition_layer)
-
-	_transition_shade = ColorRect.new()
-	_transition_shade.name = "ForestFade"
-	_transition_shade.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_transition_shade.mouse_filter = Control.MOUSE_FILTER_STOP
-	_transition_shade.color = Color(0.045, 0.10, 0.075, 0.0)
-	_transition_shade.visible = false
-	_transition_layer.add_child(_transition_shade)
-
-	_transition_label = Label.new()
-	_transition_label.name = "TransitionLabel"
-	_transition_label.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_transition_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_transition_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_transition_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_transition_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_transition_label.add_theme_color_override("font_color", Color(0.96, 0.88, 0.68, 1.0))
-	_transition_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.82))
-	_transition_label.add_theme_constant_override("shadow_offset_x", 3)
-	_transition_label.add_theme_constant_override("shadow_offset_y", 5)
-	_transition_label.add_theme_font_size_override("font_size", 34)
-	_transition_label.modulate.a = 0.0
-	_transition_shade.add_child(_transition_label)
+func _bind_scene_nodes() -> void:
+	_debug_label = get_node_or_null(debug_label_path) as Label
+	_shop_layer = get_node_or_null(shop_layer_path) as CanvasLayer
+	_transition_shade = get_node_or_null(transition_shade_path) as ColorRect
+	_transition_label = get_node_or_null(transition_label_path) as Label
+	if _debug_label == null:
+		push_warning("Main needs a DebugOverlay/DebugLabel scene node.")
+	if _shop_layer == null:
+		push_warning("Main needs a ShopLayer scene node.")
+	if _transition_shade == null or _transition_label == null:
+		push_warning("Main needs TransitionLayer/ForestFade/TransitionLabel scene nodes.")
 
 
 func _set_debug_mode_enabled(enabled: bool) -> void:
@@ -294,7 +256,7 @@ func _on_level_won() -> void:
 
 
 func _on_goal_arrival_finished() -> void:
-	if _current_level_index < LEVELS.size() - 1:
+	if _current_level_index < _level_count() - 1:
 		_open_shop_with_transition()
 
 
@@ -390,7 +352,7 @@ func _on_dream_restart_level_requested() -> void:
 
 
 func _open_shop() -> void:
-	if _shop != null or _current_level_index >= LEVELS.size() - 1:
+	if _shop != null or _current_level_index >= _level_count() - 1:
 		return
 	var progression := _capture_progression_with_extras(_level_start_progression)
 	var active_power := int(progression.get("active_power_bonus", 0))
@@ -406,13 +368,14 @@ func _open_shop() -> void:
 	_shop_start_gold = int(progression.get("gold", 0))
 	var deck_controller := _current_level.get_node_or_null("DeckController") as DeckController
 	var available_base_cards: Array = deck_controller.deck_components.get(DeckBuilder.DECK_SOURCE_BASE, []) if deck_controller != null else []
-	var next_level: Dictionary = LEVELS[_current_level_index + 1]
+	var next_level: Dictionary = _level_data(_current_level_index + 1)
 	var map_size := int(next_level.get("map_size", 5))
 	_shop = SHOP_SCENE.instantiate() as Control
-	_shop_layer = CanvasLayer.new()
-	_shop_layer.name = "ShopLayer"
-	_shop_layer.layer = 50
-	add_child(_shop_layer)
+	if _shop_layer == null:
+		push_warning("Cannot open shop without a ShopLayer node.")
+		_shop.queue_free()
+		_shop = null
+		return
 	_shop_layer.add_child(_shop)
 	_shop.setup(progression, str(next_level.get("name", "Level %d" % (_current_level_index + 2))), map_size, available_base_cards)
 	TouchFeedback.apply_to_tree(_shop)
@@ -441,9 +404,6 @@ func _close_shop() -> void:
 		return
 	_shop.queue_free()
 	_shop = null
-	if _shop_layer != null:
-		_shop_layer.queue_free()
-		_shop_layer = null
 
 
 func _transition_to_level(level_index: int, label_text: String) -> void:
@@ -487,7 +447,8 @@ func _open_shop_with_transition_async() -> void:
 
 
 func _begin_transition_cover(label_text: String, shade_color := FOREST_TRANSITION_COLOR) -> void:
-	_ensure_transition_layer()
+	if _transition_shade == null or _transition_label == null:
+		return
 	_transition_label.text = label_text
 	_transition_label.modulate.a = 1.0
 	_transition_label.scale = Vector2.ONE
@@ -507,7 +468,8 @@ func _finish_transition_async(hold_duration := 0.0) -> void:
 
 
 func _fade_transition_in(label_text: String, shade_color := FOREST_TRANSITION_COLOR) -> void:
-	_ensure_transition_layer()
+	if _transition_shade == null or _transition_label == null:
+		return
 	_transition_label.text = label_text
 	_transition_label.modulate.a = 0.0
 	_transition_label.scale = Vector2(0.98, 0.98)
@@ -525,7 +487,8 @@ func _fade_transition_in(label_text: String, shade_color := FOREST_TRANSITION_CO
 
 
 func _fade_transition_out() -> void:
-	_ensure_transition_layer()
+	if _transition_shade == null or _transition_label == null:
+		return
 	var tween := create_tween()
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_SINE)
@@ -537,10 +500,18 @@ func _fade_transition_out() -> void:
 
 
 func _level_transition_text(level_index: int) -> String:
-	var clamped_index := clampi(level_index, 0, LEVELS.size() - 1)
-	var level_data := LEVELS[clamped_index]
+	var clamped_index := clampi(level_index, 0, _level_count() - 1)
+	var level_data := _level_data(clamped_index)
 	return "%s\n%dx%d map" % [
 		str(level_data.get("name", "Level %d" % (clamped_index + 1))),
 		int(level_data.get("map_size", 5)),
 		int(level_data.get("map_size", 5)),
 	]
+
+
+func _level_count() -> int:
+	return level_catalog.size() if level_catalog != null else 0
+
+
+func _level_data(level_index: int) -> Dictionary:
+	return level_catalog.get_level(level_index) if level_catalog != null else {}

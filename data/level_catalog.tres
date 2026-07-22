@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="LevelCatalog" load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/level_catalog.gd" id="1_catalog"]
+[ext_resource type="PackedScene" path="res://levels/level_001.tscn" id="2_level_001"]
+[ext_resource type="PackedScene" path="res://levels/level_002.tscn" id="3_level_002"]
+[ext_resource type="PackedScene" path="res://levels/level_003.tscn" id="4_level_003"]
+[ext_resource type="PackedScene" path="res://levels/level_004.tscn" id="5_level_004"]
+[ext_resource type="PackedScene" path="res://levels/level_005.tscn" id="6_level_005"]
+[ext_resource type="PackedScene" path="res://levels/level_006.tscn" id="7_level_006"]
+[ext_resource type="PackedScene" path="res://levels/level_007.tscn" id="8_level_007"]
+[ext_resource type="PackedScene" path="res://levels/level_008.tscn" id="9_level_008"]
+[ext_resource type="PackedScene" path="res://levels/level_009.tscn" id="10_level_009"]
+[ext_resource type="PackedScene" path="res://levels/level_010.tscn" id="11_level_010"]
+
+[resource]
+script = ExtResource("1_catalog")
+level_scenes = [ExtResource("2_level_001"), ExtResource("3_level_002"), ExtResource("4_level_003"), ExtResource("5_level_004"), ExtResource("6_level_005"), ExtResource("7_level_006"), ExtResource("8_level_007"), ExtResource("9_level_008"), ExtResource("10_level_009"), ExtResource("11_level_010")]
+level_names = PackedStringArray("First Bend", "Twin Crossings", "Guarded Cut", "Crossroads", "Crooked Vale", "Still Fields", "Berry Trail", "Flooded Stones", "Raider's Road", "Northern Gate")
+map_sizes = PackedInt32Array(5, 7, 9, 7, 9, 9, 7, 9, 9, 11)
