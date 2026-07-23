@@ -1,7 +1,14 @@
-# Run on Android
+# Build and run on Android
 
 The Android export targets 64-bit ARM phones and locks the game to portrait
 orientation. Godot's debug keystore is sufficient for local device testing.
+
+## Automatic APK builds
+
+GitHub Actions builds a debug APK on pull requests, pushes to `main`, and
+manual workflow runs. The downloadable artifact is named
+`the-road-north-android-debug` and contains
+`the-road-north-debug.apk`.
 
 ## One-time setup on macOS
 
@@ -67,6 +74,9 @@ To build an APK without installing it:
 ```sh
 scripts/build_android.sh
 ```
+
+The script uses `godot` from `PATH` by default. Set `GODOT_BIN` if Godot 4.6.3
+is installed somewhere else.
 
 To install the built APK on a connected phone:
 

@@ -1,8 +1,19 @@
-# Deploy to GitHub Pages
+# Build and deploy web
 
-The `Web` export preset builds a full-viewport version of the game. Its
-fullscreen button requests browser fullscreen after a tap, because browsers do
-not allow pages to enter fullscreen automatically.
+The `Web` export preset builds the game in the same portrait format as the
+phone version. In a desktop browser, the game is centered and letterboxed to a
+9:16 viewport so UI scale and aspect stay consistent. Its fullscreen button
+requests browser fullscreen after a tap, because browsers do not allow pages to
+enter fullscreen automatically.
+
+## Automatic builds
+
+GitHub Actions builds the web version on pull requests, pushes to `main`, and
+manual workflow runs. The downloadable artifact is named
+`the-road-north-web`.
+
+Pushes to `main` and manual workflow runs also deploy the same web build to
+GitHub Pages.
 
 ## Enable GitHub Pages
 
@@ -22,8 +33,7 @@ https://reicher.github.io/The-Road-North/
 Install the Godot 4.6.3 export templates, then run:
 
 ```sh
-"/Users/robin.reicher/Downloads/Godot 2.app/Contents/MacOS/Godot" \
-  --headless --path . --export-release Web build/web/index.html
+godot --headless --path . --export-release Web build/web/index.html
 ```
 
 Serve the build through HTTP for local testing:
