@@ -71,7 +71,10 @@ func remove_tile(grid_position: Vector2i) -> void:
 
 
 func set_encounter(grid_position: Vector2i, encounter_data: Dictionary) -> bool:
-	if _map.get_tile(grid_position) == null:
+	var tile_data: Variant = _map.get_tile(grid_position)
+	if tile_data == null:
+		return false
+	if tile_data is Dictionary and not _bridge_allows_encounter(tile_data, encounter_data):
 		return false
 	var stored_encounter := _prepare_encounter(encounter_data)
 	_map.update_encounter_data(grid_position, stored_encounter)
@@ -102,7 +105,7 @@ func make_tile_data(definition: Resource, rotation_steps: int = 0, encounter_dat
 		"rotation_steps": normalized_rotation,
 		"connections": definition.get_rotated_openings(normalized_rotation),
 	}
-	if not encounter_data.is_empty():
+	if not encounter_data.is_empty() and _bridge_allows_encounter(tile_data, encounter_data):
 		tile_data["encounter"] = _prepare_encounter(encounter_data)
 	return tile_data
 
@@ -116,6 +119,13 @@ func _prepare_encounter(encounter_data: Dictionary) -> Dictionary:
 		encounter["health"] = 1
 		encounter["max_health"] = 1
 	return encounter
+
+
+func _bridge_allows_encounter(tile_data: Dictionary, encounter_data: Dictionary) -> bool:
+	var definition: Resource = tile_data.get("definition")
+	if definition == null or str(definition.get("visual_identity")) != "bridge":
+		return true
+	return str(encounter_data.get("type", "")) == GameMap.ENCOUNTER_ENEMY
 
 
 func _store_and_spawn_tile(grid_position: Vector2i, tile_data: Dictionary) -> bool:

@@ -14,6 +14,7 @@ const HINT_ROAD_DOESNT_FIT := "Road doesn't fit"
 const HINT_NO_TILE := "No tile to target"
 const HINT_NO_ENCOUNTER := "No encounter here"
 const HINT_HAS_ENCOUNTER := "Road already has an encounter"
+const HINT_BRIDGE_ENCOUNTER := "Only enemies on bridges"
 const HINT_NO_VALID_ROTATION := "No other playable rotation"
 
 var _map: GameMap
@@ -98,6 +99,8 @@ func get_tile_target_hint(grid_position: Vector2i, event_type: String) -> String
 			return HINT_NO_ENCOUNTER
 		if event_type != GameConstants.EVENT_CLEAR_PATH and not encounter.is_empty():
 			return HINT_HAS_ENCOUNTER
+		if event_type != GameConstants.EVENT_CLEAR_PATH and not _is_enemy_event(event_type) and _is_bridge_tile(grid_position):
+			return HINT_BRIDGE_ENCOUNTER
 	return ""
 
 
@@ -180,6 +183,8 @@ func is_valid_encounter_target(grid_position: Vector2i, event_type: String) -> b
 	var encounter := _map.get_encounter(grid_position)
 	if event_type == GameConstants.EVENT_CLEAR_PATH:
 		return not encounter.is_empty()
+	if not _is_enemy_event(event_type) and _is_bridge_tile(grid_position):
+		return false
 	return encounter.is_empty()
 
 
@@ -222,6 +227,18 @@ func _road_mismatches_player_tile(grid_position: Vector2i, connections: Dictiona
 func _is_river_feature(grid_position: Vector2i) -> bool:
 	var feature := _map.get_fixed_feature(grid_position)
 	return str(feature.get("type", "")) == GameConstants.FEATURE_RIVER
+
+
+func _is_bridge_tile(grid_position: Vector2i) -> bool:
+	var tile_data: Variant = _map.get_tile(grid_position)
+	if not (tile_data is Dictionary):
+		return false
+	var definition: Resource = tile_data.get("definition")
+	return definition != null and str(definition.get("visual_identity")) == "bridge"
+
+
+func _is_enemy_event(event_type: String) -> bool:
+	return event_type == GameConstants.EVENT_TROUBLE
 
 
 static func _direction_name_for_delta(delta: Vector2i) -> String:

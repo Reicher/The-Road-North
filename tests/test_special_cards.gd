@@ -57,6 +57,7 @@ func _initialize() -> void:
 	_test_fixed_base_deck(builder)
 	_test_fixed_level_two_deck(builder)
 	_test_fixed_level_three_deck(builder)
+	_test_bridges_only_receive_enemy_encounters(builder)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 17
 	var generated_cards := builder.make_deck(40, rng, {
@@ -184,6 +185,30 @@ func _test_fixed_level_three_deck(builder: DeckBuilder) -> void:
 		GameConstants.EVENT_ROTATE_TILE: 1,
 	}, "Expected the authored Level 3 event recipe")
 	_assert(not _contains_any_event(level_cards, [GameConstants.EVENT_RESTART_LEVEL]), "Expected Level 3 not to inject a Dream card")
+
+
+func _test_bridges_only_receive_enemy_encounters(builder: DeckBuilder) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 73
+	var cards := builder.make_deck(4, rng, {
+		"level": 2,
+		"map_size": 7,
+		"road_distribution": {"bridge": 4},
+		"road_definitions": {"bridge": BRIDGE_DEFINITION},
+		"special_roads": {
+			"enemy": 2,
+			"berry": 2,
+			"loot": 2,
+			"graveyard": 1,
+			GameConstants.ENCOUNTER_CAMPFIRE: 1,
+		},
+	})
+	for card in cards:
+		var definition: Resource = card.get("tile_definition")
+		if definition == null or str(definition.get("visual_identity")) != "bridge":
+			continue
+		var encounter_type := str((card.get("encounter", {}) as Dictionary).get("type", ""))
+		_assert(encounter_type.is_empty() or encounter_type == GameMap.ENCOUNTER_ENEMY, "Expected bridge cards to stay plain unless they carry an enemy")
 
 
 func _road_shape_counts(cards: Array) -> Dictionary:

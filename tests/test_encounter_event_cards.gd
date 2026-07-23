@@ -7,10 +7,12 @@ const HAND_SCENE := preload("res://ui/hand.tscn")
 const PLACEMENT_SCRIPT := preload("res://scripts/placement_controller.gd")
 const STRAIGHT := preload("res://data/road_straight.tres")
 const T_JUNCTION := preload("res://data/road_t_junction.tres")
+const BRIDGE := preload("res://data/road_bridge.tres")
 
 
 func _initialize() -> void:
 	_test_add_and_clear_encounters()
+	_test_only_enemies_can_be_added_to_bridges()
 	quit()
 
 
@@ -56,6 +58,50 @@ func _test_add_and_clear_encounters() -> void:
 	_assert(not placement.has_valid_preview(), "Expected Clear Path to reject a road without an encounter")
 	_assert(_get_hint(placement) == "No encounter here", "Expected empty Clear Path target to explain why it is invalid")
 	placement.cancel_placement()
+
+	root.queue_free()
+
+
+func _test_only_enemies_can_be_added_to_bridges() -> void:
+	var fixture := _make_fixture()
+	var root: Node = fixture["root"]
+	var map: GameMap = fixture["map"]
+	var roads: Roads = fixture["roads"]
+	var hand: HandUI = fixture["hand"]
+	var placement: PlacementController = fixture["placement"]
+	var target := Vector2i(4, 7)
+	roads.force_place_tile(target, BRIDGE, 0)
+
+	var trouble_card := hand.cards[0]
+	_assert(placement.begin_encounter_targeting(trouble_card), "Expected Trouble to enter targeting mode")
+	_set_initial_preview(placement, target)
+	_assert(placement.has_valid_preview(), "Expected Trouble to be valid on bridges")
+	_assert(placement.confirm_placement(), "Expected Trouble to add an enemy to a bridge")
+	_assert(str(map.get_encounter(target).get("type", "")) == GameMap.ENCOUNTER_ENEMY, "Expected bridge enemy to be stored")
+
+	var clear_card := hand.cards[0]
+	_assert(placement.begin_encounter_targeting(clear_card), "Expected Clear Path to enter targeting mode")
+	_set_initial_preview(placement, target)
+	_assert(placement.has_valid_preview(), "Expected Clear Path to remove a bridge enemy")
+	_assert(placement.confirm_placement(), "Expected Clear Path to confirm on a bridge enemy")
+	_assert(map.get_encounter(target).is_empty(), "Expected Clear Path to clear the bridge enemy")
+
+	var berries_card := _card_by_event_type(hand, GameConstants.EVENT_WILD_BERRIES)
+	_assert(placement.begin_encounter_targeting(berries_card), "Expected Wild Berries to enter targeting mode")
+	_set_initial_preview(placement, target)
+	_assert(not placement.has_valid_preview(), "Expected Wild Berries to be invalid on bridges")
+	_assert(_get_hint(placement) == "Only enemies on bridges", "Expected bridge reward target to explain why it is invalid")
+	placement.cancel_placement()
+
+	var lost_belongings_card := _card_by_event_type(hand, GameConstants.EVENT_LOST_BELONGINGS)
+	_assert(placement.begin_encounter_targeting(lost_belongings_card), "Expected Lost Belongings to enter targeting mode")
+	_set_initial_preview(placement, target)
+	_assert(not placement.has_valid_preview(), "Expected Lost Belongings to be invalid on bridges")
+	_assert(_get_hint(placement) == "Only enemies on bridges", "Expected bridge loot target to explain why it is invalid")
+	placement.cancel_placement()
+
+	_assert(not roads.set_encounter(target, {"type": GameMap.ENCOUNTER_BERRY_BUSH}), "Expected Roads to reject berry bushes on bridges")
+	_assert(map.get_encounter(target).is_empty(), "Expected rejected bridge berry to leave the map unchanged")
 
 	root.queue_free()
 
@@ -150,6 +196,13 @@ func _set_initial_preview(placement: PlacementController, grid_position: Vector2
 func _get_hint(placement: PlacementController) -> String:
 	var hint_label := placement.get_node("PlacementControls/PromptLabel") as Label
 	return hint_label.text if hint_label.visible else ""
+
+
+func _card_by_event_type(hand: HandUI, event_type: String) -> CardView:
+	for card in hand.cards:
+		if card.event_type == event_type:
+			return card
+	return null
 
 
 func _assert(condition: bool, message: String) -> void:

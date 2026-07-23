@@ -326,7 +326,7 @@ func scale_encounters_to_level(cards: Array, rng: RandomNumberGenerator, level: 
 func _add_reward_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, berry_count: int, loot_count: int, level: int, map_size: int) -> void:
 	var eligible_indices: Array[int] = []
 	for index in cards.size():
-		if not cards[index].has("encounter"):
+		if not cards[index].has("encounter") and not _is_bridge_card(cards[index]):
 			eligible_indices.append(index)
 	_shuffle_ints(eligible_indices, rng)
 
@@ -343,7 +343,7 @@ func _add_reward_encounters_to_road_cards(cards: Array[Dictionary], rng: RandomN
 func _add_graveyards_to_road_cards(cards: Array[Dictionary], rng: RandomNumberGenerator, graveyard_count: int) -> void:
 	var eligible_indices: Array[int] = []
 	for index in cards.size():
-		if not cards[index].has("encounter"):
+		if not cards[index].has("encounter") and not _is_bridge_card(cards[index]):
 			eligible_indices.append(index)
 	_shuffle_ints(eligible_indices, rng)
 	for index in mini(graveyard_count, eligible_indices.size()):
@@ -359,7 +359,7 @@ func _add_permanent_encounters_to_road_cards(cards: Array[Dictionary], rng: Rand
 			continue
 		var eligible_indices: Array[int] = []
 		for index in cards.size():
-			if not cards[index].has("encounter"):
+			if not cards[index].has("encounter") and not _is_bridge_card(cards[index]):
 				eligible_indices.append(index)
 		_shuffle_ints(eligible_indices, rng)
 		for index in mini(count, eligible_indices.size()):
@@ -386,6 +386,11 @@ func _set_card_encounter(card: Dictionary, encounter: Dictionary) -> void:
 	var definition = card.get("card_definition")
 	if definition is CARD_DEFINITION_SCRIPT:
 		definition.encounter = encounter.duplicate(true)
+
+
+func _is_bridge_card(card: Dictionary) -> bool:
+	var definition: Resource = card.get("tile_definition")
+	return definition != null and str(definition.get("visual_identity")) == "bridge"
 
 
 func _make_reward_encounter(kind: Variant, rng: RandomNumberGenerator, level: int, map_size := 1) -> Dictionary:
